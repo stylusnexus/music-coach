@@ -90,6 +90,7 @@ DRUM_KITS = [
 # Folders of loops worth cutting up in the sampling lesson.
 LOOP_FOLDERS = [
     ("Minipops drum loops", "Drum Machines/Minipops Snacks From Mars/WAV/01. Loops"),
+    ("CR-78 drum loops", "Drum Machines/CR78 From Mars/WAV/Drum Loops 120 BPM/Clean"),
     ("VP-330 string loops", "Vintage Synths/VP330 From Mars/SVC350 Loops/01. WAV"),
     ("Tape fragments", "Tape and Texture/Tape Fragments From Mars/WAV"),
     ("Ambient loops", "Ambient Loops"),

@@ -112,6 +112,18 @@ class SampleFoldersTest(unittest.TestCase):
             self.assertIsNone(server.local_sample_path("notes.txt", [a, b]))
             self.assertIsNone(server.local_sample_path("../A/Vintage Synths", [a, b]))
 
+    def test_cr78_clean_loops_are_a_named_pack(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            loops = Path(tmp, "Drum Machines/CR78 From Mars/WAV/Drum Loops 120 BPM")
+            (loops / "Clean/A").mkdir(parents=True)
+            (loops / "Distorted/A").mkdir(parents=True)
+            (loops / "Clean/A/Rock_1_CR78.wav").write_text("")
+            (loops / "Distorted/A/Rock_1_Dist_CR78.wav").write_text("")
+            groups = server.loop_files(Path(tmp))
+            self.assertEqual([(g["label"], g["files"]) for g in groups], [
+                ("CR-78 drum loops", ["Drum Machines/CR78 From Mars/WAV/Drum Loops 120 BPM/Clean/A/Rock_1_CR78.wav"]),
+            ])
+
 
 class GearPrefsTest(unittest.TestCase):
     def setUp(self):
