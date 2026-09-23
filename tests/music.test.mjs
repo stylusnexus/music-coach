@@ -162,6 +162,16 @@ test('every lesson chord and target is a known chord', () => {
   }
 });
 
+test('every lesson key and scale is one the app knows', async () => {
+  const { parseKey, SCALES } = await import('../web/music.js');
+  for (const l of LESSONS) {
+    if (l.setup?.key) assert.ok(parseKey(l.setup.key), `${l.id}: setup.key ${l.setup.key}`);
+    for (const c of l.checks.filter((x) => x.type === 'scaleNotes')) {
+      assert.ok(c.key ? parseKey(c.key) : SCALES[c.scale], `${l.id}: ${c.key || c.scale}`);
+    }
+  }
+});
+
 test('chord patterns play the whole chord on their beats only', async () => {
   const { arpNotes } = await import('../web/music.js');
   assert.deepEqual(arpNotes('offbeat', [67, 60, 64], 2), [60, 64, 67]);
