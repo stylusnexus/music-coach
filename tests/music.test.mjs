@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -263,6 +264,73 @@ test('gear: groups by kind and family, hides T-RackS 5 copies, searches all word
   assert.deepEqual(searchGear(groups, 'tr5').flatMap((g) => g.items.map((i) => i.name)), ['TR5 CSR Plate']);
   assert.deepEqual(searchGear(groups, 'guitar ujam').flatMap((g) => g.items.map((i) => i.name)), ['VG-SPARKLE2']);
   assert.equal(searchGear(groups, 'zzz').length, 0);
+});
+
+test('gear: the coach model sorts and describes only what the tables do not know', async () => {
+  const { groupPlugins, unlabelled, EFFECT_FAMILIES, INSTRUMENT_FAMILIES } = await import('../web/gear.js');
+  const plugins = [
+    { name: 'CSR Plate v6', maker: 'IK Multimedia', kind: 'effect' },
+    { name: 'Hypnus', maker: 'Acme', kind: 'instrument' },
+    { name: 'Zorbo', maker: 'Acme', kind: 'effect' },
+    { name: 'Arp Thing', maker: 'Acme', kind: 'midi' },
+  ];
+  assert.deepEqual(unlabelled(plugins).map((p) => p.name), ['Hypnus', 'Zorbo']);
+  const labels = {
+    'Acme|Hypnus': { family: 'Synthesizers', description: 'A synth for pads.', good_for: ['synth'] },
+    'Acme|Zorbo': { family: '', description: '', good_for: [] },
+    'IK Multimedia|CSR Plate v6': { family: 'EQ and tone', description: 'Wrong.', good_for: [] },
+  };
+  assert.deepEqual(unlabelled(plugins, labels), []);
+  const groups = groupPlugins(plugins, labels);
+  const where = (n) => groups.find((g) => g.items.some((i) => i.name === n));
+  assert.equal(where('Hypnus').title, 'Synthesizers');
+  assert.equal(where('Hypnus').items[0].description, 'A synth for pads.');
+  assert.equal(where('Zorbo').title, 'Other effects'); // "unknown" stays Other
+  // Hand-written tables win over the model.
+  assert.equal(where('CSR Plate v6').title, 'Reverbs');
+  assert.notEqual(where('CSR Plate v6').items[0].description, 'Wrong.');
+  // The server offers the model exactly these families.
+  const server = readFileSync(new URL('../server.py', import.meta.url), 'utf8');
+  for (const f of [...EFFECT_FAMILIES, ...INSTRUMENT_FAMILIES]) assert.ok(server.includes(`"${f.title}"`), f.title);
+});
+
+test('gear: model tags fill only jobs nothing added by hand covers, and keep plugin names as written', async () => {
+  const { gearTags } = await import('../web/gear.js');
+  const { gearName } = await import('../web/lessons.js');
+  const plugins = [
+    { name: 'Glue', maker: 'Acme', kind: 'effect' },
+    { name: 'Hall', maker: 'Acme', kind: 'effect' },
+    { name: 'Gone', maker: 'Acme', kind: 'effect' },
+  ];
+  const labels = {
+    'Acme|Glue': { family: 'Reverbs', description: '', good_for: ['reverb'] },
+    'Acme|Hall': { family: 'Reverbs', description: '', good_for: ['reverb', 'echo'] },
+    'Acme|Gone': { family: 'Chorus and movement', description: '', good_for: ['chorus'] },
+  };
+  const tags = gearTags([{ name: 'Big Muff', tag: 'fuzz' }, { name: 'Space box', tag: 'reverb' }], plugins, labels, ['Gone']);
+  assert.deepEqual(tags, { fuzz: 'Big Muff', reverb: 'Space box', echo: 'Hall' });
+  assert.equal(gearName('echo', { installed: ['Hall'], tags: { echo: 'Hall' } }), 'your Hall');
+  assert.equal(gearName('echo', { installed: [], tags: { echo: 'Studio echo' } }), 'your studio echo');
+});
+
+test('gear: what you say a plugin is beats the name rules and the coach model', async () => {
+  const { groupPlugins, gearTags, unlabelled } = await import('../web/gear.js');
+  const plugins = [
+    { name: 'Room Maker', maker: 'Acme', kind: 'effect' }, // the name says reverb
+    { name: 'Zorbo', maker: 'Acme', kind: 'instrument' },
+    { name: 'CSR Plate v6', maker: 'IK Multimedia', kind: 'effect' }, // hand-written: no menu
+  ];
+  const labels = { 'Acme|Zorbo': { family: 'Synthesizers', description: '', good_for: ['synth'] } };
+  const slots = { 'Room Maker': 'echo', Zorbo: 'bass' };
+  const groups = groupPlugins(plugins, labels, slots);
+  const item = (n) => groups.flatMap((g) => g.items.map((i) => ({ ...i, group: g.title }))).find((i) => i.name === n);
+  assert.equal(item('Room Maker').group, 'Echoes and delays');
+  assert.equal(item('Room Maker').slot, 'echo');
+  assert.equal(item('Zorbo').group, 'Bass and drums');
+  assert.equal(item('CSR Plate v6').slottable, false);
+  assert.equal(item('Zorbo').slottable, true);
+  assert.deepEqual(gearTags([], plugins, labels, [], slots), { echo: 'Room Maker', bass: 'Zorbo' });
+  assert.deepEqual(unlabelled(plugins, {}, slots).map((p) => p.name), []);
 });
 
 test('new-wave bass pumps the root on eighths, jumping an octave on the offbeat', async () => {

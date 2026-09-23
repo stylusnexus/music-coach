@@ -32,9 +32,11 @@ function gearEnv(env) {
   };
 }
 
-// "Studio headphones" reads as "your studio headphones"; brand names keep their capitals.
-function yours(name) {
-  return `your ${/^[A-Z][a-z]+( [a-z]+)*$/.test(name) ? name[0].toLowerCase() + name.slice(1) : name}`;
+// "Studio headphones" reads as "your studio headphones"; brand names and plugin names
+// keep their capitals.
+function yours(name, e) {
+  const plain = /^[A-Z][a-z]+( [a-z]+)*$/.test(name) && !e?.installed.has(name);
+  return `your ${plain ? name[0].toLowerCase() + name.slice(1) : name}`;
 }
 
 function preferred(key, e) {
@@ -48,7 +50,7 @@ export function gearName(key, env) {
   const idx = preferred(key, e);
   if (idx !== -1) return g.labels ? g.labels[idx] : g.label;
   // Gear added by hand with this job's tag: only the name swaps, never the steps.
-  if (e.tags[key]) return yours(e.tags[key]);
+  if (e.tags[key]) return yours(e.tags[key], e);
   return g.fallback;
 }
 
@@ -111,7 +113,7 @@ const PHRASES = {
   gbWhy: (e) => (e.durutti ? 'the Durutti sound' : 'the sound'),
   susLove: (e) => (e.durutti ? 'shoegaze and Durutti' : 'shoegaze and ambient music'),
   micStep: (e) => (e.tags.microphone || !e.loopGroups.size
-    ? `Record your own: press ● Record a sound${e.tags.microphone ? ` with ${yours(e.tags.microphone)}` : ''} and make a noise for a few seconds: your voice, a cup, keys, a door. It is cut into 8 slices the same way. Can and Cluster sampled the room around them.`
+    ? `Record your own: press ● Record a sound${e.tags.microphone ? ` with ${yours(e.tags.microphone, e)}` : ''} and make a noise for a few seconds: your voice, a cup, keys, a door. It is cut into 8 slices the same way. Can and Cluster sampled the room around them.`
     : ''),
 };
 

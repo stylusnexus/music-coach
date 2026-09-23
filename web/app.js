@@ -7,7 +7,7 @@ import {
   sliceForNote, tempoFromName, voicing, writeMidi, METERS, meterOf, patternStep,
 } from './music.js';
 import { KEY_MODES, parseKey } from './music.js';
-import { groupPlugins, searchGear } from './gear.js';
+import { SLOTS, gearTags, groupPlugins, searchGear, slotFor, unlabelled } from './gear.js';
 import { compareCards, comparePairs, measureTake, scoreAreas } from './takes.js';
 import { DRILLS, makeQuestion, streakDots } from './ear.js';
 import { INTERVALS, KEY_TEXT, MAJOR_MINOR, STYLE_CHORDS } from './chords.js';
@@ -67,6 +67,11 @@ let instruments = []; // every instrument: [{id, label, recorded, samples}]
 let drumKits = []; // recorded drum kits: [{id, label, sounds}]
 let loops = []; // loops for the sampler: [{label, files}]
 let pluginDetails = []; // installed plugins: [{name, maker, kind}]
+let gearLabels = {}; // what the coach model said about plugins, by maker|name
+let describing = 0; // plugins being sorted by the coach model right now
+let describeAgain = false; // coach settings changed mid-sort: sort again after
+let describeError = '';
+let movedSlots = {}; // plugins sorted since Your gear opened: name -> what it was, so rows stay put
 let progress = { current: LESSONS[0].id, completed: {}, checks: {} };
 let lesson = LESSONS[0];
 let checker = createChecker(lesson);
@@ -87,8 +92,7 @@ function saveProgress() {
 
 // What this Mac has, for lesson text: see gearEnv in lessons.js.
 function lessonEnv() {
-  const tags = {};
-  for (const a of gear.added) if (a.tag && !tags[a.tag]) tags[a.tag] = a.name;
+  const tags = gearTags(gear.added, pluginDetails, gearLabels, gear.hidden, gear.slots || {});
   const folder = gear.folders.find((f) => f.found) || gear.folders[0];
   return {
     installed: gear.plugins,
@@ -162,7 +166,18 @@ function styleIds(sec) {
   return { shown: state.showAllStyles ? [...picked, ...rest] : picked, rest };
 }
 
+// A nudge for people who skipped gear setup. "Not now" hides it for 3 finished lessons;
+// after the second "Not now", or once any gear is added or sorted, it is gone for good.
+function renderGearReminder() {
+  const r = progress.gearReminder || { dismissed: 0, at: 0 };
+  const done = Object.keys(progress.completed).length;
+  const hasGear = gear.added.length || gear.folders.length || Object.keys(gear.slots || {}).length;
+  const due = r.dismissed === 0 || (r.dismissed === 1 && done >= r.at + 3);
+  $('gear-reminder').hidden = !gear.setupDone || Boolean(hasGear) || !due;
+}
+
 function renderLessonList() {
+  renderGearReminder();
   const list = $('lesson-list');
   list.innerHTML = '';
   for (const sec of SECTIONS) {
@@ -2571,9 +2586,9 @@ const TAG_NAMES = {
   drums: 'Drums',
 };
 
-function tagOptions(selected) {
+function tagOptions(selected, unset = 'No job in lessons') {
   return Object.entries(TAG_NAMES)
-    .map(([v, name]) => `<option value="${v}"${v === selected ? ' selected' : ''}>${esc(v ? name : 'No tag')}</option>`)
+    .map(([v, name]) => `<option value="${v}"${v === selected ? ' selected' : ''}>${esc(v ? name : unset)}</option>`)
     .join('');
 }
 
@@ -2615,7 +2630,7 @@ function gearGroups() {
       title: 'Added by you',
       note: 'The tag tells lessons what each one is for.',
       open: true,
-      items: gear.added.map((a) => ({ name: a.name, maker: a.kind === 'plugin' ? 'plugin' : 'hardware', description: '', tag: a.tag, remove: { added: a.name } })),
+      items: gear.added.map((a) => ({ name: a.name, maker: a.kind === 'plugin' ? 'plugin' : 'hardware', description: '', tag: a.tag, noJob: a.noJob, remove: { added: a.name } })),
     });
   }
   groups.push({
@@ -2634,7 +2649,24 @@ function gearGroups() {
     ],
   });
   const shown = pluginDetails.filter((p) => !hidden.has(p.name));
-  for (const grp of groupPlugins(shown)) groups.push({ ...grp, items: grp.items.map((i) => ({ ...i, remove: { plugin: i.name } })) });
+  const slots = gear.slots || {};
+  // A row you just sorted stays where it was until Your gear is opened again.
+  const placed = { ...slots };
+  for (const [name, was] of Object.entries(movedSlots)) {
+    if (was) placed[name] = was;
+    else delete placed[name];
+  }
+  for (const grp of groupPlugins(shown, gearLabels, placed)) {
+    groups.push({
+      ...grp,
+      items: grp.items.map((i) => ({
+        ...i,
+        slot: slots[i.name] || '',
+        moved: i.name in movedSlots ? { to: slotFor(i, slots)?.family || '', was: movedSlots[i.name] } : null,
+        remove: { plugin: i.name },
+      })),
+    });
+  }
   if (gear.installers?.length) {
     groups.push({
       title: 'Downloaded but never installed',
@@ -2653,10 +2685,24 @@ function gearGroups() {
   return groups;
 }
 
-function gearItem(i) {
-  const tag = i.remove?.added !== undefined
-    ? ` <select class="gear-tag" data-name="${esc(i.name)}" aria-label="What ${esc(i.name)} is for">${tagOptions(i.tag)}</select>`
+function slotOptions(kind, selected, unset) {
+  return [{ id: '', label: unset }, ...(SLOTS[kind] || [])]
+    .map((s) => `<option value="${s.id}"${s.id === selected ? ' selected' : ''}>${esc(s.label)}</option>`)
+    .join('');
+}
+
+function gearItem(i, group) {
+  const other = /^Other /.test(group.title);
+  const moved = i.moved
+    ? ` <span class="gear-moved">✓ ${i.moved.to ? `Now in ${esc(i.moved.to)}` : 'The app sorts it again'} · <button class="link gear-undo" type="button" data-name="${esc(i.name)}" data-was="${esc(i.moved.was)}">Undo</button></span>`
     : '';
+  const tag = i.remove?.added !== undefined
+    ? i.noJob
+      ? ' <span class="gear-nojob">Lessons don't have a job for this yet.</span>'
+      : ` <select class="gear-tag${i.tag ? ' set' : ''}" data-name="${esc(i.name)}" aria-label="What ${esc(i.name)} is for">${tagOptions(i.tag, 'What is it for?')}</select>`
+    : i.slottable && SLOTS[i.kind]
+      ? `${moved} <select class="gear-slot${i.slot ? ' set' : ''}" data-name="${esc(i.name)}" aria-label="What ${esc(i.name)} is">${slotOptions(i.kind, i.slot, i.slot ? 'Let the app sort it' : other ? 'What is it?' : 'Change')}</select>`
+      : '';
   const action = i.remove
     ? `<button class="gear-x ghost" data-remove='${esc(JSON.stringify(i.remove))}' aria-label="Remove ${esc(i.name)}" title="Remove">×</button>`
     : i.restore
@@ -2673,10 +2719,13 @@ function renderGear() {
     body.innerHTML = `<p class="empty">Nothing matches "${esc(query)}".</p>`;
     return;
   }
-  body.innerHTML = groups
+  const status = describing
+    ? `<p class="group-note">Sorting ${describing} plugin${describing === 1 ? '' : 's'} this app doesn't know yet, with your coach model…</p>`
+    : describeError ? `<p class="group-note">Couldn't sort your other plugins: ${esc(describeError)}</p>` : '';
+  body.innerHTML = (query.trim() ? '' : status) + groups
     .map((grp) => {
       const open = query.trim() || grp.open || grp.items.length <= 4 ? ' open' : '';
-      return `<details${open}><summary>${esc(grp.title)} <span class="count">(${grp.items.length})</span></summary>${grp.note ? `<p class="group-note">${esc(grp.note)}</p>` : ''}<ul>${grp.items.map(gearItem).join('')}</ul></details>`;
+      return `<details${open}><summary>${esc(grp.title)} <span class="count">(${grp.items.length})</span></summary>${grp.note ? `<p class="group-note">${esc(grp.note)}</p>` : ''}<ul>${grp.items.map((i) => gearItem(i, grp)).join('')}</ul></details>`;
     })
     .join('');
   if (!query.trim() && gear.zippedPacks?.length) {
@@ -2819,6 +2868,14 @@ function wireGearDrop() {
   $('gear-body').addEventListener('click', async (e) => {
     const x = e.target.closest('[data-remove]');
     if (x) await removeGear(JSON.parse(x.dataset.remove));
+    const undo = e.target.closest('.gear-undo');
+    if (undo) {
+      const name = undo.dataset.name;
+      await changeGear({ op: 'slot', name, slot: undo.dataset.was });
+      delete movedSlots[name];
+      renderGear();
+      return;
+    }
     const r = e.target.closest('[data-restore]');
     if (r) {
       await changeGear({ op: 'unhide', name: r.dataset.restore });
@@ -2826,6 +2883,14 @@ function wireGearDrop() {
     }
   });
   $('gear-body').addEventListener('change', async (e) => {
+    const slot = e.target.closest('.gear-slot');
+    if (slot) {
+      const name = slot.dataset.name;
+      if (!(name in movedSlots)) movedSlots[name] = (gear.slots || {})[name] || '';
+      await changeGear({ op: 'slot', name, slot: slot.value });
+      [...document.querySelectorAll('#gear-body .gear-slot')].find((s) => s.dataset.name === name)?.focus();
+      return;
+    }
     const sel = e.target.closest('.gear-tag');
     if (!sel) return;
     await changeGear({ op: 'tag', name: sel.dataset.name, tag: sel.value });
@@ -2837,7 +2902,44 @@ function wireGearDrop() {
   };
 }
 
+// Ask the coach model about plugins nothing here describes. Each is sent once: name, maker, kind.
+async function describeGear() {
+  const hidden = new Set(gear.hidden);
+  const todo = unlabelled(pluginDetails.filter((p) => !hidden.has(p.name)), gearLabels, gear.slots || {});
+  if (describing) {
+    describeAgain = true;
+    return;
+  }
+  if (!todo.length) return;
+  describing = todo.length;
+  describeError = '';
+  renderGear();
+  try {
+    const res = await fetch('/api/gear/describe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ names: todo.map((p) => p.name) }),
+    });
+    const body = res.headers.get('Content-Type')?.includes('json') ? await res.json() : {};
+    if (body.labels) gearLabels = body.labels;
+    if (res.status === 409) describeError = 'another window of this app is sorting them now. Reopen Your gear in a minute.';
+    else if (!res.ok) describeError = body.error || `the app's server said no (${res.status}).`;
+    else if (body.status === 'error') describeError = body.message || 'the coach model sent an error.';
+  } catch {
+    describeError = 'the app could not reach its server.';
+  }
+  describing = 0;
+  if (describeAgain) {
+    describeAgain = false;
+    describeGear();
+  }
+  renderGear();
+  renderFxNote();
+  renderLessonList();
+}
+
 function openGear(welcome) {
+  movedSlots = {};
   $('gear-search').value = '';
   $('gear-welcome').hidden = !welcome;
   gearNote('');
@@ -2895,6 +2997,7 @@ async function saveCoach(extra = {}) {
   coach = body;
   $('coach-key').value = '';
   renderCoach();
+  if (coach.ready) describeGear(); // a model to ask now: sort the plugins nothing here describes
   renderCoachTop();
   return true;
 }
@@ -2972,6 +3075,14 @@ async function boot() {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) ask();
   });
   $('gear-btn').onclick = () => openGear(false);
+  $('reminder-gear').onclick = () => openGear(false);
+  $('reminder-close').onclick = () => {
+    const r = progress.gearReminder || { dismissed: 0, at: 0 };
+    progress.gearReminder = { dismissed: r.dismissed + 1, at: Object.keys(progress.completed).length };
+    saveProgress();
+    renderGearReminder();
+    $('lesson-list').querySelector('button')?.focus();
+  };
   $('gear-dialog').addEventListener('close', () => {
     welcomeAdvancing = false;
     // Closing the welcome counts as setup done, whatever was added.
@@ -3016,14 +3127,16 @@ async function boot() {
     $('app-version').textContent = `v${version}`;
     $('coach-version').textContent = `Music Coach v${version}`;
   });
-  const [g, p, inst, kits, loopList, plugins] = await Promise.all([
+  const [g, p, inst, kits, loopList, plugins, labels] = await Promise.all([
     loadJson('/api/gear', gear), loadJson('/api/progress', {}), loadJson('/api/instruments', []),
     loadJson('/api/drumkits', []), loadJson('/api/loops', []), loadJson('/api/plugins', []),
+    loadJson('/api/gear/labels', {}),
   ]);
   instruments = inst;
   drumKits = kits;
   loops = loopList;
   pluginDetails = plugins;
+  gearLabels = labels;
   renderKits();
   if (p.grid) state.grid = { ...state.grid, ...p.grid };
   renderGrid();
@@ -3031,6 +3144,7 @@ async function boot() {
   renderSoundButtons();
   setGear(g);
   renderFxNote();
+  describeGear();
   progress = { ...progress, ...p, completed: { ...(p.completed || {}) }, checks: { ...(p.checks || {}) } };
   // Open where to start: the first unfinished lesson that is not locked.
   // A copy that began before the style picker keeps its Durutti examples and every style.

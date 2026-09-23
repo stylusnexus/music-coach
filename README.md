@@ -17,8 +17,8 @@ and your computer keys work too.
 
 ![Music Coach: a lesson, the chord display and the keyboard](docs/img/app.jpg)
 
-It runs on your Mac and opens in Chrome. Nothing is uploaded, and there's no
-account.
+It runs on your Mac and opens in Chrome. Your files stay on your Mac, and
+there's no account.
 
 ## Why this exists
 
@@ -59,9 +59,11 @@ you.
 - **Ear lab:** short ear-training drills that unlock as you go.
 - **A take coach:** record a take and it scores chords, timing, feel, sound and
   ending from what it measured. It can't hear you; it only scores the numbers.
-- **Your gear:** it finds the plugins on your Mac. You can add sample folders
-  and hardware, or remove anything. Lessons name your own gear when you have
-  it, and GarageBand's built-in effects when you don't.
+- **Your gear:** it finds the plugins on your Mac and sorts them by what they
+  do. With a coach model set up, it also sorts and describes plugins it
+  doesn't recognise. You can add sample folders and hardware, or remove
+  anything. Lessons name your own gear when you have it, and GarageBand's
+  built-in effects when you don't.
 
 ## What you need
 
@@ -147,7 +149,12 @@ The practice room's own sounds are simple stand-ins, there so you can hear chord
 Everything runs on your Mac. Your progress, gear list, sketches and key stay
 in local files. The app goes online only in two cases:
 
-- when you pick an online coach model, and then only to that service;
+- when you pick an online coach model, and then only to that service. It
+  gets your questions and your take's numbers. To sort plugins the app
+  doesn't recognise, it also gets their names, makers and type (instrument
+  or effect), once each, plus the names of gear you add by hand. Your
+  folders, samples, sketches and recordings are never sent. With LM Studio,
+  none of this leaves your Mac;
 - when you press **Hear it** on a style, which loads that track's player from
   Bandcamp. Bandcamp, and the analytics its player uses, see that visit.
   Nothing loads until you press it.
@@ -159,6 +166,7 @@ When you run from source:
 - `sketches/`: your saved MIDI sketches.
 - `data/progress.json`: which lessons you've finished.
 - `data/gear.json`: your sample folders, gear added by hand, gear you removed.
+- `data/gear-labels.json`: what the coach model said about your plugins.
 - `data/coach.json`: which coach model answers, and your API key.
 
 The packaged app keeps these in `~/Library/Application Support/Music Coach`,
