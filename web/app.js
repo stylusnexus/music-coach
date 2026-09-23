@@ -11,7 +11,7 @@ import { measureTake, scoreAreas } from './takes.js';
 import { DRILLS, makeQuestion, streakDots } from './ear.js';
 import { INTERVALS, KEY_TEXT, MAJOR_MINOR, STYLE_CHORDS } from './chords.js';
 import { Looper } from './looper.js';
-import { LESSONS, PICKER_ORDER, SECTIONS, STYLE_INFO, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonHighlightPcs, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from './lessons.js';
+import { LESSONS, LISTEN, PICKER_ORDER, SECTIONS, STYLE_INFO, bandcampEmbed, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonHighlightPcs, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from './lessons.js';
 
 const $ = (id) => document.getElementById(id);
 const KEY_LOW = 48;
@@ -196,6 +196,45 @@ function renderLessonList() {
   }
 }
 
+// "Hear it": a real recording of the style, from Bandcamp. Nothing loads from the
+// internet until the button is pressed.
+function hearIt(box, id, slim = false) {
+  const listen = LISTEN[id];
+  box.innerHTML = '';
+  box.hidden = !listen;
+  if (!listen) return;
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'link';
+  b.textContent = `▶ Hear the real thing: ${listen.artist}, ${listen.title}`;
+  const note = document.createElement('span');
+  note.className = 'muted';
+  note.textContent = ' (plays from Bandcamp)';
+  b.onclick = () => {
+    const link = document.createElement('a');
+    link.href = listen.url;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.className = 'muted';
+    if (!navigator.onLine) {
+      // Offline: no player to load, just the page for later.
+      link.textContent = `No internet right now. Open ${listen.title} by ${listen.artist} on Bandcamp later.`;
+      box.replaceChildren(link);
+      return;
+    }
+    // Bandcamp's embed code: the player, with a link inside for browsers that can't show it.
+    const frame = document.createElement('iframe');
+    frame.src = bandcampEmbed(listen, slim);
+    frame.className = slim ? 'slim' : '';
+    frame.title = `${listen.title} by ${listen.artist}, on Bandcamp`;
+    frame.setAttribute('seamless', '');
+    link.textContent = `${listen.title} by ${listen.artist}`;
+    frame.append(link);
+    box.replaceChildren(frame);
+  };
+  box.append(b, note);
+}
+
 // On a style lesson, name the optional gear that would bring it closer to the record.
 function renderBetterWith() {
   const missing = STYLE_INFO[lesson.id] ? missingBetterWith(lesson.id, lessonEnv()) : [];
@@ -245,6 +284,13 @@ function renderStyles() {
     pick.querySelector('.sound').textContent = info.sound;
     pick.onclick = () => toggleStyle(id);
     card.append(pick);
+    if (LISTEN[id]) {
+      const hear = document.createElement('div');
+      hear.className = 'hear';
+      hearIt(hear, id, true);
+      hear.querySelector('button').textContent = '▶ Hear it';
+      card.append(hear);
+    }
     if (lockReason(id, progress.completed, progress.unlocked)) {
       const lock = document.createElement('p');
       lock.className = 'lock';
@@ -341,6 +387,7 @@ function openLesson(id) {
   $('lesson-title').textContent = lesson.title;
   $('lesson-minutes').textContent = `about ${lesson.minutes} min`;
   $('lesson-why').textContent = resolveGear(lesson.why, lessonEnv());
+  hearIt($('lesson-listen'), lesson.id);
   renderBetterWith();
   // The Key bar follows the lesson, so the keys a lesson asks for are never greyed.
   const key = keyForLesson(lesson);
