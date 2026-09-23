@@ -32,7 +32,7 @@ you.
 
 ## What's inside
 
-- **30 short lessons in four sections.**
+- **42 short lessons in four sections.**
   - **Basics:** your first chord, four chords that carry a song, major and
     minor, letting an arpeggiator do the picking, a drum machine, 7th chords,
     recording a sketch, and taking it to GarageBand.
@@ -40,13 +40,17 @@ you.
     in layers with the looper.
   - **GarageBand skills:** the map, drag and drop, the grid, the Piano Roll,
     multi-tracking, blending, fades, exporting. Each step has a screenshot.
-  - **Styles:** kosmische, Eno-style ambient, dark ambient, Stereolab, new
-    wave, post-punk and darkwave, shoegaze.
+  - **Styles:** pick up to 5 of 19: folk, punk, house, lo-fi hip-hop, ambient
+    drone, dub, kosmische, shoegaze, ambient techno, Afrobeat, bossa nova,
+    lounge pop, post-punk and darkwave, gothic rock, minimal wave, classical
+    minimalism, Eno-style ambient, new wave and dark ambient. Each has a
+    5-second preview, and every starter works on a Mac with nothing extra
+    installed.
 - **A studio:** sounds, effects, arpeggiator, drum patterns and your own beat
   grid, bass and drone layers, a looper, a sampler (it can record a sound from
   your microphone and chop it up), a mixer, and a progression builder.
-- **Hear the real thing:** each style links one real record, played from the
-  artist's or label's Bandcamp page when you press Hear it.
+- **Hear the real thing:** each style links one or two real records, played
+  from the artist's or label's Bandcamp page when you press Hear it.
 - **Chords and keys:** a chord explorer, a circle-of-fifths wheel, a key
   picker with scale lock, and a way to find a song's key by ear.
 - **Ear lab:** short ear-training drills that unlock as you go.
@@ -66,10 +70,10 @@ you.
 
 ## Start
 
-**The app:** build `Music Coach.zip` (see [Build the app](#build-the-app));
-a download under Releases is coming. Unzip it, then right-click **Music
-Coach** and choose **Open** (it isn't notarized yet, so the first open needs
-the right-click). It starts the coach and opens Chrome.
+**The app:** [download Music Coach](https://github.com/stylusnexus/music-coach/releases/latest/download/Music.Coach.zip)
+(the latest release, about 1 MB). Unzip it, then right-click **Music Coach**
+and choose **Open** (it isn't notarized yet, so the first open needs the
+right-click). It starts the coach and opens Chrome.
 
 **From source:**
 
@@ -172,11 +176,10 @@ npm test
 
 ## What's next
 
-More styles are planned, and each person picks up to 5 to show: house, dub and
-reggae, lo-fi hip-hop, downtempo, Afrobeat, punk, folk, ambient drone, ambient
-techno and more. Every starter style has to work on a Mac with nothing extra
-installed. Also planned: Logic Pro and Ableton Live lessons, phone and tablet
-layouts, and Windows. See [the issues](https://github.com/stylusnexus/music-coach/issues).
+More styles are planned: synthwave, reggae, downtempo, blues, country, metal,
+drum and bass, Ethio-jazz and more. Also planned: comparing two takes side by
+side, Logic Pro and Ableton Live lessons, phone and tablet layouts, and
+Windows. See [the issues](https://github.com/stylusnexus/music-coach/issues).
 
 Mac only for now.
 
