@@ -103,6 +103,23 @@ NOTE_INDEX = {n: i for i, n in enumerate(["C", "C#", "D", "D#", "E", "F", "F#", 
 LMSTUDIO_CONFIG = Path.home() / ".lmstudio/.internal/http-server-config.json"
 
 
+def app_version(root=None):
+    """The release version: package.json when run from source, the VERSION file the
+    build writes into the packaged app."""
+    root = ROOT if root is None else root
+    try:
+        return json.loads((root / "package.json").read_text())["version"]
+    except (OSError, ValueError, KeyError):
+        pass
+    try:
+        return (root / "VERSION").read_text().strip() or None
+    except OSError:
+        return None
+
+
+VERSION = app_version()
+
+
 def lmstudio_url():
     """LM Studio's server port is a user setting; read it rather than assume 1234."""
     if os.environ.get("LMSTUDIO_URL"):
@@ -896,6 +913,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(200, {**scan_gear(), **prefs, "folders": folders, "tags": TAGS, "home": str(Path.home())})
         if self.path == "/api/coach":
             return self.send_json(200, public_coach(coach_settings()))
+        if self.path == "/api/version":
+            return self.send_json(200, {"version": VERSION})
         if self.path == "/api/drumkits":
             return self.send_json(200, available_drum_kits())
         if self.path == "/api/loops":

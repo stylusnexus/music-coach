@@ -16,7 +16,7 @@
   </div>
 
   <header class="top">
-    <h1>Music Coach</h1>
+    <h1>Music Coach <span id="app-version" class="app-version" title="The version you have"></span></h1>
     <span id="midi-status" class="pill">Looking for keyboard…</span>
     <button id="ear-btn" class="ghost">Ear lab</button>
     <button id="chords-btn" class="ghost">Chords</button>
@@ -318,6 +318,7 @@
   <dialog id="coach-dialog" class="coach-dialog">
     <p id="coach-step" class="step" hidden>Step 3 of 3: the coach model</p>
     <h2>Coach settings</h2>
+    <p id="coach-version" class="muted small"></p>
     <p class="muted">The coach model answers questions and writes the summary under a take's scores. The scores, lessons and everything else work without it.</p>
     <fieldset class="coach-providers">
       <legend>Which model answers</legend>

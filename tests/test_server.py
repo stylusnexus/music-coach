@@ -246,6 +246,17 @@ class CompareTakesTest(unittest.TestCase):
         self.assertIn("4/10", seen["system"])
 
 
+class VersionTest(unittest.TestCase):
+    def test_version_from_source_or_the_packaged_app(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertIsNone(server.app_version(root))
+            (root / "VERSION").write_text("0.2.0\n")
+            self.assertEqual(server.app_version(root), "0.2.0")
+            (root / "package.json").write_text('{"name": "music-coach", "version": "0.3.0"}')
+            self.assertEqual(server.app_version(root), "0.3.0")
+
+
 class TakeReportTest(unittest.TestCase):
     CARD = server.clean_scorecard({
         "chords": {"score": 6, "evidence": "6 of 8"},
