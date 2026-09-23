@@ -20,9 +20,9 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
-          # A personal access token lets the test check run on the release pull
+          # A personal access token lets the checks run on the release pull
           # request; without one, GitHub's own token is used and a maintainer
-          # merges that pull request with admin bypass.
+          # closes and reopens that pull request to start them.
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
 
   # Builds the Mac app on a Mac and attaches it to the new release.

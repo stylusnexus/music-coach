@@ -53,10 +53,17 @@ and check it starts, shows the welcome, and plays a note.
 gh pr merge <N> --squash
 ```
 
-If no `test` check ran on it, that's because GitHub's own token opened it:
-merge with admin bypass (`--admin`). Adding a `RELEASE_PLEASE_TOKEN` secret (a
-fine-grained token with contents and pull-request write access) makes the
-checks run on it instead.
+No `test` or `pr-title` check on it? GitHub's own token opened it, and that
+never starts other workflows. Close and reopen it under your account, which
+does:
+
+```sh
+gh pr close <N> && gh pr reopen <N>
+gh pr checks <N> --watch
+```
+
+Adding a `RELEASE_PLEASE_TOKEN` secret (a fine-grained token with contents
+and pull-request write access) makes the checks run on their own instead.
 
 Release tags are protected: once pushed, a `v*` tag can't be moved or
 deleted.
