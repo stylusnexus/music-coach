@@ -186,4 +186,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Changes are listed in [CHANGELOG.md](CHA
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT © 2026 Stylus Nexus Holdings LLC. See [LICENSE](LICENSE).
