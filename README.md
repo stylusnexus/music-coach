@@ -43,11 +43,11 @@ you.
     exporting. Most steps have a screenshot.
   - **Optional:** carry a sketch to GarageBand on iPhone and iPad, with what's
     different from the Mac.
-  - **Styles:** pick up to 5 of 19: folk, punk, house, lo-fi hip-hop, ambient
-    drone, dub, kosmische, shoegaze, ambient techno, Afrobeat, bossa nova,
-    lounge pop, post-punk and darkwave, gothic rock, minimal wave, classical
-    minimalism, Eno-style ambient, new wave and dark ambient. Each has a
-    5-second preview, and every starter works on a Mac with nothing extra
+  - **Styles:** pick up to 5 of 19 (to start): folk, punk, house, lo-fi
+    hip-hop, ambient drone, dub, kosmische, shoegaze, ambient techno, Afrobeat,
+    bossa nova, lounge pop, post-punk and darkwave, gothic rock, minimal wave,
+    classical minimalism, Eno-style ambient, new wave and dark ambient. Each
+    has a 5-second preview, and every starter works on a Mac with nothing extra
     installed.
 - **A studio:** sounds, effects, arpeggiator, drum patterns and your own beat
   grid, bass and drone layers, a looper, a sampler (it can record a sound from
@@ -79,9 +79,10 @@ you.
 ## Start
 
 **The app:** [download Music Coach](https://github.com/stylusnexus/music-coach/releases/latest/download/Music.Coach.zip)
-(the latest release, about 1 MB). Unzip it, then right-click **Music Coach**
-and choose **Open** (it isn't notarized yet, so the first open needs the
-right-click). It starts the coach, which listens only on this Mac at
+(the latest release, about 1 MB). Unzip it and drag **Music Coach** to your
+Applications folder (from Downloads, macOS runs a temporary copy, and
+Uninstall can't remove that). Then right-click it and choose **Open** (it
+isn't notarized yet, so the first open needs the right-click). It starts the coach, which listens only on this Mac at
 http://localhost:8765, and opens Chrome.
 
 Which version do you have? It's next to the name at the top of the app, in
