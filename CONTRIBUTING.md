@@ -66,6 +66,13 @@ Why the change is needed, wrapped at 72 characters.
 Pull requests go to `main`, need the tests to pass, and are squash-merged, so
 the pull request title follows the same rules as a commit subject.
 
+## Using Claude Code
+
+The repo ships three skills in `.claude/skills/`: `contribute` (branch, bare-Mac
+check, commit, pull request), `merge-pr` (maintainers: check and squash-merge),
+and `release` (maintainers: version, changelog, tag, app zip, GitHub release).
+They follow the same steps written out above, so you can use them or not.
+
 ## Code of conduct
 
 This project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
