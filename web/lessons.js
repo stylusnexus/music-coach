@@ -503,6 +503,27 @@ const ALL_LESSONS = [
     ],
   },
   {
+    id: 'gothic-rock',
+    title: 'Gothic rock: echo, shadows and the half-step',
+    minutes: 15,
+    why: 'Bauhaus, Siouxsie and the Banshees and Christian Death took post-punk somewhere darker and more dramatic: slower tempos, guitar drowned in chorus and echo, a bass that carries the tune, and chords that move just one half step. That small step, A minor up to B flat, is the shadow at the heart of the sound.',
+    steps: [
+      'Guitar, pattern "up-down", Arp and Latch on, drums on "goth", 100 BPM. Keep Chorus, Echo and Reverb on. Tap A minor (A C E).',
+      'Switch Bass on with the style "melodic": the bass plays the tune, high and forward.',
+      'Now B flat: B♭ D F, the black key left of B plus two white keys. From A minor it is one half step up, and the whole room darkens.',
+      'Follow the chart: Am, B♭, Am, then E (E G# B) to pull back toward home.',
+      'In GarageBand: put the sketch on a clean electric guitar, add {chorus} then {echo}, and let the bass sit loud.',
+    ],
+    setup: { sound: 'guitar', arp: true, latch: true, arpPattern: 'up-down', bass: false, bassStyle: 'melodic', drums: true, drumPattern: 'goth', bpm: 100, fx: { chorus: true, echo: true, reverb: true } },
+    chart: ['Am', 'Am', 'Bb', 'Bb', 'Am', 'Am', 'E', 'E'],
+    checks: [
+      { type: 'arpBars', chord: 'Am', fx: ['chorus', 'echo'], bars: 2, label: '2 bars of A minor through chorus and echo' },
+      { type: 'bassBars', bassStyle: 'melodic', bars: 4, label: '4 bars of melodic bass' },
+      { type: 'arpBars', chord: 'Bb', bars: 2, label: '2 bars of B♭: the half-step shadow' },
+      { type: 'drumBars', drumPattern: 'goth', bars: 4, label: '4 bars over the goth beat' },
+    ],
+  },
+  {
     id: 'punk',
     title: 'Punk: power chords and fast eighths',
     minutes: 15,
@@ -905,7 +926,7 @@ export const SECTIONS = [
   {
     title: 'Styles',
     note: 'Locked until you finish the Basics: these assume you can tap chords and follow a chart. Suggested path: Kosmische, then Ambient, then Dark ambient. The rest in any order.',
-    ids: ['kosmische', 'ambient-eno', 'dark-ambient', 'stereolab', 'new-wave', 'post-punk', 'shoegaze', 'folk', 'bossa-nova', 'minimal-wave', 'classical-minimalism', 'punk', 'house', 'ambient-techno'],
+    ids: ['kosmische', 'ambient-eno', 'dark-ambient', 'stereolab', 'new-wave', 'post-punk', 'shoegaze', 'folk', 'bossa-nova', 'minimal-wave', 'classical-minimalism', 'punk', 'house', 'ambient-techno', 'gothic-rock'],
     requiresSection: 'Basics',
   },
 ];
@@ -930,6 +951,8 @@ export const STYLE_INFO = {
     betterWith: [{ any: ['tag:drums'], label: 'a drum machine plugin' }] },
   'ambient-techno': { name: 'Ambient techno', artists: 'Aphex Twin, Boards of Canada', sound: 'Warm, drifting chords over a soft, steady dance beat.', texture: 'groove',
     betterWith: [{ any: ['tag:synth'], label: 'a synth plugin' }, { any: ['gear:reverb'], label: 'a reverb plugin' }] },
+  'gothic-rock': { name: 'Gothic rock', artists: 'Bauhaus, Christian Death', sound: 'Echoing guitar, a bass that carries the tune, and a dark half-step move.', texture: 'chord',
+    betterWith: [{ any: ['gear:echo'], label: 'an echo plugin' }, { any: ['gear:chorus'], label: 'a chorus plugin' }] },
   punk: { name: 'Punk', artists: 'Ramones, Buzzcocks', sound: 'Two-note power chords, fuzz and fast, straight drums.', texture: 'chord',
     betterWith: [{ any: ['gear:amp'], label: 'an amp plugin' }] },
   folk: { name: 'Folk', artists: 'Nick Drake, Joni Mitchell', sound: 'One guitar, picked close, with open chords that ring.', texture: 'chord',
@@ -962,6 +985,10 @@ export const LISTEN = {
     { artist: 'Boy Harsher', title: 'Careful', url: 'https://boyharsher.bandcamp.com/album/careful', kind: 'album', id: 711789267 },
     { artist: 'Molchat Doma', title: 'Etazhi', url: 'https://domamolchat.bandcamp.com/album/etazhi-2018', kind: 'album', id: 3397703812 },
   ],
+  'gothic-rock': [
+    { artist: 'Bauhaus', title: 'In the Flat Field', url: 'https://beggarsbanquet.bandcamp.com/album/in-the-flat-field', kind: 'album', id: 2976272377 },
+    { artist: 'Christian Death', title: 'Only Theatre of Pain', url: 'https://frontierrecords-christiandeath.bandcamp.com/album/only-theatre-of-pain', kind: 'album', id: 2830794502 },
+  ],
   'minimal-wave': [{ artist: 'Minimal Wave label', title: 'The Bedroom Tapes', url: 'https://minimalwave.bandcamp.com/album/the-bedroom-tapes', kind: 'album', id: 850253089 }],
   'classical-minimalism': [{ artist: 'Philip Glass', title: 'Philip Glass Solo', url: 'https://philipglass.bandcamp.com/album/philip-glass-solo', kind: 'album', id: 3793286961 }],
   'ambient-eno': [{ artist: 'Stars of the Lid', title: 'And Their Refinement of the Decline', url: 'https://starsofthelid.bandcamp.com/album/and-their-refinement-of-the-decline', kind: 'album', id: 605498052 }],
@@ -983,7 +1010,7 @@ export function bandcampEmbed(listen, slim = false) {
 // then the other starters, then styles that suit more gear or come later in skill.
 export const PICKER_ORDER = [
   'folk', 'punk', 'house', 'kosmische', 'shoegaze', 'ambient-techno',
-  'bossa-nova', 'stereolab', 'post-punk', 'minimal-wave', 'classical-minimalism',
+  'bossa-nova', 'stereolab', 'post-punk', 'gothic-rock', 'minimal-wave', 'classical-minimalism',
   'ambient-eno', 'new-wave', 'dark-ambient',
 ];
 

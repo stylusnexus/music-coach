@@ -396,9 +396,9 @@ test('reverse reverb names the IK plugin when installed', () => {
 });
 
 test('lesson order: basics, then quick wins, then styles; every lesson placed once', () => {
-  assert.equal(LESSONS.length, 37);
+  assert.equal(LESSONS.length, 38);
   assert.ok(LESSONS.every(Boolean));
-  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 37);
+  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 38);
   assert.equal(lockReason('looping', {}), null); // a quick win: always open
   assert.deepEqual(SECTIONS.map((s) => s.title), ['Basics', 'Quick wins', 'GarageBand skills', 'Styles']);
   assert.equal(LESSONS[3].id, 'major-minor'); // right after the four chords
@@ -713,4 +713,18 @@ test('every style has one or two real recordings to hear, from official Bandcamp
   }
   assert.match(bandcampEmbed(LISTEN.shoegaze[0]), /^https:\/\/bandcamp\.com\/EmbeddedPlayer\/album=2948336751\/size=large\/.*artwork=small/);
   assert.match(bandcampEmbed(LISTEN['new-wave'][0], true), /EmbeddedPlayer\/track=3873035885\/size=small\//);
+});
+
+test('gothic rock hears the half-step move, and needs the echo on', () => {
+  const goth = createChecker(byId('gothic-rock'));
+  const bar = (notes, fx) => ({ type: 'arpBar', notes, pattern: 'up-down', fx });
+  goth.handle(bar([57, 60, 64], { chorus: true }));
+  goth.handle(bar([57, 60, 64], { chorus: true }));
+  assert.equal(goth.progress()[0].done, false); // echo off
+  goth.handle(bar([57, 60, 64], { chorus: true, echo: true }));
+  goth.handle(bar([57, 60, 64], { chorus: true, echo: true }));
+  assert.equal(goth.progress()[0].done, true);
+  goth.handle(bar([58, 62, 65], {}));
+  goth.handle(bar([58, 62, 65], {}));
+  assert.equal(goth.progress()[2].done, true); // B flat
 });

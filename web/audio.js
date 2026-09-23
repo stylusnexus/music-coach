@@ -10,6 +10,8 @@ export const DRUM_PATTERNS = {
   tribal: { kick: [0, 8], tom: [0, 3, 6, 8, 10, 11, 14], snare: [12], hat: [4, 12] },
   // Straight eighths, snare on 2 and 4, for fast punk tempos.
   punk: { kick: [0, 6, 8], snare: [4, 12], hat: [0, 2, 4, 6, 8, 10, 12, 14] },
+  // Slow and ominous: rim shots on 2 and 4, a tom rolling in at the end of the bar.
+  goth: { kick: [0, 10], rim: [4, 12], tom: [7, 14, 15], hat: [0, 4, 8, 12] },
   // Four on the floor: a kick on every beat, open hats between them.
   house: { kick: [0, 4, 8, 12], snare: [4, 12], openhat: [2, 6, 10, 14] },
 };

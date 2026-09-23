@@ -16,6 +16,8 @@ All notable changes to this project are listed here. The format follows
 - Punk: power chords, fuzz and a fast punk drum beat. The tempo slider now
   runs from 50 to 180 BPM.
 - House and ambient techno, on a new four-on-the-floor drum pattern.
+- Gothic rock: echo-drenched guitar, melodic bass, a slow goth beat and
+  the half-step chord move; hear Bauhaus and Christian Death.
 - The style picker shows six different kinds of style first.
 - "Hear it" on every style: one or two real records, played from the
   artist's or label's Bandcamp page, loaded only when pressed.
