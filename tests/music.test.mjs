@@ -539,6 +539,90 @@ test('looper: an empty first pass keeps nothing', async () => {
   assert.equal(L.layers.length, 0);
 });
 
+test('time signatures: 4/4 plays exactly as before', async () => {
+  const { arpNotes, bassNote, bassLength, patternStep, writeMidi, ARP_PATTERNS, CHORD_PATTERNS } = await import('../web/music.js');
+  const held = [57, 60, 64];
+  for (let step = 0; step < 96; step++) {
+    const pos = step % 16;
+    for (const p of [...Object.keys(ARP_PATTERNS), ...Object.keys(CHORD_PATTERNS), 'eno']) {
+      assert.deepEqual(arpNotes(p, held, step, pos), arpNotes(p, held, step), `${p} step ${step}`);
+    }
+    for (const style of ['pump', 'melodic', 'octave16', 'boom-chick', 'sub']) {
+      assert.equal(bassNote(held, pos, style), bassNote(held, step, style), `${style} step ${step}`);
+    }
+    assert.equal(patternStep(pos), pos);
+  }
+  assert.equal(bassLength('sub', 16), 15.5);
+  assert.equal(bassLength('pump', 12), 1.8);
+  const tracks = [{ name: 'Guitar', channel: 0, events: [{ tick: 0, note: 64, vel: 90, dur: 120 }] }];
+  assert.deepEqual(writeMidi(tracks, 100, '4/4'), writeMidi(tracks, 100));
+});
+
+test('time signatures: bar lengths, beats, drum patterns and the MIDI meta event', async () => {
+  const { METERS, meterOf, patternStep, writeMidi } = await import('../web/music.js');
+  const { DRUM_PATTERNS, METER_PATTERNS } = await import('../web/audio.js');
+  assert.deepEqual(Object.fromEntries(Object.entries(METERS).map(([k, m]) => [k, m.steps])), { '4/4': 16, '3/4': 12, '6/8': 12, '5/4': 20, '7/8': 14 });
+  assert.equal(meterOf('9/8'), METERS['4/4']); // unknown: 4/4
+  for (const [name, m] of Object.entries(METERS)) {
+    assert.equal(m.beats[0], 0);
+    assert.ok(m.beats.every((b) => b < m.steps), name);
+    // Every meter has its own 'simple' beat, inside the bar, with a kick on 1.
+    const simple = name === '4/4' ? DRUM_PATTERNS.simple : METER_PATTERNS[name].simple;
+    assert.ok(simple.kick.includes(0), name);
+    for (const steps of Object.values(simple)) assert.ok(steps.every((s) => s < m.steps), name);
+  }
+  // A 5/4 bar plays a 4/4 pattern's beats 1-4, then its beat 3 again.
+  assert.deepEqual([16, 17, 18, 19].map((p) => patternStep(p)), [8, 9, 10, 11]);
+  const sig = (meter) => {
+    const b = [...writeMidi([], 90, meter)];
+    const i = b.findIndex((x, k) => x === 0xff && b[k + 1] === 0x58);
+    return b.slice(i + 3, i + 7);
+  };
+  assert.deepEqual(sig('4/4'), [4, 2, 24, 8]);
+  assert.deepEqual(sig('3/4'), [3, 2, 24, 8]);
+  assert.deepEqual(sig('6/8'), [6, 3, 36, 8]);
+  assert.deepEqual(sig('5/4'), [5, 2, 24, 8]);
+  assert.deepEqual(sig('7/8'), [7, 3, 12, 8]);
+});
+
+test('time signatures: chord hits, bass and the looper follow the bar', async () => {
+  const { arpNotes, bassNote, bassLength } = await import('../web/music.js');
+  const { Looper } = await import('../web/looper.js');
+  const held = [57, 60, 64];
+  // 7/8: fourteen steps; the offbeat chord pattern restarts at each bar line.
+  const bar = (start) => Array.from({ length: 14 }, (_, pos) => arpNotes('offbeat', held, start + pos, pos).length > 0);
+  assert.deepEqual(bar(0), bar(14));
+  assert.equal(bassNote(held, 0, 'boom-chick'), 33);
+  assert.equal(bassLength('sub', 12), 11.5); // a 3/4 bar
+  const L = new Looper();
+  L.stepsPerBar = 12;
+  L.press();
+  L.tick(6, 0.6, 0.1); // not a bar line in 3/4
+  assert.equal(L.status, 'armed');
+  L.tick(12, 1.2, 0.1);
+  assert.equal(L.status, 'recording');
+  assert.equal(L.steps, 24); // 2 bars of 12
+});
+
+test('meter checks and a take in 3/4', async () => {
+  const { measureTake, scoreAreas } = await import('../web/takes.js');
+  const c = createChecker({ checks: [
+    { type: 'arpBars', meter: '7/8', bars: 1, label: '7/8 bar' },
+    { type: 'recorded', meter: '3/4', bars: 4, label: 'record 4 bars of 3/4' },
+  ] });
+  c.handle({ type: 'arpBar', notes: [57, 60, 64], meter: '4/4' });
+  c.handle({ type: 'recorded', bars: 8, meter: '4/4' });
+  assert.equal(c.complete(), false);
+  c.handle({ type: 'arpBar', notes: [57, 60, 64], meter: '7/8' });
+  c.handle({ type: 'recorded', bars: 4, meter: '3/4' });
+  assert.ok(c.complete());
+  // 60 BPM in 3/4: a bar is 3 seconds, so Stop at 9.2 s is 0.2 beats past a bar line.
+  const m = measureTake({ bpm: 60, bars: 3, targetBars: 3, barBeats: 3, barLog: [], changes: [0, 3], presses: [], stopT: 9.2 });
+  assert.equal(m.ending.stopPastBarBeats, 0.2);
+  assert.deepEqual(m.timing && m.timing.withinEighth, 2);
+  assert.equal(scoreAreas(m).ending.score, 10);
+});
+
 test('looping checks: layers, undo, and bars with 2+ layers', () => {
   const c = createChecker(byId('looping'));
   c.handle({ type: 'loopLayer', layers: 1 });

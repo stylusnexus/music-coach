@@ -232,6 +232,30 @@ export function wheelDemo(root, mode, kind) {
   return [name(root), name(keyAtSpot(spot + 6, mode))];
 }
 
+// ---- Time signatures ----
+
+// Bars in sixteenth-note steps. beats: the steps counted aloud (the click and
+// the beat number); 6/8 counts two dotted beats, 7/8 groups its eighths 2+2+3.
+// clocks: MIDI clocks per counted beat, for the file's time signature.
+export const METERS = {
+  '4/4': { steps: 16, beats: [0, 4, 8, 12], num: 4, den: 4, clocks: 24 },
+  '3/4': { steps: 12, beats: [0, 4, 8], num: 3, den: 4, clocks: 24 },
+  '6/8': { steps: 12, beats: [0, 6], num: 6, den: 8, clocks: 36 },
+  '5/4': { steps: 20, beats: [0, 4, 8, 12, 16], num: 5, den: 4, clocks: 24 },
+  '7/8': { steps: 14, beats: [0, 4, 8], num: 7, den: 8, clocks: 12 },
+};
+
+export function meterOf(name) {
+  return METERS[name] || METERS['4/4'];
+}
+
+// Which step of a 16-step drum pattern plays at this step of a bar. Shorter bars
+// cut the pattern off at the bar line; a 5/4 bar plays beats 1 to 4, then beat 3
+// again as its fifth beat.
+export function patternStep(pos) {
+  return pos < 16 ? pos : pos - 8;
+}
+
 // ---- Arpeggiator ----
 
 export const ARP_PATTERNS = {
@@ -276,9 +300,11 @@ export function bassNote(held, step, style = 'pump') {
 }
 
 // How long each bass note rings, in sixteenths.
-const BASS_LENGTHS = { octave16: 0.8, 'boom-chick': 3.5, sub: 15.5 };
+const BASS_LENGTHS = { octave16: 0.8, 'boom-chick': 3.5 };
 
-export function bassLength(style) {
+// barSteps: the sub note rings for the whole bar, however long the bar is.
+export function bassLength(style, barSteps = 16) {
+  if (style === 'sub') return barSteps - 0.5;
   return BASS_LENGTHS[style] ?? 1.8;
 }
 
@@ -331,15 +357,18 @@ export function spreadChord(held) {
 }
 
 // Every note the arpeggiator plays on this step: one for a picking pattern,
-// the whole chord (or nothing) for a chord pattern.
-export function arpNotes(patternName, held, step) {
+// the whole chord (or nothing) for a chord pattern. pos is the sixteenth within
+// the bar: chord patterns and bar-long (16-step) picking patterns start again
+// at each bar line, so they stay on the beat in bars of any length.
+export function arpNotes(patternName, held, step, pos = step % 16) {
   if (patternName === 'eno') {
     const notes = [...new Set(held)].sort((a, b) => a - b);
     return notes.filter((n, i) => (step + i * 7) % ENO_PERIODS[i % ENO_PERIODS.length] === 0);
   }
   const hits = CHORD_PATTERNS[patternName];
-  if (hits) return hits.includes(step % 16) ? [...new Set(held)].sort((a, b) => a - b) : [];
-  const n = arpNote(patternName, held, step);
+  if (hits) return hits.includes(pos % 16) ? [...new Set(held)].sort((a, b) => a - b) : [];
+  const barLong = (ARP_PATTERNS[patternName] || ARP_PATTERNS.picking).length === 16;
+  const n = arpNote(patternName, held, barLong ? pos : step);
   return n === null ? [] : [n];
 }
 
@@ -438,11 +467,13 @@ function chunk(type, body) {
 }
 
 // tracks: [{name, channel (0-15), events: [{tick, note, vel, dur}]}]
-export function writeMidi(tracks, bpm) {
+// meter: a METERS name; the file's time signature.
+export function writeMidi(tracks, bpm, meter = '4/4') {
   const tempo = Math.round(60000000 / bpm);
+  const m = meterOf(meter);
   const conductor = [
     0, 0xff, 0x51, 0x03, (tempo >> 16) & 255, (tempo >> 8) & 255, tempo & 255,
-    0, 0xff, 0x58, 0x04, 4, 2, 24, 8,
+    0, 0xff, 0x58, 0x04, m.num, Math.log2(m.den), m.clocks, 8,
     0, 0xff, 0x2f, 0x00,
   ];
   const out = [

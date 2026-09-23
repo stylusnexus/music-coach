@@ -3,12 +3,12 @@
 // was played with, so layers can be different instruments. No audio here: the
 // app asks tick() what to play on every sixteenth note.
 
-const STEPS_PER_BAR = 16;
 const RUNNING = ['recording', 'playing', 'overdubArmed', 'overdubbing'];
 
 export class Looper {
   constructor() {
     this.bars = 2;
+    this.stepsPerBar = 16; // sixteenths in a bar: 16 in 4/4, 12 in 3/4 …
     this.clear();
   }
 
@@ -22,7 +22,7 @@ export class Looper {
   }
 
   get steps() {
-    return this.bars * STEPS_PER_BAR;
+    return this.bars * this.stepsPerBar;
   }
 
   get capturing() {
@@ -61,7 +61,7 @@ export class Looper {
   // just finished recording.
   tick(step, time, secondsPerStep) {
     const out = { events: [], changed: false, finished: false };
-    if ((this.status === 'armed' || this.status === 'resumeArmed') && step % STEPS_PER_BAR === 0) {
+    if ((this.status === 'armed' || this.status === 'resumeArmed') && step % this.stepsPerBar === 0) {
       this.startStep = step;
       this.startTime = time;
       this.status = this.status === 'armed' ? 'recording' : 'playing';
