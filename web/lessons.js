@@ -940,6 +940,8 @@ export const STYLE_INFO = {
   'ambient-eno': { name: 'Ambient', artists: 'Brian Eno, Harold Budd', sound: 'Notes that loop at different lengths and drift into new patterns.', texture: 'drone',
     betterWith: [{ any: ['gear:reverb'], label: 'a reverb plugin' }] },
   'dark-ambient': { name: 'Dark ambient', artists: 'Lustmord, Thomas Köner', sound: 'Low drones, clashing notes and slowed-down tape.', texture: 'drone',
+    // Gear that changes what the lesson can do, not just how it sounds: something to sample.
+    matches: ['folder', 'tag:microphone'],
     betterWith: [{ any: ['gear:tape'], label: 'a tape plugin' }, { any: ['folder'], label: 'a folder of samples' }] },
   stereolab: { name: 'Lounge pop', artists: 'Stereolab, Broadcast', sound: 'A buzzing organ on two jazzy chords over a steady beat.', texture: 'chord',
     betterWith: [{ any: ['sound:farfisa', 'tag:synth'], label: 'an organ or synth plugin' }, { any: ['gear:chorus'], label: 'a chorus plugin' }] },
@@ -1013,6 +1015,19 @@ export const PICKER_ORDER = [
   'bossa-nova', 'stereolab', 'post-punk', 'gothic-rock', 'minimal-wave', 'classical-minimalism',
   'ambient-eno', 'new-wave', 'dark-ambient',
 ];
+
+// True when this Mac has gear that changes what a style's lesson can do (its `matches`).
+// Most styles have none: their optional gear only makes them sound richer.
+export function matchesGear(id, env) {
+  const e = gearEnv(env);
+  return (STYLE_INFO[id]?.matches || []).some((need) => {
+    const [kind, value] = need.split(':');
+    if (kind === 'folder') return Boolean(e.folder);
+    if (kind === 'tag') return Boolean(e.tags[value]);
+    if (kind === 'sound') return e.sounds.has(value);
+    return false;
+  });
+}
 
 // The optional gear that would bring a style closer to the record, missing on this Mac.
 export function missingBetterWith(id, env) {

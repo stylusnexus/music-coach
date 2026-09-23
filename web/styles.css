@@ -359,6 +359,10 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 .style-card .sound { font-size: 13px; color: var(--muted); }
 .style-card .lock { font-size: 12px; color: var(--muted); margin: 0; padding: 0 12px 10px; }
 .link { border: none; background: none; padding: 0; color: var(--accent); text-decoration: underline; font-size: inherit; cursor: pointer; }
+.suggested { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 10px; }
+.suggested[hidden] { display: none; }
+.suggested button { font-size: 12px; padding: 4px 10px; }
+.suggested button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .nudge { background: var(--panel-2); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
 .nudge[hidden], .better[hidden] { display: none; }
 .better { font-size: 13px; color: var(--muted); margin: 4px 0 10px; }
