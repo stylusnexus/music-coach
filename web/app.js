@@ -484,6 +484,10 @@ function openLesson(id) {
   $('lesson-title').textContent = lesson.title;
   $('lesson-minutes').textContent = `about ${lesson.minutes} min`;
   $('lesson-why').textContent = resolveGear(lesson.why, lessonEnv());
+  $('lesson-diff').hidden = !lesson.differences;
+  $('lesson-diff').querySelector('ul').replaceChildren(
+    ...(lesson.differences || []).map((d) => Object.assign(document.createElement('li'), { textContent: d })),
+  );
   hearIt($('lesson-listen'), lesson.id);
   renderBetterWith();
   // The Key bar follows the lesson, so the keys a lesson asks for are never greyed.

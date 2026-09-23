@@ -32,7 +32,7 @@ you.
 
 ## What's inside
 
-- **42 short lessons in four sections.**
+- **43 short lessons: 42 in four sections, plus one optional.**
   - **Basics:** your first chord, four chords that carry a song, major and
     minor, letting an arpeggiator do the picking, a drum machine, 7th chords,
     recording a sketch, and taking it to GarageBand.
@@ -40,6 +40,8 @@ you.
     in layers with the looper.
   - **GarageBand skills:** the map, drag and drop, the grid, the Piano Roll,
     multi-tracking, blending, fades, exporting. Each step has a screenshot.
+  - **Optional:** carry a sketch to GarageBand on iPhone and iPad, with what's
+    different from the Mac.
   - **Styles:** pick up to 5 of 19: folk, punk, house, lo-fi hip-hop, ambient
     drone, dub, kosmische, shoegaze, ambient techno, Afrobeat, bossa nova,
     lounge pop, post-punk and darkwave, gothic rock, minimal wave, classical

@@ -504,6 +504,29 @@ const ALL_LESSONS = [
     ],
   },
   {
+    id: 'gb-iphone',
+    title: 'Optional: GarageBand on iPhone and iPad',
+    minutes: 15,
+    why: 'Apple makes a free GarageBand for iPhone and iPad. The practice room stays on your Mac, but your sketches are MIDI files, so you can carry one to your phone and keep working on it anywhere. This lesson is optional: nothing else waits for it.',
+    differences: [
+      'Touch instruments: you play a keyboard, drums or guitar on the screen. Chord Strips play a whole chord with one tap.',
+      'Live Loops: a grid of loops you start and stop live. It is only on iPhone and iPad; GarageBand on the Mac does not have it.',
+      'Your Mac plugins stay on the Mac. iPhone and iPad use their own plugin apps from the App Store.',
+      'Editing and mixing are simpler. The Mac has more room and more detail: the Piano Roll, Smart Controls and plug-in slots.',
+      'Imported MIDI does not follow tempo changes you make later, so set the tempo before you import.',
+    ],
+    guided: true,
+    steps: [
+      { label: 'Sketch is on the phone', text: 'Get a sketch onto your iPhone or iPad: in Sketches, press Show in Finder, then share the .mid file with AirDrop, or save it to iCloud Drive. Either way it ends up in the Files app. No sketch yet? Record an 8-bar sketch makes one.' },
+      { label: 'Imported into GarageBand', text: 'In GarageBand for iPhone, start a new song with the Keyboard. Tap the Tracks button, then the Loop Browser button, choose the Files tab, tap Browse items from the Files app, and tap your sketch. Drag it to line its left edge up with bar 1. Each part becomes its own Keyboard track. (Apple\'s tip: set the song section to Automatic first, so the whole sketch comes in.)' },
+      { label: 'Tracks have sounds', text: 'Select one of the new tracks, tap the Navigation button, then Sounds, and pick a sound. Try an electric piano for chords and a bass for the low part.' },
+      { label: 'Played along with chord strips', text: 'Open the Keyboard and tap the Chord Strips button: each strip plays a whole chord with one tap. Play along with your sketch.' },
+      { label: 'Song shared', text: 'In My Songs, touch and hold your song and tap Share. Song makes an audio file for Files, Messages or AirDrop; Project saves a GarageBand project that GarageBand on your Mac can open, so you can finish it there.' },
+    ],
+    setup: { sound: 'epiano', arp: false, drums: false },
+    checks: [],
+  },
+  {
     id: 'lofi-hip-hop',
     title: 'Lo-fi hip-hop: lazy drums and warm chords',
     minutes: 15,
@@ -1013,6 +1036,12 @@ export const SECTIONS = [
     ids: ['kosmische', 'ambient-eno', 'dark-ambient', 'stereolab', 'new-wave', 'post-punk', 'shoegaze', 'folk', 'bossa-nova', 'minimal-wave', 'classical-minimalism', 'punk', 'house', 'ambient-techno', 'gothic-rock', 'lofi-hip-hop', 'dub', 'ambient-drone', 'afrobeat'],
     requiresSection: 'Basics',
   },
+  {
+    title: 'Optional',
+    note: 'Extras. Nothing else waits for these, and Next lesson never sends you here.',
+    ids: ['gb-iphone'],
+    optional: true,
+  },
 ];
 
 // The style picker's cards. Artists come first: without sound previews they are
@@ -1190,9 +1219,10 @@ export function firstUnfinished(completed, unlocked = {}, picks = []) {
 // The order to work through: every lesson, except that with styles picked, only those
 // styles, in the order picked.
 export function lessonPath(picks = []) {
-  if (!picks.length) return LESSONS;
+  const all = LESSONS.filter((l) => !sectionOf(l.id)?.optional);
+  if (!picks.length) return all;
   const styles = SECTIONS.find((s) => s.title === 'Styles').ids;
-  const rest = LESSONS.filter((l) => !styles.includes(l.id));
+  const rest = all.filter((l) => !styles.includes(l.id));
   return [...rest, ...picks.filter((id) => styles.includes(id)).map((id) => LESSONS.find((l) => l.id === id))];
 }
 
