@@ -136,6 +136,10 @@ layouts, and Windows. See [the issues](https://github.com/stylusnexus/music-coac
 
 Mac only for now.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

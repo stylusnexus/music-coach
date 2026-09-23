@@ -1,0 +1,21 @@
+name: Bug
+description: Something doesn't work the way it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you pressed, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: lesson
+    attributes:
+      label: Lesson or part of the app
+      placeholder: e.g. "Sampling: cut up a loop", or the Coach model window
+  - type: input
+    id: setup
+    attributes:
+      label: Your setup
+      placeholder: e.g. macOS 26, Chrome 140, MIDI keyboard or computer keys
