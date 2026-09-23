@@ -83,7 +83,16 @@
 
       <section class="studio" aria-label="Studio controls">
         <div class="group">
-          <label>Sound</label>
+          <label>Sound <button id="sound-info" class="info-btn" aria-expanded="false" aria-controls="sound-help" title="Why doesn't this sound like a real instrument?">ⓘ</button></label>
+          <div id="sound-help" class="info-text" hidden>
+            <p><strong>Why doesn't my guitar sound like a real guitar?</strong> In the practice room, it isn't one. To stay small, free and quick to start, the app plays stand-in sounds: a plucked-string model for the guitar, and simple synth tones for bass, strings and organ. They're there so you can hear chords and rhythm while you learn, not to sound like the record.</p>
+            <p>To get the real sound:</p>
+            <ol>
+              <li><strong>In GarageBand (free):</strong> open your sketch, select the track, and pick a real instrument from the Library (press Y). GarageBand has acoustic and electric guitars, pianos and strings. For more, choose GarageBand &gt; Sound Library &gt; Download All Available Sounds.</li>
+              <li><strong>Plugins you own:</strong> instrument plugins, like a guitar player or piano library, go on a GarageBand track the same way. The Your gear window lists what you have.</li>
+              <li><strong>With Logic Pro's sound library installed,</strong> the practice room's guitar switches to Logic's recorded 12-string automatically.</li>
+            </ol>
+          </div>
           <div class="seg" id="sound">
             <button data-v="guitar">Guitar</button><button data-v="epiano">E-Piano</button><button data-v="pad">Pad</button>
           </div>

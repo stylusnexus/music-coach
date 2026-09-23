@@ -2427,6 +2427,11 @@ async function boot() {
   wireGearDrop();
   wireCoach();
   $('gear-search').oninput = renderGear;
+  $('sound-info').onclick = () => {
+    const help = $('sound-help');
+    help.hidden = !help.hidden;
+    $('sound-info').setAttribute('aria-expanded', String(!help.hidden));
+  };
   $('sketches-info').onclick = () => {
     const help = $('sketches-help');
     help.hidden = !help.hidden;
