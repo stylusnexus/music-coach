@@ -78,6 +78,11 @@
     .needs { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; list-style: none; margin: 0; }
     .needs li { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; }
     .styles { color: var(--muted); }
+    .steps .button { margin: 0 8px 8px 0; }
+    .dev { margin-top: 16px; font-size: 15px; }
+    .dev summary { cursor: pointer; color: var(--muted); }
+    .dev summary:hover { color: var(--text); }
+    .dev .styles { margin: 8px 0 0; }
     .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin: 20px 0 0; }
     .shots figure { margin: 0; }
     .shots img { width: 100%; height: auto; display: block; border-radius: var(--radius); border: 1px solid var(--line); }
@@ -170,14 +175,17 @@
         <li>A MIDI keyboard (optional)</li>
       </ul>
       <ol class="steps" style="margin-top: 20px">
-        <li><a href="https://github.com/stylusnexus/music-coach/releases/latest/download/Music.Coach.zip">Download Music Coach</a>, unzip it, then right-click <strong>Music Coach</strong> and choose <strong>Open</strong> (the first time only; it isn't notarized yet). Or run it from the code:
-          <pre>git clone https://github.com/stylusnexus/music-coach.git
+        <li><a class="button primary" href="https://github.com/stylusnexus/music-coach/releases/latest/download/Music.Coach.zip">Download Music Coach</a> <span class="styles">about 1 MB</span><br>Unzip it, and drag <strong>Music Coach</strong> to your Applications folder.</li>
+        <li>Right-click <strong>Music Coach</strong> and choose <strong>Open</strong>. You only do this the first time: the app isn't notarized yet.</li>
+        <li>Chrome opens the app. Press <strong>Start</strong>, tell it what gear you have (or skip), and open lesson 1.</li>
+      </ol>
+      <details class="dev">
+        <summary>Developer? Run it from the code</summary>
+        <pre>git clone https://github.com/stylusnexus/music-coach.git
 cd music-coach
 ./music-coach</pre>
-        </li>
-        <li>Chrome opens the app. Press <strong>Start</strong>, tell it what gear you have (or skip), and open lesson 1.</li>
-        <li>Drag Music Coach to your Applications folder: it opens from there next time, and Uninstall works.</li>
-      </ol>
+        <p class="styles"><code>./music-coach shortcut</code> puts a double-click app for this copy on your Desktop.</p>
+      </details>
     </section>
 
     <section id="real-sound">
