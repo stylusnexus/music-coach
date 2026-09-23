@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.4.0](https://github.com/stylusnexus/music-coach/compare/v0.3.0...v0.4.0) (2026-09-23)
+
+
+### Added
+
+* add uninstall, a sketches folder and support ([#84](https://github.com/stylusnexus/music-coach/issues/84)) ([315ef3d](https://github.com/stylusnexus/music-coach/commit/315ef3d80c668829a4454d3ba3d5b55f8dc23751))
+* explain how to make any instrument sound real, on the site, in the README and in the app ([74f3388](https://github.com/stylusnexus/music-coach/commit/74f3388da000e244743f3354749d5039a78978f8))
+* **gear:** let people say what each plugin is ([e72ccb6](https://github.com/stylusnexus/music-coach/commit/e72ccb6eed80bdca95dc040231b0a6343b4c4693))
+* **gear:** remind people who skipped gear setup to add their gear ([e72ccb6](https://github.com/stylusnexus/music-coach/commit/e72ccb6eed80bdca95dc040231b0a6343b4c4693))
+* **gear:** sort and describe unknown plugins with your coach model ([e72ccb6](https://github.com/stylusnexus/music-coach/commit/e72ccb6eed80bdca95dc040231b0a6343b4c4693))
+* **gear:** sort common plugins by name without a coach model ([e72ccb6](https://github.com/stylusnexus/music-coach/commit/e72ccb6eed80bdca95dc040231b0a6343b4c4693))
+* **lessons:** add a lesson on making parts sound played ([74f3388](https://github.com/stylusnexus/music-coach/commit/74f3388da000e244743f3354749d5039a78978f8))
+
+
+### Fixed
+
+* restart the coach when another copy runs ([#81](https://github.com/stylusnexus/music-coach/issues/81)) ([c44f48a](https://github.com/stylusnexus/music-coach/commit/c44f48a2a499dea6df0ca6c4cfeeebbe16286a06))
+
+
+### Documentation
+
+* state the minimum GarageBand version: 10.4.14, on macOS 15.6 or later ([14caca1](https://github.com/stylusnexus/music-coach/commit/14caca18e25ca3117f93d03421321d9caae268f2))
+
 ## [0.3.0](https://github.com/stylusnexus/music-coach/compare/v0.2.0...v0.3.0) (2026-09-23)
 
 
