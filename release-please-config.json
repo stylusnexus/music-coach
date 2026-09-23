@@ -25,8 +25,7 @@
         },
         {
           "type": "docs",
-          "section": "Docs",
-          "hidden": true
+          "section": "Documentation"
         },
         {
           "type": "refactor",
