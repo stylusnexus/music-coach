@@ -702,12 +702,15 @@ test('the picker lists every style once, the first six all different kinds', () 
   assert.ok(new Set(PICKER_ORDER.slice(0, 6).map((id) => STYLE_INFO[id].texture)).size >= 3);
 });
 
-test('every style has a real recording to hear, from an official Bandcamp page', () => {
+test('every style has one or two real recordings to hear, from official Bandcamp pages', () => {
   for (const id of SECTIONS.find((s) => s.title === 'Styles').ids) {
-    const l = LISTEN[id];
-    assert.ok(l, id);
-    assert.match(l.url, /^https:\/\/[a-z0-9-]+\.bandcamp\.com\/album\//, id);
-    assert.ok(Number.isInteger(l.id), id);
+    const records = LISTEN[id];
+    assert.ok(records?.length >= 1 && records.length <= 2, id);
+    for (const l of records) {
+      assert.match(l.url, /^https:\/\/[a-z0-9-]+\.bandcamp\.com\/(album|track)\//, id);
+      assert.ok(['album', 'track'].includes(l.kind) && Number.isInteger(l.id), id);
+    }
   }
-  assert.match(bandcampEmbed(LISTEN.shoegaze), /^https:\/\/bandcamp\.com\/EmbeddedPlayer\/album=2948336751\/size=large\/.*artwork=small/);
+  assert.match(bandcampEmbed(LISTEN.shoegaze[0]), /^https:\/\/bandcamp\.com\/EmbeddedPlayer\/album=2948336751\/size=large\/.*artwork=small/);
+  assert.match(bandcampEmbed(LISTEN['new-wave'][0], true), /EmbeddedPlayer\/track=3873035885\/size=small\//);
 });

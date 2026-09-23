@@ -196,43 +196,47 @@ function renderLessonList() {
   }
 }
 
-// "Hear it": a real recording of the style, from Bandcamp. Nothing loads from the
-// internet until the button is pressed.
+// "Hear it": one or two real recordings of the style, from Bandcamp. Nothing loads
+// from the internet until a button is pressed. Cards (slim) offer the first record.
 function hearIt(box, id, slim = false) {
-  const listen = LISTEN[id];
+  const records = LISTEN[id] || [];
   box.innerHTML = '';
-  box.hidden = !listen;
-  if (!listen) return;
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'link';
-  b.textContent = `▶ Hear the real thing: ${listen.artist}, ${listen.title}`;
-  const note = document.createElement('span');
-  note.className = 'muted';
-  note.textContent = ' (plays from Bandcamp)';
-  b.onclick = () => {
-    const link = document.createElement('a');
-    link.href = listen.url;
-    link.target = '_blank';
-    link.rel = 'noopener';
-    link.className = 'muted';
-    if (!navigator.onLine) {
-      // Offline: no player to load, just the page for later.
-      link.textContent = `No internet right now. Open ${listen.title} by ${listen.artist} on Bandcamp later.`;
-      box.replaceChildren(link);
-      return;
-    }
-    // Bandcamp's embed code: the player, with a link inside for browsers that can't show it.
-    const frame = document.createElement('iframe');
-    frame.src = bandcampEmbed(listen, slim);
-    frame.className = slim ? 'slim' : '';
-    frame.title = `${listen.title} by ${listen.artist}, on Bandcamp`;
-    frame.setAttribute('seamless', '');
-    link.textContent = `${listen.title} by ${listen.artist}`;
-    frame.append(link);
-    box.replaceChildren(frame);
-  };
-  box.append(b, note);
+  box.hidden = !records.length;
+  for (const listen of slim ? records.slice(0, 1) : records) {
+    const row = document.createElement('div');
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'link';
+    b.textContent = slim ? '▶ Hear it' : `▶ Hear the real thing: ${listen.artist}, ${listen.title}`;
+    const note = document.createElement('span');
+    note.className = 'muted';
+    note.textContent = ' (plays from Bandcamp)';
+    b.onclick = () => row.replaceChildren(player(listen, slim));
+    row.append(b, note);
+    box.append(row);
+  }
+}
+
+// Bandcamp's embed code: the player, with a link inside for browsers that can't show
+// it. Offline, just the link, to open later.
+function player(listen, slim) {
+  const link = document.createElement('a');
+  link.href = listen.url;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  link.className = 'muted';
+  link.textContent = `${listen.title} by ${listen.artist}`;
+  if (!navigator.onLine) {
+    link.textContent = `No internet right now. Open ${listen.title} by ${listen.artist} on Bandcamp later.`;
+    return link;
+  }
+  const frame = document.createElement('iframe');
+  frame.src = bandcampEmbed(listen, slim);
+  frame.title = `${listen.title} by ${listen.artist}, on Bandcamp`;
+  frame.className = slim ? 'slim' : '';
+  frame.setAttribute('seamless', '');
+  frame.append(link);
+  return frame;
 }
 
 // On a style lesson, name the optional gear that would bring it closer to the record.
@@ -288,7 +292,6 @@ function renderStyles() {
       const hear = document.createElement('div');
       hear.className = 'hear';
       hearIt(hear, id, true);
-      hear.querySelector('button').textContent = '▶ Hear it';
       card.append(hear);
     }
     if (lockReason(id, progress.completed, progress.unlocked)) {
