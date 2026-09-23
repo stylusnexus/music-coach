@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/stylusnexus/music-coach/compare/v0.1.0...v0.2.0) (2026-09-23)
+
+
+### Added
+
+* **coach:** compare two takes of a lesson ([6fcc49d](https://github.com/stylusnexus/music-coach/commit/6fcc49de21f0bbe9c2a4ee4ff3a01eddc2a91415)), closes [#54](https://github.com/stylusnexus/music-coach/issues/54)
+
 ## 0.1.0 (2026-09-23)
 
 
