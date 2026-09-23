@@ -831,8 +831,17 @@ export function lockReason(id, completed, unlocked = {}) {
 }
 
 // Where to start: the first open lesson not yet finished. Half-done counts as not finished.
-export function firstUnfinished(completed, unlocked = {}) {
-  return LESSONS.find((l) => !completed[l.id] && !lockReason(l.id, completed, unlocked)) || LESSONS[0];
+export function firstUnfinished(completed, unlocked = {}, picks = []) {
+  return lessonPath(picks).find((l) => !completed[l.id] && !lockReason(l.id, completed, unlocked)) || LESSONS[0];
+}
+
+// The order to work through: every lesson, except that with styles picked, only those
+// styles, in the order picked.
+export function lessonPath(picks = []) {
+  if (!picks.length) return LESSONS;
+  const styles = SECTIONS.find((s) => s.title === 'Styles').ids;
+  const rest = LESSONS.filter((l) => !styles.includes(l.id));
+  return [...rest, ...picks.filter((id) => styles.includes(id)).map((id) => LESSONS.find((l) => l.id === id))];
 }
 
 // ---- Checker: turns app events into ticked-off lesson steps ----

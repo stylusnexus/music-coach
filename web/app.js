@@ -11,7 +11,7 @@ import { measureTake, scoreAreas } from './takes.js';
 import { DRILLS, makeQuestion, streakDots } from './ear.js';
 import { INTERVALS, KEY_TEXT, MAJOR_MINOR, STYLE_CHORDS } from './chords.js';
 import { Looper } from './looper.js';
-import { LESSONS, SECTIONS, STYLE_INFO, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonHighlightPcs, lockReason, missingBetterWith, resolveGear, varietyNudge } from './lessons.js';
+import { LESSONS, SECTIONS, STYLE_INFO, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonHighlightPcs, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from './lessons.js';
 
 const $ = (id) => document.getElementById(id);
 const KEY_LOW = 48;
@@ -207,13 +207,12 @@ function renderBetterWith() {
 
 // What the coach model should aim the learner at.
 function coachGoal() {
+  const names = (progress.styles || []).map((id) => STYLE_INFO[id]?.name).filter(Boolean);
+  if (names.length) return `music in the styles they picked: ${names.join(', ')}. Then finishing it in GarageBand.`;
   if (progress.flavour === 'durutti') {
     return 'music in the spirit of The Durutti Column\'s "Dance II": clean picked guitar, chorus, long echo, reverb, a simple drum machine.';
   }
-  const names = (progress.styles || []).map((id) => STYLE_INFO[id]?.name).filter(Boolean);
-  return names.length
-    ? `music in the styles they picked: ${names.join(', ')}. Then finishing it in GarageBand.`
-    : 'making their own music and finishing it in GarageBand.';
+  return 'making their own music and finishing it in GarageBand.';
 }
 
 // ---------- style picker ----------
@@ -518,7 +517,11 @@ function renderChecks() {
 
 // The next lesson after this one that is not locked.
 function nextOpenLesson() {
-  return LESSONS.slice(LESSONS.indexOf(lesson) + 1).find((l) => !lockReason(l.id, progress.completed, progress.unlocked));
+  // A style opened from "Show all styles" isn't on the picked path: walk every lesson then.
+  const picked = lessonPath(progress.styles || []);
+  const path = picked.includes(lesson) ? picked : LESSONS;
+  const here = path.indexOf(lesson);
+  return path.slice(here + 1).find((l) => !lockReason(l.id, progress.completed, progress.unlocked));
 }
 
 // Every musical event goes through here so lesson checks can tick.
@@ -2543,8 +2546,8 @@ function renderCoachTop() {
 }
 
 function wireCoach() {
-  $('coach-btn').onclick = openCoach;
-  $('coach-top').onclick = openCoach;
+  $('coach-btn').onclick = () => openCoach();
+  $('coach-top').onclick = () => openCoach();
   loadJson('/api/coach', coach).then((c) => {
     coach = c;
     renderCoachTop();
@@ -2667,10 +2670,11 @@ async function boot() {
   // Open where to start: the first unfinished lesson that is not locked.
   // A copy that began before the style picker keeps its Durutti examples and every style.
   if (progress.flavour === undefined) {
-    progress.flavour = Object.keys(progress.completed).length ? 'durutti' : 'neutral';
+    // Every copy that ever opened a lesson saved `current`, so that marks an existing copy.
+    progress.flavour = p.current !== undefined || Object.keys(progress.completed).length ? 'durutti' : 'neutral';
     saveProgress();
   }
-  openLesson(firstUnfinished(progress.completed, progress.unlocked).id);
+  openLesson(firstUnfinished(progress.completed, progress.unlocked, progress.styles || []).id);
   renderKeyPicker();
   renderEarButton();
   loadSketches();

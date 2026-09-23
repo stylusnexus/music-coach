@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   Latch, arpNote, detectChord, matchesChord, spreadChord, voicing, writeMidi, PPQ,
 } from '../web/music.js';
-import { LESSONS, SECTIONS, STYLE_INFO, createChecker, firstUnfinished, fitChecks, keyForLesson, lockReason, missingBetterWith, resolveGear, varietyNudge } from '../web/lessons.js';
+import { LESSONS, SECTIONS, STYLE_INFO, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from '../web/lessons.js';
 
 test('names E minor in any order or octave', () => {
   assert.equal(detectChord([64, 67, 71]).name, 'Em');
@@ -661,4 +661,11 @@ test('a copy that began with the Durutti examples keeps them; new ones are techn
   const hear = byId('hear-the-sound').why;
   assert.match(resolveGear(hear, EVE), /Durutti Column/);
   assert.doesNotMatch(resolveGear(hear, []), /Durutti/);
+});
+
+test('with styles picked, the next lesson is one of the picks, in pick order', () => {
+  const allButStyles = Object.fromEntries(LESSONS.filter((l) => !SECTIONS[3].ids.includes(l.id)).map((l) => [l.id, 'done']));
+  assert.equal(firstUnfinished(allButStyles, {}, ['shoegaze', 'stereolab']).id, 'shoegaze');
+  assert.equal(firstUnfinished(allButStyles).id, 'kosmische');
+  assert.deepEqual(lessonPath(['shoegaze']).slice(-1).map((l) => l.id), ['shoegaze']);
 });
