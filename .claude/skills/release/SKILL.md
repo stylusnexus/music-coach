@@ -10,8 +10,10 @@ Releases are automated by release-please (`.github/workflows/release-please.yml`
 - After every merge to `main`, it updates one open pull request titled like
   `chore(main): release 0.2.0`, with the next version and the new changelog
   section written from merged pull request titles.
-- Merging that pull request tags `vX.Y.Z`, publishes the GitHub release, and a
-  Mac runner builds `Music Coach.zip` and attaches it.
+- Merging that pull request tags `vX.Y.Z` and creates the GitHub release as a
+  draft. A Mac runner builds the app zips, attaches them, and only then
+  publishes the release, so the "latest" download link never points at a
+  release without its zip.
 
 Your job is to check it, merge it, and confirm the result.
 
