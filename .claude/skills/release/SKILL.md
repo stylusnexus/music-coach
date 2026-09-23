@@ -1,50 +1,43 @@
 ---
 name: release
-description: "Use when a maintainer publishes a new Music Coach version: choosing the version, updating the changelog, tagging, building the Mac app zip, and creating the GitHub release. Triggers on 'release', 'cut a release', 'ship a version', 'publish the app', '/release'."
+description: "Use when a maintainer publishes a new Music Coach version: checking and merging the release pull request that release-please keeps open, then confirming the GitHub release and the Mac app zip. Triggers on 'release', 'cut a release', 'ship a version', 'publish the app', '/release'."
 ---
 
 # Release a version (maintainers)
 
-A release is a tag `vX.Y.Z` on `main`, a GitHub release, and the packaged
-`Music Coach.zip` attached to it. The site deploys on every merge to `main`;
-a release is what people download.
+Releases are automated by release-please (`.github/workflows/release-please.yml`):
 
-Release tags are protected: once pushed, a `v*` tag can't be moved or
-deleted. Check everything before step 5.
+- After every merge to `main`, it updates one open pull request titled like
+  `chore(main): release 0.2.0`, with the next version and the new changelog
+  section written from merged pull request titles.
+- Merging that pull request tags `vX.Y.Z`, publishes the GitHub release, and a
+  Mac runner builds `Music Coach.zip` and attaches it.
 
-## 1. Start clean
+Your job is to check it, merge it, and confirm the result.
 
-```sh
-git checkout main && git pull --ff-only
-git status --short          # must be empty
-npm test
-```
-
-## 2. Choose the version
-
-Read `## [Unreleased]` in CHANGELOG.md and the commits since the last tag:
+## 1. Find the release pull request
 
 ```sh
-git describe --tags --abbrev=0 2>/dev/null       # last release, if any
-git log $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD --oneline
+gh pr list --label "autorelease: pending" --json number,title,url
 ```
 
-- Any `feat` → bump the minor (0.1.0 → 0.2.0).
-- Only `fix`, `docs` and the like → bump the patch (0.2.0 → 0.2.1).
-- Before 1.0.0, breaking changes bump the minor too.
-- The first release is `v0.1.0`.
+No pull request means nothing user-visible has merged since the last release.
 
-## 3. Update the changelog through a pull request
+## 2. Check it
 
-On a branch `chore/release-X.Y.Z`:
-- Rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` (today) and add a
-  new empty `## [Unreleased]` above it.
-- Make sure each line reads as plain words for a user, not code.
+```sh
+gh pr view <N> --json title,body
+gh pr diff <N>
+```
 
-Open it with the title `chore: release X.Y.Z` and merge it with the
-`merge-pr` skill.
+- The version bump is right: before 1.0.0, any `feat` bumps the minor
+  (0.1.0 → 0.2.0), only `fix` bumps the patch.
+- Every changelog line reads well to someone who uses the app. If one
+  doesn't, fix the *title of the merged pull request it came from*
+  (`gh pr edit <old N> --title ...`); release-please rewrites the release
+  pull request on the next run. Don't hand-edit CHANGELOG.md.
 
-## 4. Build and test the app
+## 3. Test the app zip before releasing
 
 ```sh
 git checkout main && git pull --ff-only
@@ -52,32 +45,31 @@ packaging/build.sh
 ```
 
 Unzip `dist/Music Coach.zip` somewhere temporary, right-click the app → Open,
-and check it starts, shows the welcome, and plays a note. The zip must hold
-only the app: no `data/`, `sketches/` or keys (`build.sh` copies only
-`server.py` and `web/`).
+and check it starts, shows the welcome, and plays a note.
 
-## 5. Tag
+## 4. Merge it
 
 ```sh
-git tag -a vX.Y.Z -m "Music Coach X.Y.Z"
-git push origin vX.Y.Z
+gh pr merge <N> --squash
 ```
 
-## 6. Create the GitHub release
+If no `test` check ran on it, that's because GitHub's own token opened it:
+merge with admin bypass (`--admin`). Adding a `RELEASE_PLEASE_TOKEN` secret (a
+fine-grained token with contents and pull-request write access) makes the
+checks run on it instead.
 
-Use the changelog section as the notes:
+Release tags are protected: once pushed, a `v*` tag can't be moved or
+deleted.
+
+## 5. Confirm
 
 ```sh
-awk '/^## \[X.Y.Z\]/{f=1;next} /^## \[/{f=0} f' CHANGELOG.md > /tmp/notes.md
-gh release create vX.Y.Z "dist/Music Coach.zip" --title "Music Coach X.Y.Z" --notes-file /tmp/notes.md
+gh run watch $(gh run list --workflow release --limit 1 --json databaseId --jq '.[0].databaseId')
+gh release view --json tagName,assets --jq '{tag: .tagName, assets: [.assets[].name]}'
 ```
 
-## 7. Confirm
+The release should list `Music Coach.zip`. Download it from the release page
+once and open it, as a new user would.
 
-```sh
-gh release view vX.Y.Z --json assets --jq '.assets[].name'   # Music Coach.zip
-```
-
-Download the zip from the release page once and open it, as a new user would.
-The README says the app is built by hand until the first release exists;
-after `v0.1.0`, update its Start section to point at the latest release.
+After the first release (`v0.1.0`), update the README's Start section to point
+at the latest release download instead of building the zip by hand.

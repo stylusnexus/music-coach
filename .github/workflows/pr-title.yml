@@ -1,0 +1,40 @@
+name: pr-title
+
+# Pull request titles become the changelog, so they must follow the format.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            test
+            refactor
+            perf
+            revert
+            chore
+            build
+            ci
+          subjectPattern: ^[a-z].*[^.]$
+          subjectPatternError: |
+            The summary after the colon starts lowercase and has no full stop at the end.
+      - name: Title is 50 characters or fewer
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [ "${#TITLE}" -gt 50 ]; then
+            echo "The title is ${#TITLE} characters; keep it to 50 or fewer."
+            exit 1
+          fi
