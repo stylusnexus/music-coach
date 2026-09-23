@@ -2698,7 +2698,7 @@ function gearItem(i, group) {
     : '';
   const tag = i.remove?.added !== undefined
     ? i.noJob
-      ? ' <span class="gear-nojob">Lessons don't have a job for this yet.</span>'
+      ? ' <span class="gear-nojob">Lessons have no job for this yet.</span>'
       : ` <select class="gear-tag${i.tag ? ' set' : ''}" data-name="${esc(i.name)}" aria-label="What ${esc(i.name)} is for">${tagOptions(i.tag, 'What is it for?')}</select>`
     : i.slottable && SLOTS[i.kind]
       ? `${moved} <select class="gear-slot${i.slot ? ' set' : ''}" data-name="${esc(i.name)}" aria-label="What ${esc(i.name)} is">${slotOptions(i.kind, i.slot, i.slot ? 'Let the app sort it' : other ? 'What is it?' : 'Change')}</select>`
