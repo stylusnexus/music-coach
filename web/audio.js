@@ -14,12 +14,22 @@ export const DRUM_PATTERNS = {
   goth: { kick: [0, 10], rim: [4, 12], tom: [7, 14, 15], hat: [0, 4, 8, 12] },
   // Four on the floor: a kick on every beat, open hats between them.
   house: { kick: [0, 4, 8, 12], snare: [4, 12], openhat: [2, 6, 10, 14] },
+  // Reggae: nothing on beat 1; kick and rim land together on beat 3.
+  'one drop': { kick: [8], rim: [8], hat: [0, 2, 4, 6, 8, 10, 12, 14] },
+  // 80s: a big gated snare on 2 and 4 over sixteenth hats.
+  synthwave: { kick: [0, 8], gated: [4, 12], hat: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] },
+  // Country: brushes on every sixteenth, like a train on the tracks.
+  train: { kick: [0, 8], snare: [4, 12], brush: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] },
+  // Drum and bass: the "Amen" break, the most sampled drum solo there is.
+  breakbeat: { kick: [0, 2, 10, 11], snare: [4, 7, 9, 12, 15], hat: [0, 2, 4, 6, 8, 10, 12, 14] },
+  // Afrobeat, after Tony Allen: a busy kick, open hats, quiet ghost snares between.
+  afrobeat: { kick: [0, 3, 6, 10, 11], snare: [4, 12], ghost: [2, 7, 9, 14, 15], hat: [0, 4, 8, 12], openhat: [2, 6, 10, 14] },
 };
 
 // Sustained sounds get a longer fade when a key is released (seconds).
-const RELEASE = { pad: 1.2, 'vp330-strings': 1.2, farfisa: 1.2, swell: 4, saw: 0.3 };
+const RELEASE = { pad: 1.2, 'vp330-strings': 1.2, farfisa: 1.2, swell: 4, saw: 0.3, sub: 0.3 };
 // Sounds built here, with no recordings needed.
-const BUILT_IN = ['guitar', 'nylon', 'epiano', 'pad', 'swell', 'saw'];
+const BUILT_IN = ['guitar', 'nylon', 'epiano', 'pad', 'swell', 'saw', 'sub'];
 
 const midiToFreq = (n) => 440 * Math.pow(2, (n - 69) / 12);
 
@@ -493,6 +503,20 @@ export class Engine {
       lp.connect(amp);
       amp.gain.setValueAtTime(0, time);
       amp.gain.linearRampToValueAtTime(level * 0.3, time + 0.01);
+    } else if (sound === 'sub') {
+      // Sub bass: a plain low sine, with a quiet octave above so small speakers show it.
+      const f = midiToFreq(note);
+      [[f, 1], [f * 2, 0.15]].forEach(([freq, mix]) => {
+        const o = ctx.createOscillator();
+        o.frequency.value = freq;
+        const g = ctx.createGain();
+        g.gain.value = mix;
+        o.connect(g).connect(amp);
+        o.start(time);
+        stops.push((t) => o.stop(t));
+      });
+      amp.gain.setValueAtTime(0, time);
+      amp.gain.linearRampToValueAtTime(level * 0.9, time + 0.015);
     } else if (sound === 'swell') {
       // Swell: a soft pad that fades in over several seconds, for ambient drones.
       const f = midiToFreq(note);
@@ -579,6 +603,26 @@ export class Engine {
 
   drum(kind, time, accent = 1) {
     const ctx = this.ctx;
+    // A ghost note is a snare played softly; the caller passes the low accent.
+    if (kind === 'ghost') kind = 'snare';
+    if (kind === 'gated') {
+      // Gated reverb: the snare, then a burst of noise that holds and cuts off dead.
+      this.drum('snare', time, accent * 1.2);
+      const src = ctx.createBufferSource();
+      src.buffer = this.noise;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 5000;
+      const gate = ctx.createGain();
+      gate.gain.setValueAtTime(0, time);
+      gate.gain.linearRampToValueAtTime(0.28 * accent, time + 0.01);
+      gate.gain.setValueAtTime(0.22 * accent, time + 0.2);
+      gate.gain.linearRampToValueAtTime(0, time + 0.23);
+      src.connect(lp).connect(gate).connect(this.drumBus);
+      src.start(time);
+      src.stop(time + 0.25);
+      return;
+    }
     const g = ctx.createGain();
     g.connect(this.drumBus);
     if (kind === 'kick' && !this.drumKits[this.kit]?.kick) {
@@ -614,14 +658,15 @@ export class Engine {
       o.connect(g);
       o.start(time);
       o.stop(time + 0.05);
-    } else if (['snare', 'hat', 'openhat', 'click'].includes(kind)) {
+    } else if (['snare', 'hat', 'openhat', 'click', 'brush'].includes(kind)) {
       const src = ctx.createBufferSource();
       src.buffer = this.noise;
       const hp = ctx.createBiquadFilter();
-      hp.type = 'highpass';
-      const len = { snare: 0.18, hat: 0.045, openhat: 0.3, click: 0.02 }[kind];
-      hp.frequency.value = { snare: 1200, hat: 7000, openhat: 6500, click: 3000 }[kind];
-      const lvl = { snare: 0.5, hat: 0.18, openhat: 0.16, click: 0.35 }[kind] * accent;
+      // A brush is a soft swish: the noise's middle band, not its hiss.
+      hp.type = kind === 'brush' ? 'bandpass' : 'highpass';
+      const len = { snare: 0.18, hat: 0.045, openhat: 0.3, click: 0.02, brush: 0.09 }[kind];
+      hp.frequency.value = { snare: 1200, hat: 7000, openhat: 6500, click: 3000, brush: 3200 }[kind];
+      const lvl = { snare: 0.5, hat: 0.18, openhat: 0.16, click: 0.35, brush: 0.35 }[kind] * accent;
       g.gain.setValueAtTime(lvl, time);
       g.gain.exponentialRampToValueAtTime(0.001, time + len);
       src.connect(hp).connect(g);

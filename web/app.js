@@ -1,7 +1,7 @@
 import { Engine, DRUM_PATTERNS } from './audio.js';
 import { setupInput } from './input.js';
 import {
-  ARP_PATTERNS, CHORD_PATTERNS, Latch, TICKS_PER_STEP, arpNotes, bassNote, detectChord, hasInterval,
+  ARP_PATTERNS, CHORD_PATTERNS, Latch, TICKS_PER_STEP, arpNotes, bassLength, bassNote, chordLength, detectChord, hasInterval, swingDelay,
   inKey, keyChords, keyName, keyPitchClasses, snapToKey, spell, CIRCLE, compareKeys, friendlyChords, neighbours,
   circleSpot, keyAtSpot, lessonKey, wheelDemo, isBlackKey, noteName, pitchClass,
   sliceForNote, tempoFromName, voicing, writeMidi,
@@ -17,8 +17,10 @@ import { LESSONS, LISTEN, PICKER_ORDER, SECTIONS, STYLE_INFO, bandcampEmbed, mat
 const $ = (id) => document.getElementById(id);
 const KEY_LOW = 48;
 const KEY_HIGH = 84;
-const DRUM_NOTES = { kick: 36, rim: 37, snare: 38, hat: 42, tom: 45, openhat: 46 };
-const DRUM_KINDS = ['kick', 'rim', 'snare', 'hat', 'tom', 'openhat'];
+const DRUM_NOTES = { kick: 36, rim: 37, snare: 38, hat: 42, tom: 45, openhat: 46, ghost: 38, gated: 40, brush: 38 };
+const DRUM_KINDS = ['kick', 'rim', 'snare', 'hat', 'tom', 'openhat', 'ghost', 'gated', 'brush'];
+// Quieter hits: ghost snares and brushes sit under the beat.
+const DRUM_LEVELS = { ghost: 0.35, brush: 0.55 };
 const GRID_ROWS = [['kick', 'Kick'], ['snare', 'Snare'], ['rim', 'Rim'], ['hat', 'Closed hat'], ['openhat', 'Open hat']];
 const SLICES = 8;
 const DRONE_SOUND = 'vp330-strings';
@@ -40,6 +42,7 @@ const state = {
   bass: false, // bass layer
   bassStyle: 'pump', // 'pump' (new wave) or 'melodic' (post-punk)
   freeTime: false, // "No beat": no click, drums, bass or arpeggiator; held notes just ring
+  swing: 0, // 0 straight, 1 hard shuffle: how late the off-beat sixteenths land
   halfSpeed: false, // sampler plays slices at half speed
   kit: 'synth', // drum kit id
   grid: { kick: [], snare: [], rim: [], hat: [], openhat: [] }, // "my beat": steps per row
@@ -1131,10 +1134,12 @@ engine.onStep = (step, time) => {
   const s16 = step % 16;
   if (s16 === 0) onBarStart(step, time);
 
+  // Swing moves the off-beat sixteenths of the arpeggio, bass, drums and loop.
+  const swung = time + swingDelay(step, state.swing) * engine.secondsPerStep;
   const loop = looper.tick(step, time, engine.secondsPerStep);
   for (const e of loop.events) {
-    if (e.sound === 'chop') playSliceNow(e.note, e.vel, time);
-    else engine.playNote(e.note, e.vel, time, engine.secondsPerStep * e.dur, e.sound);
+    if (e.sound === 'chop') playSliceNow(e.note, e.vel, swung);
+    else engine.playNote(e.note, e.vel, swung, engine.secondsPerStep * e.dur, e.sound);
     recordStep('keys', step, e.note, e.vel, e.dur);
   }
   if (loop.changed) {
@@ -1149,8 +1154,8 @@ engine.onStep = (step, time) => {
     const p = state.drumPattern === 'my beat' ? state.grid : DRUM_PATTERNS[state.drumPattern];
     for (const kind of DRUM_KINDS) {
       if (p[kind]?.includes(s16)) {
-        const accent = kind === 'hat' && s16 % 4 !== 0 ? 0.7 : 1;
-        engine.drum(kind, time, accent);
+        const accent = (DRUM_LEVELS[kind] ?? 1) * ((kind === 'hat' || kind === 'brush') && s16 % 4 !== 0 ? 0.7 : 1);
+        engine.drum(kind, swung, accent);
         recordStep('drums', step, DRUM_NOTES[kind], Math.round(100 * accent), 1);
       }
     }
@@ -1162,9 +1167,12 @@ engine.onStep = (step, time) => {
     const b = bassNote(notes, step, state.bassStyle);
     if (b !== null) {
       const vel = s16 % 4 === 0 ? 100 : 84;
-      engine.playNote(b, vel, time, engine.secondsPerStep * 1.8, BASS_SOUND, 'bass');
-      recordStep('bass', step, b, vel, 2);
-      looper.addAt(step, b, vel, 2, BASS_SOUND);
+      const len = bassLength(state.bassStyle);
+      const steps = len < 1 ? len : Math.round(len);
+      const sound = state.bassStyle === 'sub' ? 'sub' : BASS_SOUND;
+      engine.playNote(b, vel, swung, engine.secondsPerStep * len, sound, 'bass');
+      recordStep('bass', step, b, vel, steps);
+      looper.addAt(step, b, vel, steps, sound);
     }
   }
 
@@ -1173,11 +1181,13 @@ engine.onStep = (step, time) => {
     const eno = state.arpPattern === 'eno';
     for (const n of arpNotes(state.arpPattern, notes, step)) {
       const vel = eno ? 58 + Math.floor(Math.random() * 16) : (s16 % 4 === 0 ? 96 : 76) + Math.floor(Math.random() * 12) - (chordHit ? 14 : 0);
-      const steps = eno ? 24 : chordHit ? 1.6 : 3.5;
-      if (engine.sound === 'chop') playSliceNow(n, vel, time);
-      else engine.playNote(n, vel, time, engine.secondsPerStep * steps);
-      recordStep('keys', step, n, vel, Math.round(steps));
-      looper.addAt(step, n, vel, Math.round(steps), engine.sound);
+      const steps = eno ? 24 : chordHit ? chordLength(state.arpPattern) : 3.5;
+      // Short chord hits (skank, stab) stay short when recorded or looped.
+      const kept = steps < 1 ? steps : Math.round(steps);
+      if (engine.sound === 'chop') playSliceNow(n, vel, swung);
+      else engine.playNote(n, vel, swung, engine.secondsPerStep * steps);
+      recordStep('keys', step, n, vel, kept);
+      looper.addAt(step, n, vel, kept, engine.sound);
     }
   }
 
@@ -1196,7 +1206,7 @@ function onBarStart(step, time) {
   const notes = latch.notes(state.latch);
   const arpOn = state.arp;
   const drums = state.drums;
-  const { arpPattern: pattern, drumPattern, kit, bass, bassStyle } = state;
+  const { arpPattern: pattern, drumPattern, kit, bass, bassStyle, swing } = state;
   const fx = { ...engine.fx };
   const { drumFuzz } = engine;
   const sound = engine.sound;
@@ -1221,8 +1231,8 @@ function onBarStart(step, time) {
     state.bar += 1;
     highlightChart(false);
     // The bar that just finished counts toward "hold this chord for N bars".
-    if (arpOn && notes.length) emit({ type: 'arpBar', notes, drums, pattern, drumPattern, drone, bass, bassStyle, sound, fx, drumFuzz });
-    emit({ type: 'bar', drums, drumPattern, kit, drumFuzz });
+    if (arpOn && notes.length) emit({ type: 'arpBar', notes, drums, pattern, drumPattern, drone, bass, bassStyle, sound, fx, drumFuzz, swing });
+    emit({ type: 'bar', drums, drumPattern, kit, drumFuzz, swing });
     if (loopPlaying) emit({ type: 'loopBar', layers: loopLayers });
   });
 }
@@ -1255,10 +1265,12 @@ function updateDrone(notes, time) {
 
 // ---------- recording ----------
 
+// Swung notes are written late too, so the sketch keeps its groove in GarageBand.
 function recordStep(track, step, note, vel, steps) {
   const r = state.recording;
   if (state.rec !== 'recording' || !r || step < r.startStep) return;
-  r[track].push({ tick: (step - r.startStep) * TICKS_PER_STEP, note, vel, dur: steps * TICKS_PER_STEP });
+  const tick = (step - r.startStep) * TICKS_PER_STEP + Math.round(swingDelay(step, state.swing) * TICKS_PER_STEP);
+  r[track].push({ tick, note, vel, dur: steps * TICKS_PER_STEP });
 }
 
 function currentTick() {
@@ -1450,6 +1462,7 @@ function renderStudio() {
   $('drone').classList.toggle('on', state.drone);
   $('bass').classList.toggle('on', state.bass);
   $('bass-style').value = state.bassStyle;
+  $('swing').value = Math.round(state.swing * 100);
   $('half-speed').classList.toggle('on', state.halfSpeed);
   $('drum-kit').value = state.kit;
   $('reverse').classList.toggle('on', state.reverse);
@@ -1473,6 +1486,7 @@ function applySetup(s) {
   if (s.drone === undefined) state.drone = false;
   if (s.bass === undefined) state.bass = false;
   if (state.bass) loadSound(BASS_SOUND);
+  state.swing = s.swing ?? 0;
   setFreeTime(Boolean(s.freeTime));
   engine.setDrumFuzz(Boolean(s.drumFuzz));
   // Never start drums just because a lesson opened: wait for the first note.
@@ -1618,6 +1632,10 @@ function wireStudio() {
     if (state.click) state.freeTime = false;
     renderStudio();
   };
+  $('swing').oninput = (e) => {
+    state.swing = Number(e.target.value) / 100;
+  };
+  $('swing').onchange = () => emit({ type: 'swing', value: state.swing });
   $('drum-fuzz').onclick = () => {
     engine.setDrumFuzz(!engine.drumFuzz);
     renderStudio();

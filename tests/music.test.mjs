@@ -272,6 +272,62 @@ test('new-wave bass pumps the root on eighths, jumping an octave on the offbeat'
   assert.equal(bassNote([], 0), null);
 });
 
+test('bass styles: octave pump, boom-chick, sub; each with its own length', async () => {
+  const { bassNote, bassLength } = await import('../web/music.js');
+  const am = [57, 60, 64];
+  const bar = (style) => Array.from({ length: 16 }, (_, i) => bassNote(am, i, style));
+  assert.deepEqual(bar('octave16').slice(0, 4), [33, 45, 33, 45]); // every sixteenth
+  assert.ok(bar('octave16').every((n) => n !== null));
+  const boom = bar('boom-chick');
+  assert.equal(boom[0], 33); // root on 1
+  assert.equal(boom[8], 40); // fifth on 3
+  assert.equal(boom.filter((n) => n !== null).length, 2);
+  assert.equal(bassNote(am, 16, 'boom-chick'), 33); // next bar starts on the root again
+  const sub = bar('sub');
+  assert.deepEqual(sub.filter((n) => n !== null), [33]);
+  assert.equal(bassLength('pump'), 1.8); // unchanged
+  assert.ok(bassLength('octave16') < 1 && bassLength('sub') > 15);
+});
+
+test('swing delays only the off-beat sixteenths; skank and stab are short chord hits', async () => {
+  const { swingDelay, arpNotes, chordLength } = await import('../web/music.js');
+  assert.deepEqual([0, 1, 2, 3].map((s) => swingDelay(s, 0)), [0, 0, 0, 0]);
+  assert.deepEqual([0, 1, 2, 3].map((s) => swingDelay(s, 1)), [0, 0.5, 0, 0.5]);
+  const hits = (p) => Array.from({ length: 16 }, (_, i) => i).filter((i) => arpNotes(p, [57, 60, 64], i).length);
+  assert.deepEqual(hits('skank'), [4, 12]); // beats 2 and 4
+  assert.equal(hits('stab').length, 5);
+  assert.ok(hits('stab').some((i) => i % 2 === 1)); // off the beat
+  assert.ok(chordLength('skank') < 1 && chordLength('stab') < 1);
+  assert.equal(chordLength('eighths'), 1.6);
+});
+
+test('new drum patterns: one drop, synthwave, train, breakbeat, afrobeat', async () => {
+  const { DRUM_PATTERNS } = await import('../web/audio.js');
+  const drop = DRUM_PATTERNS['one drop'];
+  assert.ok(!drop.kick.includes(0) && drop.kick.includes(8) && drop.rim.includes(8)); // nothing on 1, together on 3
+  assert.deepEqual(drop.hat, [0, 2, 4, 6, 8, 10, 12, 14]);
+  assert.deepEqual(DRUM_PATTERNS.synthwave.gated, [4, 12]);
+  assert.equal(DRUM_PATTERNS.synthwave.hat.length, 16);
+  assert.equal(DRUM_PATTERNS.train.brush.length, 16);
+  assert.deepEqual(DRUM_PATTERNS.breakbeat.kick, [0, 2, 10, 11]);
+  const afro = DRUM_PATTERNS.afrobeat;
+  assert.ok(afro.kick.length >= 5 && afro.ghost.length && afro.openhat.length);
+  for (const p of Object.values(DRUM_PATTERNS)) for (const steps of Object.values(p)) assert.ok(steps.every((s) => s >= 0 && s < 16));
+});
+
+test('swing checks need at least that much swing', () => {
+  const c = createChecker({ checks: [
+    { type: 'drumBars', drumPattern: 'afrobeat', swing: 0.3, bars: 1, label: 'swung afrobeat' },
+    { type: 'beatBars', drumPattern: 'one drop', swing: 0.3, bars: 1, label: 'swung one drop' },
+  ] });
+  c.handle({ type: 'arpBar', notes: [57, 60, 64], drums: true, drumPattern: 'afrobeat', swing: 0 });
+  c.handle({ type: 'bar', drums: true, drumPattern: 'one drop', swing: 0.1 });
+  assert.equal(c.complete(), false);
+  c.handle({ type: 'arpBar', notes: [57, 60, 64], drums: true, drumPattern: 'afrobeat', swing: 0.5 });
+  c.handle({ type: 'bar', drums: true, drumPattern: 'one drop', swing: 0.3 });
+  assert.ok(c.complete());
+});
+
 test('eno loops: each note on its own cycle, so they drift apart', async () => {
   const { arpNotes, ENO_PERIODS } = await import('../web/music.js');
   const held = [65, 69, 72, 76];

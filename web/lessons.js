@@ -1159,11 +1159,12 @@ export function createChecker(lesson, saved) {
             (!c.minNotes || new Set(evt.notes).size >= c.minNotes) &&
             (!c.interval || hasInterval(evt.notes, c.interval)) &&
             (!c.fx || c.fx.every((name) => evt.fx?.[name])) &&
-            (!c.dry || !['chorus', 'echo', 'reverb', 'fuzz', 'reverse', 'wobble'].some((name) => evt.fx?.[name]))
+            (!c.dry || !['chorus', 'echo', 'reverb', 'fuzz', 'reverse', 'wobble'].some((name) => evt.fx?.[name])) &&
+            (!c.swing || evt.swing >= c.swing)
           ) next = v + 1;
           break;
         case 'drumBars':
-          if (evt.type === 'arpBar' && evt.drums && evt.notes.length > 0 && (!c.drumPattern || evt.drumPattern === c.drumPattern) && (!c.drumFuzz || evt.drumFuzz)) next = v + 1;
+          if (evt.type === 'arpBar' && evt.drums && evt.notes.length > 0 && (!c.drumPattern || evt.drumPattern === c.drumPattern) && (!c.drumFuzz || evt.drumFuzz) && (!c.swing || evt.swing >= c.swing)) next = v + 1;
           break;
         case 'bassBars':
           if (evt.type === 'arpBar' && evt.bass && (!c.bassStyle || evt.bassStyle === c.bassStyle)) next = v + 1;
@@ -1193,7 +1194,7 @@ export function createChecker(lesson, saved) {
           if (evt.type === 'grid') next = Math.max(v, evt.grid[c.row]?.length || 0);
           break;
         case 'beatBars':
-          if (evt.type === 'bar' && evt.drums && evt.drumPattern === c.drumPattern && (!c.kit || evt.kit === c.kit)) next = v + 1;
+          if (evt.type === 'bar' && evt.drums && evt.drumPattern === c.drumPattern && (!c.kit || evt.kit === c.kit) && (!c.swing || evt.swing >= c.swing)) next = v + 1;
           break;
         case 'loopLoaded':
           if (evt.type === 'loop') next = true;

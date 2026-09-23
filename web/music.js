@@ -252,13 +252,20 @@ export const ENO_PERIODS = [22, 26, 34, 38, 46, 58];
 // on the offbeats. Returns null on steps where the bass rests.
 // style 'melodic' is post-punk: the bass plays a tune from the chord's notes,
 // high and forward, instead of pumping the root.
+// style 'octave16' is synthwave: the root and its octave on every sixteenth.
+// 'boom-chick' is country: the root on beat 1, the fifth on beat 3.
+// 'sub' is drum and bass: one long, low root note held through the bar.
 const MELODIC_BASS = [0, 1, 2, 1, 0, 2, 3, 2];
 
 export function bassNote(held, step, style = 'pump') {
-  if (!held.length || step % 2 !== 0) return null;
+  if (!held.length) return null;
   let root = Math.min(...held);
   while (root > 43) root -= 12;
   while (root < 31) root += 12;
+  if (style === 'octave16') return step % 2 ? root + 12 : root;
+  if (step % 2 !== 0) return null;
+  if (style === 'boom-chick') return { 0: root, 8: root + 7 }[step % 16] ?? null;
+  if (style === 'sub') return step % 16 === 0 ? root : null;
   if (style === 'melodic') {
     const pcs = [...new Set(held.map(pitchClass))].sort((a, b) => ((a - pitchClass(root) + 12) % 12) - ((b - pitchClass(root) + 12) % 12));
     const tones = pcs.map((pc) => root + 12 + ((pc - pitchClass(root) + 12) % 12));
@@ -266,6 +273,19 @@ export function bassNote(held, step, style = 'pump') {
     return tones[MELODIC_BASS[(step / 2) % MELODIC_BASS.length] % tones.length];
   }
   return step % 4 === 2 ? root + 12 : root;
+}
+
+// How long each bass note rings, in sixteenths.
+const BASS_LENGTHS = { octave16: 0.8, 'boom-chick': 3.5, sub: 15.5 };
+
+export function bassLength(style) {
+  return BASS_LENGTHS[style] ?? 1.8;
+}
+
+// Swing: the off-beat sixteenths land late. 0 is straight; 1 pushes them half
+// a sixteenth later (a hard shuffle); about 0.66 is a triplet feel. In sixteenths.
+export function swingDelay(step, swing) {
+  return step % 2 === 1 ? swing * 0.5 : 0;
 }
 
 // True when two of the notes are this many semitones apart (in any octave).
@@ -279,7 +299,18 @@ export function hasInterval(notes, semitones) {
 export const CHORD_PATTERNS = {
   eighths: [0, 2, 4, 6, 8, 10, 12, 14],
   offbeat: [2, 6, 10, 14],
+  // Reggae: a short, choppy "chk" on beats 2 and 4.
+  skank: [4, 12],
+  // Afrobeat horn stabs: short hits pushed off the beat.
+  stab: [0, 3, 6, 10, 13],
 };
+
+// Chord hits played short, in sixteenths; the rest ring a little over one.
+const CHORD_LENGTHS = { skank: 0.5, stab: 0.6 };
+
+export function chordLength(patternName) {
+  return CHORD_LENGTHS[patternName] ?? 1.6;
+}
 
 // Spread held notes across two octaves like guitar strings: a bass note below,
 // the chord, then the chord an octave up. Always six "strings".
