@@ -20,6 +20,16 @@ and your computer keys work too.
 It runs on your Mac and opens in Chrome. Nothing is uploaded, and there's no
 account.
 
+## Why this exists
+
+I built Music Coach because I was lost. I had GarageBand, a small keyboard and
+plenty of plugins, but no sense of how it all fits together, and not much
+patience for learning each tool from its manual. I wanted to make something
+first and understand it along the way. If that sounds like you, this is for
+you.
+
+— Eve, Stylus Nexus
+
 ## What's inside
 
 - **30 short lessons in four sections.**
