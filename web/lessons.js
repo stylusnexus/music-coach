@@ -499,6 +499,90 @@ const ALL_LESSONS = [
     ],
   },
   {
+    id: 'folk',
+    title: 'Folk: fingerpicking and open chords',
+    minutes: 15,
+    why: 'Nick Drake, Joni Mitchell and Vashti Bunyan made records with one guitar, picked close to the microphone, with almost nothing added. The magic is in the picking and in open chords: shapes with a string left ringing that is neither major nor minor.',
+    steps: [
+      'Guitar, "picking" pattern, Arp and Latch on. Tap D major (D F# A).',
+      'Turn Chorus, Echo and Reverb off (in Effects). The guitar goes dry and close, like someone playing in the room with you.',
+      'Now Dsus2: D E A. Move the middle finger down from F# to E. The chord floats, neither happy nor sad.',
+      'Follow the chart: D, Dsus2, G, G. G is G B D.',
+      'In GarageBand: put the sketch on an acoustic guitar from the Library (press Y) and leave the effects off.',
+    ],
+    setup: { sound: 'guitar', arp: true, latch: true, arpPattern: 'picking', drums: false, bpm: 92 },
+    chart: ['D', 'D', 'Dsus2', 'Dsus2', 'G', 'G', 'G', 'G'],
+    checks: [
+      { type: 'arpBars', chord: 'D', bars: 2, label: '2 bars of D, picked' },
+      { type: 'arpBars', dry: true, bars: 2, label: '2 bars with the effects off' },
+      { type: 'arpBars', chord: 'Dsus2', bars: 2, label: '2 bars of Dsus2' },
+      { type: 'arpBars', chord: 'G', dry: true, bars: 2, label: '2 bars of G, dry' },
+    ],
+  },
+  {
+    id: 'bossa-nova',
+    title: 'Bossa nova: soft chords on the offbeat',
+    minutes: 15,
+    why: 'Antônio Carlos Jobim and João Gilberto made bossa nova in Rio at the end of the 1950s: quiet 7th chords on a nylon guitar, played just off the beat over a light, rolling rhythm. It sounds relaxed because it never pushes; the chords lean into the beat instead of landing on it.',
+    steps: [
+      'Guitar, pattern "offbeat", Arp and Latch on, drums on "bossa". Tap Cmaj7 (C E G B).',
+      'Turn Fuzz off and Chorus off if they are on. Keep a little Reverb: soft, not washy.',
+      'Follow the chart: Cmaj7, Am7 (A C E G), Dm7 (D F A C), G7 (G B D F). All white keys.',
+      'Listen to how the chord hits between the beats while the drums roll on. That gap is the bossa feel.',
+      'In GarageBand: put the sketch on a nylon or acoustic guitar from the Library, and add a soft brush kit if you like.',
+    ],
+    setup: { sound: 'guitar', arp: true, latch: true, arpPattern: 'offbeat', drums: true, drumPattern: 'bossa', bpm: 120, fx: { chorus: false, echo: false } },
+    chart: ['Cmaj7', 'Cmaj7', 'Am7', 'Am7', 'Dm7', 'Dm7', 'G7', 'G7'],
+    checks: [
+      { type: 'arpBars', chord: 'Cmaj7', pattern: 'offbeat', bars: 2, label: '2 bars of Cmaj7 off the beat' },
+      { type: 'drumBars', drumPattern: 'bossa', bars: 4, label: '4 bars over the bossa beat' },
+      { type: 'arpBars', chord: 'Am7', bars: 2, label: '2 bars of Am7' },
+      { type: 'arpBars', chord: 'G7', bars: 2, label: '2 bars of G7' },
+    ],
+  },
+  {
+    id: 'minimal-wave',
+    title: 'Minimal wave: one synth, one drum machine',
+    minutes: 15,
+    why: 'Around 1980, bands like Oppenheimer Analysis, Das Ding and Linear Movement recorded at home with one cheap synth and a basic drum machine. The sound is cold, sparse and patient. You make it by taking things away: one line, a plain beat, lots of space, and a chord that lasts four bars instead of one.',
+    steps: [
+      'The sound is {Moog}, pattern "up", Arp and Latch on, drums on "sparse". Tap A minor (A C E).',
+      'Turn Chorus and Reverb off. Leave Echo on: one echo is all the space this music needs.',
+      'Stay on A minor for 4 bars. Then E minor (E G B) for 4. Resist the urge to add anything.',
+      'Pull the Filter down to make the synth duller and colder, the way a cheap synth sounds.',
+      'In GarageBand: put the sketch on a simple synth from the Library (Synthesizer category) and a vintage drum machine kit.',
+    ],
+    setup: { sound: 'moog-bass', arp: true, latch: true, arpPattern: 'up', drums: true, drumPattern: 'sparse', bpm: 118, brightness: 0.8 },
+    chart: ['Am', 'Am', 'Am', 'Am', 'Em', 'Em', 'Em', 'Em'],
+    checks: [
+      { type: 'arpBars', chord: 'Am', bars: 4, label: '4 bars on A minor' },
+      { type: 'drumBars', drumPattern: 'sparse', bars: 4, label: '4 bars over the sparse beat' },
+      { type: 'arpBars', chord: 'Em', bars: 4, label: '4 bars on E minor' },
+      { type: 'filterSweep', label: 'Filter: pull it down, then bring it back' },
+    ],
+  },
+  {
+    id: 'classical-minimalism',
+    title: 'Classical minimalism: Pärt, Reich and Glass',
+    minutes: 15,
+    why: 'Arvo Pärt, Steve Reich and Philip Glass wrote music from tiny patterns repeated many times, changing slowly. Pärt\'s "Spiegel im Spiegel" is little more than a rising piano pattern over one low note. It was never about playing fast; it is about patience and small changes you can hear.',
+    steps: [
+      'E-Piano, pattern "up", Arp and Latch on, 60 BPM, no drums. Tap F major (F A C).',
+      'Switch Drone on: a low F holds underneath, like the long notes in "Spiegel im Spiegel".',
+      'Follow the chart: F, then C (C E G), then F again. Let each chord ring for 2 bars.',
+      'Switch the pattern to "ripple": the notes now loop in a Glass-like wave. Same chord, new motion.',
+      'In GarageBand: put the sketch on a grand piano from the Library and add a string pad on a second track for the long note.',
+    ],
+    setup: { sound: 'epiano', arp: true, latch: true, arpPattern: 'up', drums: false, bpm: 60, fx: { chorus: false, echo: false } },
+    chart: ['F', 'F', 'C', 'C', 'F', 'F', 'F', 'F'],
+    checks: [
+      { type: 'arpBars', chord: 'F', bars: 2, label: '2 bars of F, rising' },
+      { type: 'droneBars', bars: 4, label: '4 bars with the drone on' },
+      { type: 'arpBars', chord: 'C', bars: 2, label: '2 bars of C' },
+      { type: 'arpBars', pattern: 'ripple', bars: 2, label: '2 bars of the ripple pattern' },
+    ],
+  },
+  {
     id: 'looping',
     title: 'Looping: build a piece in layers',
     minutes: 10,
@@ -754,7 +838,7 @@ export const SECTIONS = [
   {
     title: 'Styles',
     note: 'Locked until you finish the Basics: these assume you can tap chords and follow a chart. Suggested path: Kosmische, then Ambient, then Dark ambient. The rest in any order.',
-    ids: ['kosmische', 'ambient-eno', 'dark-ambient', 'stereolab', 'new-wave', 'post-punk', 'shoegaze'],
+    ids: ['kosmische', 'ambient-eno', 'dark-ambient', 'stereolab', 'new-wave', 'post-punk', 'shoegaze', 'folk', 'bossa-nova', 'minimal-wave', 'classical-minimalism'],
     requiresSection: 'Basics',
   },
 ];
@@ -775,6 +859,14 @@ export const STYLE_INFO = {
     betterWith: [{ any: ['sound:moog-bass', 'tag:bass', 'tag:synth'], label: 'a synth bass plugin' }, { any: ['gear:echo'], label: 'an echo plugin' }] },
   'post-punk': { name: 'Post-punk and darkwave', artists: 'Joy Division, Siouxsie and the Banshees', sound: 'A melodic bass up front, tribal drums and cold minor chords.', texture: 'chord',
     betterWith: [{ any: ['gear:chorus'], label: 'a chorus plugin' }, { any: ['gear:amp', 'gear:fuzz'], label: 'an amp plugin' }] },
+  folk: { name: 'Folk', artists: 'Nick Drake, Joni Mitchell', sound: 'One guitar, picked close, with open chords that ring.', texture: 'chord',
+    betterWith: [{ any: ['plugin:VG-SILK2'], label: 'an acoustic or nylon guitar plugin' }] },
+  'bossa-nova': { name: 'Bossa nova', artists: 'Antônio Carlos Jobim, João Gilberto', sound: 'Soft 7th chords off the beat over a rolling rhythm.', texture: 'groove',
+    betterWith: [{ any: ['plugin:VG-SILK2'], label: 'a nylon guitar plugin' }] },
+  'minimal-wave': { name: 'Minimal wave', artists: 'Oppenheimer Analysis, Das Ding', sound: 'One cheap synth, a basic drum machine, lots of space.', texture: 'synth',
+    betterWith: [{ any: ['tag:synth', 'sound:moog-bass'], label: 'a simple synth plugin' }] },
+  'classical-minimalism': { name: 'Classical minimalism', artists: 'Arvo Pärt, Philip Glass', sound: 'A small piano pattern repeating over one long low note.', texture: 'drone',
+    betterWith: [{ any: ['gear:reverb'], label: 'a reverb plugin' }] },
   shoegaze: { name: 'Shoegaze', artists: 'My Bloody Valentine, Slowdive', sound: 'A wall of fuzz, and reverb that swells up backwards into each note.', texture: 'chord',
     betterWith: [{ any: ['gear:reverse'], label: 'a reverse reverb plugin' }, { any: ['gear:amp', 'gear:fuzz'], label: 'an amp plugin' }] },
 };
@@ -788,6 +880,7 @@ export function missingBetterWith(id, env) {
     if (kind === 'tag') return Boolean(e.tags[value]);
     if (kind === 'gear') return preferred(value, e) !== -1 || Boolean(e.tags[value]);
     if (kind === 'folder') return Boolean(e.folder);
+    if (kind === 'plugin') return e.installed.has(value);
     return false;
   };
   return (STYLE_INFO[id]?.betterWith || []).filter((b) => !b.any.some(has)).map((b) => b.label);
@@ -803,7 +896,7 @@ export function varietyNudge(picks) {
   const crowded = Object.keys(counts).find((t) => counts[t] >= 3);
   if (!crowded) return null;
   const others = [...new Set(Object.values(STYLE_INFO).map((s) => s.texture))].filter((t) => t !== crowded);
-  const words = { drone: 'drone and ambient', chord: 'chord-based', groove: 'groove-based', sample: 'sample-based' };
+  const words = { drone: 'drone and ambient', chord: 'chord-based', groove: 'groove-based', sample: 'sample-based', synth: 'synth-based' };
   if (!others.length) return null;
   return `These are all ${words[crowded] || crowded} styles. Want to add something ${others.map((t) => words[t] || t).join(' or ')}?`;
 }
@@ -897,7 +990,8 @@ export function createChecker(lesson, saved) {
             (!c.sound || evt.sound === c.sound) &&
             (!c.minNotes || new Set(evt.notes).size >= c.minNotes) &&
             (!c.interval || hasInterval(evt.notes, c.interval)) &&
-            (!c.fx || c.fx.every((name) => evt.fx?.[name]))
+            (!c.fx || c.fx.every((name) => evt.fx?.[name])) &&
+            (!c.dry || !['chorus', 'echo', 'reverb', 'fuzz', 'reverse'].some((name) => evt.fx?.[name]))
           ) next = v + 1;
           break;
         case 'drumBars':

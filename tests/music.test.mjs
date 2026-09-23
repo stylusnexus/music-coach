@@ -396,9 +396,9 @@ test('reverse reverb names the IK plugin when installed', () => {
 });
 
 test('lesson order: basics, then quick wins, then styles; every lesson placed once', () => {
-  assert.equal(LESSONS.length, 30);
+  assert.equal(LESSONS.length, 34);
   assert.ok(LESSONS.every(Boolean));
-  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 30);
+  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 34);
   assert.equal(lockReason('looping', {}), null); // a quick win: always open
   assert.deepEqual(SECTIONS.map((s) => s.title), ['Basics', 'Quick wins', 'GarageBand skills', 'Styles']);
   assert.equal(LESSONS[3].id, 'major-minor'); // right after the four chords
@@ -668,4 +668,18 @@ test('with styles picked, the next lesson is one of the picks, in pick order', (
   assert.equal(firstUnfinished(allButStyles, {}, ['shoegaze', 'stereolab']).id, 'shoegaze');
   assert.equal(firstUnfinished(allButStyles).id, 'kosmische');
   assert.deepEqual(lessonPath(['shoegaze']).slice(-1).map((l) => l.id), ['shoegaze']);
+});
+
+test('the new styles tick on their own sounds, dry folk needs the effects off', () => {
+  const folk = createChecker(byId('folk'));
+  const bar = (notes, extra = {}) => ({ type: 'arpBar', notes, pattern: 'picking', sound: 'guitar', fx: { chorus: true, echo: true, reverb: true }, ...extra });
+  folk.handle(bar([62, 66, 69]));
+  folk.handle(bar([62, 66, 69]));
+  assert.equal(folk.progress()[1].done, false); // effects still on
+  folk.handle(bar([62, 66, 69], { fx: {} }));
+  folk.handle(bar([62, 66, 69], { fx: {} }));
+  assert.equal(folk.progress()[1].done, true);
+  const bossa = createChecker(byId('bossa-nova'));
+  for (let i = 0; i < 2; i++) bossa.handle({ type: 'arpBar', notes: [55, 59, 62, 65], pattern: 'offbeat', fx: {} });
+  assert.equal(bossa.progress()[3].done, true); // G7 recognised
 });
