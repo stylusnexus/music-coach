@@ -71,8 +71,8 @@ enforces the format.
 
 Don't edit CHANGELOG.md by hand. When a pull request is merged, its title
 becomes a line in the next release's changelog: `feat` titles under Added,
-`fix` under Fixed, `perf` and `revert` under Changed. `docs`, `test`,
-`refactor`, `chore`, `build` and `ci` stay out of it. So write the title for
+`fix` under Fixed, `perf` and `revert` under Changed, `docs` under
+Documentation. `test`, `refactor`, `chore`, `build` and `ci` stay out of it. So write the title for
 someone who uses the app: "feat(styles): add gothic rock", not
 "feat: update lessons.js".
 
