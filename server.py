@@ -97,6 +97,8 @@ AUDIO_TYPES = (".wav", ".aif", ".aiff", ".mp3", ".m4a")
 # Tags for gear added by hand. Effect tags let a lesson say "your X" in place of a
 # GarageBand effect; keyboard and microphone let lessons and the coach name them.
 TAGS = ("keyboard", "microphone", "chorus", "echo", "reverb", "amp", "fuzz", "synth", "bass", "drums")
+# What you say a scanned plugin is (web/gear.js, SLOTS).
+SLOTS = ("reverb", "echo", "chorus", "amp", "grit", "eq", "comp", "master", "player", "keys", "synth", "bass", "drums", "library")
 
 SAMPLE_FILE = re.compile(r"([A-G]#?)(-?\d)(?:_\d+)?\.wav$", re.I)
 NOTE_INDEX = {n: i for i, n in enumerate(["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"])}
@@ -255,10 +257,13 @@ def clean_prefs(raw):
             "kind": "plugin" if item.get("kind") == "plugin" else "hardware",
         })
     hidden = sorted({h[:120] for h in raw.get("hidden") or [] if isinstance(h, str) and h.strip()})
+    slots = raw.get("slots") if isinstance(raw.get("slots"), dict) else {}
+    slots = {str(k)[:120]: v for k, v in list(slots.items())[:1000] if v in SLOTS}
     return {
         "folders": list(dict.fromkeys(folders))[:20],
         "added": added[:200],
         "hidden": hidden[:500],
+        "slots": slots,
         "setupDone": bool(raw.get("setupDone")),
     }
 
@@ -296,6 +301,11 @@ def change_prefs(change, prefs):
         added = [a for a in added if a["name"] != name]
     elif op == "tag":
         added = [{**a, "tag": change.get("tag", "")} if a["name"] == name else a for a in added]
+    elif op == "slot" and name:
+        slots = {k: v for k, v in prefs["slots"].items() if k != name}
+        if change.get("slot") in SLOTS:
+            slots[name] = change["slot"]
+        return clean_prefs({**prefs, "slots": slots})
     elif op == "hide" and name:
         hidden.append(name)
     elif op == "unhide":
@@ -709,7 +719,9 @@ def suggest_tag(name):
     system = (
         "You sort music gear for a beginner's practice app. Pick the one tag that says what "
         f"this item is used for: {', '.join(TAGS)}, or none. keyboard means a MIDI keyboard "
-        "or controller; synth means an instrument that makes its own sound. "
+        "or controller; synth means an instrument that makes its own sound. Gear that doesn't "
+        "make or shape sound, like headphones, speakers, audio interfaces, cables and stands, "
+        "is none. If you don't recognise it, answer none. "
         'Reply as JSON: {"tag": "..."}.'
     )
     try:
@@ -1018,7 +1030,9 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path == "/api/gear":
             prefs = load_prefs()
             folders = [{"path": f, "found": Path(f).is_dir()} for f in prefs["folders"]]
-            return self.send_json(200, {**scan_gear(), **prefs, "folders": folders, "tags": TAGS, "home": str(Path.home())})
+            # Gear with no job in lessons (headphones, speakers, cables) says so instead of offering tags.
+            added = [{**a, "noJob": not a["tag"] and rule_tag(a["name"]) == ""} for a in prefs["added"]]
+            return self.send_json(200, {**scan_gear(), **prefs, "added": added, "folders": folders, "tags": TAGS, "home": str(Path.home())})
         if self.path == "/api/coach":
             return self.send_json(200, public_coach(coach_settings()))
         if self.path == "/api/version":

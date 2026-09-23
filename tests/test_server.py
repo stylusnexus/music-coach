@@ -164,6 +164,18 @@ class GearPrefsTest(unittest.TestCase):
         ])
         self.assertEqual(got["hidden"], ["A", "B"])
 
+    def test_what_you_say_a_plugin_is_is_kept_and_checked(self):
+        prefs = server.clean_prefs({"slots": {"Zorbo": "bass", "Bad": "toaster"}})
+        self.assertEqual(prefs["slots"], {"Zorbo": "bass"})
+        prefs = server.change_prefs({"op": "slot", "name": "Room Maker", "slot": "echo"}, prefs)
+        self.assertEqual(prefs["slots"], {"Zorbo": "bass", "Room Maker": "echo"})
+        prefs = server.change_prefs({"op": "slot", "name": "Zorbo", "slot": ""}, prefs)
+        self.assertEqual(prefs["slots"], {"Room Maker": "echo"})
+
+    def test_headphones_get_no_tag(self):
+        self.assertEqual(server.rule_tag("Sony MDR-7506 headphones"), "")
+        self.assertEqual(server.rule_tag("Akai MPK Mini"), "keyboard")
+
     def test_tags_from_names(self):
         self.assertEqual(server.rule_tag("Akai MPK Mini"), "keyboard")
         self.assertEqual(server.rule_tag("Shure SM58"), "microphone")

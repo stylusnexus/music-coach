@@ -36,23 +36,52 @@ export const DESCRIPTIONS = {
 
 // Effect families, matched by name, in order. The note explains the family once.
 export const EFFECT_FAMILIES = [
-  { title: 'Reverbs', note: 'Add space, as if played in a room, hall or plate.', match: /reverb|hall|plate|room|spring|csr/i },
-  { title: 'Echoes and delays', note: 'Repeat the sound after a moment.', match: /delay|echo/i },
-  { title: 'Chorus and movement', note: 'Make a sound shimmer, swirl or move.', match: /chorus|leslie|fluxx|filter fusion|soften|triad/i },
-  { title: 'Guitar amps', note: 'Make any sound go through a guitar amplifier.', match: /amplitube|tonex/i },
-  { title: 'Tape, grit and saturation', note: 'Warm, old or dirty the sound up.', match: /tape|tascam|teac|saturat|clipper|lo-?fi|distort|punch|retro|vood|micro/i },
-  { title: 'EQ and tone', note: 'Turn up or down the lows, mids and highs.', match: /eq|channel|filter/i },
-  { title: 'Compressors and limiters', note: 'Even out loud and quiet parts. Mostly for mixing.', match: /comp|limit|76|2a|670|dyna|de esser|opto|bus/i },
-  { title: 'Mastering and metering', note: 'Final polish and measuring. Last step, not first.', match: /master|meter|lurssen|image|t-racks|mixbox|one v6|landr|suite/i },
+  { title: 'Reverbs', note: 'Add space, as if played in a room, hall or plate.', match: /reverb|verb|hall|plate|room|spring|csr|ambience|shimmer|chamber|cathedral/i },
+  { title: 'Echoes and delays', note: 'Repeat the sound after a moment.', match: /delay|echo|\bdly/i },
+  { title: 'Chorus and movement', note: 'Make a sound shimmer, swirl or move.', match: /chorus|leslie|fluxx|filter fusion|soften|triad|flang|phaser|trem|vibrat|rotary|ensemble|wah|doubl/i },
+  { title: 'Guitar amps', note: 'Make any sound go through a guitar amplifier.', match: /amplitube|tonex|\bamps?\b|amplifier|\bcab|guitar rig|bias|helix|neural|archetype|pedal|stomp/i },
+  { title: 'Tape, grit and saturation', note: 'Warm, old or dirty the sound up.', match: /tape|tascam|teac|saturat|clipper|lo-?fi|distort|punch|retro|vood|micro|drive|dist\b|fuzz|crush|degrad|vinyl|warm|decap/i },
+  { title: 'EQ and tone', note: 'Turn up or down the lows, mids and highs.', match: /eq|channel|filter|tilt|strip/i },
+  { title: 'Compressors and limiters', note: 'Even out loud and quiet parts. Mostly for mixing.', match: /comp|limit|76|2a|670|dyna|de esser|de-?ess|opto|bus|gate|expand|transient|glue/i },
+  { title: 'Mastering and metering', note: 'Final polish and measuring. Last step, not first.', match: /master|meter|lurssen|image|t-racks|mixbox|one v6|landr|suite|analy|spectrum|loud|width|stereo|rack|maxim/i },
 ];
 
 export const INSTRUMENT_FAMILIES = [
   { title: 'Players: hold a chord, it plays', note: 'The easiest instruments if you do not play.', match: /^(vg-|vb-|vd-|beatmaker|virtual pianist)/i },
-  { title: 'Keys and pianos', note: '', match: /piano|electric|keyboards/i },
-  { title: 'Synthesizers', note: 'For pads, drones and sequences.', match: /zebralette|usynth|hype|gm-one/i },
-  { title: 'Bass and drums', note: '', match: /bass|drum|mpc/i },
-  { title: 'Sound libraries', note: '', match: /sampletank/i },
+  { title: 'Keys and pianos', note: '', match: /piano|electric|keyboards|organ|rhodes|wurli|clav|\bkeys\b|grand|upright|harpsi|celest|mellotron|keyscape/i },
+  { title: 'Synthesizers', note: 'For pads, drones and sequences.', match: /zebra|usynth|hype|gm-one|synth|\bpad|analog|poly|wavetable|serum|vital|diva|pigments|massive|sylenth|omnisphere|juno|jupiter|prophet|moog/i },
+  { title: 'Bass and drums', note: '', match: /bass|drum|mpc|beat|808|909|\bkit\b|perc|groove|kick|snare/i },
+  { title: 'Sound libraries', note: '', match: /sampletank|kontakt|sampler|library|orchestra|string|brass|choir|symphon|spitfire|labs|guitar/i },
 ];
+
+// What you can say a plugin is, by kind. Your choice beats the name rules and the coach
+// model; tag is the job lessons can name it for.
+export const SLOTS = {
+  effect: [
+    { id: 'reverb', label: 'Reverb', family: 'Reverbs', tag: 'reverb' },
+    { id: 'echo', label: 'Echo or delay', family: 'Echoes and delays', tag: 'echo' },
+    { id: 'chorus', label: 'Chorus or movement', family: 'Chorus and movement', tag: 'chorus' },
+    { id: 'amp', label: 'Guitar amp', family: 'Guitar amps', tag: 'amp' },
+    { id: 'grit', label: 'Grit, fuzz or tape', family: 'Tape, grit and saturation', tag: 'fuzz' },
+    { id: 'eq', label: 'EQ or tone', family: 'EQ and tone' },
+    { id: 'comp', label: 'Compressor or limiter', family: 'Compressors and limiters' },
+    { id: 'master', label: 'Mastering or metering', family: 'Mastering and metering' },
+  ],
+  instrument: [
+    { id: 'player', label: 'Player: hold a chord, it plays', family: 'Players: hold a chord, it plays' },
+    { id: 'keys', label: 'Keys or piano', family: 'Keys and pianos' },
+    { id: 'synth', label: 'Synth', family: 'Synthesizers', tag: 'synth' },
+    { id: 'bass', label: 'Bass', family: 'Bass and drums', tag: 'bass' },
+    { id: 'drums', label: 'Drums', family: 'Bass and drums', tag: 'drums' },
+    { id: 'library', label: 'Sound library', family: 'Sound libraries' },
+  ],
+};
+
+const OTHER_NOTE = "The app couldn't tell what these are. Say what each one is, and lessons can suggest it.";
+
+export function slotFor(p, slots) {
+  return (SLOTS[p.kind] || []).find((s) => s.id === slots[p.name]) || null;
+}
 
 // T-RackS 5 copies ("TR5 ...") duplicate the T-RackS 6 ("... v6") plugins you also have.
 export function isOlderDuplicate(name, allNames) {
@@ -71,30 +100,37 @@ function describe(p, labels) {
 
 // Jobs lessons can name gear for: gear you added by hand first, then plugins the coach
 // model tagged, for jobs nothing you added covers. Removed plugins never count.
-export function gearTags(added, plugins, labels = {}, hidden = []) {
+export function gearTags(added, plugins, labels = {}, hidden = [], slots = {}) {
   const tags = {};
   for (const a of added) if (a.tag && !tags[a.tag]) tags[a.tag] = a.name;
   const gone = new Set(hidden);
-  for (const p of plugins) {
-    if (gone.has(p.name)) continue;
+  const shown = plugins.filter((p) => !gone.has(p.name));
+  for (const p of shown) {
+    const t = slotFor(p, slots)?.tag;
+    if (t && !tags[t]) tags[t] = p.name;
+  }
+  for (const p of shown) {
+    if (slots[p.name]) continue; // what you said wins
     for (const t of labelFor(p, labels)?.good_for || []) if (!tags[t]) tags[t] = p.name;
   }
   return tags;
 }
 
 // Plugins the hand-written tables say nothing about and the coach model hasn't seen yet.
-export function unlabelled(plugins, labels = {}) {
+export function unlabelled(plugins, labels = {}, slots = {}) {
   const names = new Set(plugins.map((p) => p.name));
-  return plugins.filter((p) => p.kind !== 'midi' && !isOlderDuplicate(p.name, names) && !DESCRIPTIONS[p.name] && !labelFor(p, labels));
+  return plugins.filter((p) => p.kind !== 'midi' && !isOlderDuplicate(p.name, names) && !DESCRIPTIONS[p.name] && !slots[p.name] && !labelFor(p, labels));
 }
 
-// Hand-written tables first, then the coach model's family, then Other.
-export function groupPlugins(plugins, labels = {}) {
+// What you said first, then the hand-written tables, then the coach model's family, then Other.
+// Items carry `slot` (what you said) and `slottable` (you can say what it is: anything
+// without a hand-written description).
+export function groupPlugins(plugins, labels = {}, slots = {}) {
   const names = new Set(plugins.map((p) => p.name));
   const groups = new Map();
   const add = (title, note, p) => {
     if (!groups.has(title)) groups.set(title, { title, note, items: [] });
-    groups.get(title).items.push({ ...p, description: describe(p, labels) });
+    groups.get(title).items.push({ ...p, description: describe(p, labels), slot: slots[p.name] || '', slottable: !DESCRIPTIONS[p.name] });
   };
   for (const p of plugins) {
     if (p.kind === 'midi') continue;
@@ -103,9 +139,12 @@ export function groupPlugins(plugins, labels = {}) {
       continue;
     }
     const families = p.kind === 'instrument' ? INSTRUMENT_FAMILIES : EFFECT_FAMILIES;
-    const family = families.find((f) => f.match.test(p.name)) || families.find((f) => f.title === labelFor(p, labels)?.family);
+    const said = slotFor(p, slots)?.family;
+    const family = families.find((f) => f.title === said)
+      || families.find((f) => f.match.test(p.name))
+      || families.find((f) => f.title === labelFor(p, labels)?.family);
     const fallback = p.kind === 'instrument' ? 'Other instruments' : 'Other effects';
-    add(family ? family.title : fallback, family ? family.note : '', p);
+    add(family ? family.title : fallback, family ? family.note : OTHER_NOTE, p);
   }
   // Instruments first, then effects in family order, duplicates last.
   const order = [
