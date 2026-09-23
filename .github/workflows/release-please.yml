@@ -10,7 +10,8 @@ permissions:
 
 jobs:
   # Keeps one "release" pull request open with the next version and changelog.
-  # Merging it tags the version and publishes the GitHub release.
+  # Merging it tags the version and creates the GitHub release as a draft, so the
+  # "latest" download link doesn't move until the app zip is attached.
   release-please:
     runs-on: ubuntu-latest
     outputs:
@@ -25,7 +26,7 @@ jobs:
           # closes and reopens that pull request to start them.
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
 
-  # Builds the Mac app on a Mac and attaches it to the new release.
+  # Builds the Mac app on a Mac, attaches it to the draft release, then publishes it.
   app-zip:
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
@@ -38,5 +39,8 @@ jobs:
       # Two names for the same zip: a stable one for the "latest" download link,
       # and one with the version, so a downloaded file says what it is.
       - run: gh release upload "${{ needs.release-please.outputs.tag_name }}" "dist/Music Coach.zip" dist/Music-Coach-*.zip --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: gh release edit "${{ needs.release-please.outputs.tag_name }}" --draft=false --latest
         env:
           GH_TOKEN: ${{ github.token }}
