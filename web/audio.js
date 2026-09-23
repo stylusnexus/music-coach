@@ -10,6 +10,8 @@ export const DRUM_PATTERNS = {
   tribal: { kick: [0, 8], tom: [0, 3, 6, 8, 10, 11, 14], snare: [12], hat: [4, 12] },
   // Straight eighths, snare on 2 and 4, for fast punk tempos.
   punk: { kick: [0, 6, 8], snare: [4, 12], hat: [0, 2, 4, 6, 8, 10, 12, 14] },
+  // Four on the floor: a kick on every beat, open hats between them.
+  house: { kick: [0, 4, 8, 12], snare: [4, 12], openhat: [2, 6, 10, 14] },
 };
 
 // Sustained sounds get a longer fade when a key is released.

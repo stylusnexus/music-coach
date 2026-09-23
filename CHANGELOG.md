@@ -15,6 +15,7 @@ All notable changes to this project are listed here. The format follows
   minimal wave, and classical minimalism.
 - Punk: power chords, fuzz and a fast punk drum beat. The tempo slider now
   runs from 50 to 180 BPM.
+- House and ambient techno, on a new four-on-the-floor drum pattern.
 - Style lessons name optional gear that would bring them closer to the
   record, only when it's missing.
 - 30 lessons in four sections: Basics, Quick wins, GarageBand skills and
