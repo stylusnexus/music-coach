@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/stylusnexus/music-coach/compare/v0.2.0...v0.3.0) (2026-09-23)
+
+
+### Added
+
+* **app:** show which version you have ([cc47724](https://github.com/stylusnexus/music-coach/commit/cc4772455f0ae75587c38f86ae779cbd75ea85f8))
+* **lessons:** add optional GarageBand on iPhone ([22128c7](https://github.com/stylusnexus/music-coach/commit/22128c729b8605ac5245fc1b70ee14f59637421a))
+
 ## [0.2.0](https://github.com/stylusnexus/music-coach/compare/v0.1.0...v0.2.0) (2026-09-23)
 
 
