@@ -462,9 +462,9 @@ test('reverse reverb names the IK plugin when installed', () => {
 });
 
 test('lesson order: basics, then quick wins, then styles; every lesson placed once', () => {
-  assert.equal(LESSONS.length, 38);
+  assert.equal(LESSONS.length, 42);
   assert.ok(LESSONS.every(Boolean));
-  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 38);
+  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 42);
   assert.equal(lockReason('looping', {}), null); // a quick win: always open
   assert.deepEqual(SECTIONS.map((s) => s.title), ['Basics', 'Quick wins', 'GarageBand skills', 'Styles']);
   assert.equal(LESSONS[3].id, 'major-minor'); // right after the four chords
@@ -963,4 +963,25 @@ test('drum bars can require fuzz on the drums; wobble counts as an effect', () =
   assert.deepEqual(c.progress().map((p) => p.done), [false, false]);
   c.handle(bar({ drumFuzz: true }));
   assert.ok(c.complete());
+});
+
+test('the last four starters check their own techniques', () => {
+  const lofi = createChecker(byId('lofi-hip-hop'));
+  lofi.handle({ type: 'arpBar', notes: [53, 57, 60, 64], swing: 0, fx: {} });
+  lofi.handle({ type: 'arpBar', notes: [53, 57, 60, 64], swing: 0, fx: {} });
+  assert.equal(lofi.progress()[0].done, false); // straight, not swung
+  lofi.handle({ type: 'arpBar', notes: [53, 57, 60, 64], swing: 0.6, fx: {} });
+  lofi.handle({ type: 'arpBar', notes: [53, 57, 60, 64], swing: 0.6, fx: {} });
+  assert.equal(lofi.progress()[0].done, true);
+  const dub = createChecker(byId('dub'));
+  for (let i = 0; i < 3; i++) dub.handle({ type: 'throw', playing: true });
+  dub.handle({ type: 'mute', part: 'bass', muted: true, playing: true });
+  dub.handle({ type: 'mute', part: 'bass', muted: false, playing: true });
+  assert.equal(dub.progress()[2].done, true);
+  assert.equal(dub.progress()[3].done, true);
+  const drone = createChecker(byId('ambient-drone'));
+  drone.handle({ type: 'hold', notes: [62, 66, 69], seconds: 5, freeTime: true });
+  assert.equal(drone.progress()[0].done, false);
+  drone.handle({ type: 'hold', notes: [62, 66, 69], seconds: 8.2, freeTime: true });
+  assert.equal(drone.progress()[0].done, true);
 });
