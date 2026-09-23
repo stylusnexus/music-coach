@@ -119,8 +119,7 @@ LMSTUDIO_MODEL = os.environ.get("LMSTUDIO_MODEL", "")
 
 COACH_PROMPT = """You are a patient music-production coach inside the Music Coach app.
 The learner does not play an instrument but can work out chords on {keyboard}.
-They use GarageBand. Their first goal is music in the spirit of The Durutti
-Column's "Dance II": clean picked guitar, chorus, long echo, reverb, a simple drum machine.
+They use GarageBand. Their first goal is {goal}
 
 Rules for every answer:
 - Answer the question first, in plain words. No jargon without a one-line explanation.
@@ -776,7 +775,10 @@ def save_take(entry):
     return takes
 
 
-def ask_coach(question, lesson, plugins, context="", added=()):
+DEFAULT_GOAL = "making their own music and finishing it in GarageBand."
+
+
+def ask_coach(question, lesson, plugins, context="", added=(), goal=""):
     keyboard = next((a["name"] for a in added if a["tag"] == "keyboard"), None)
     gear = [*plugins, *(f"{a['name']} ({a['tag'] or a['kind']})" for a in added)]
     system = COACH_PROMPT.format(
@@ -784,6 +786,7 @@ def ask_coach(question, lesson, plugins, context="", added=()):
         plugins=", ".join(gear) or "none found",
         lesson=lesson or "none",
         context=context or "nothing yet",
+        goal=" ".join(str(goal).split())[:300] or DEFAULT_GOAL,
     )
     try:
         message, model = complete(system, question, 900, 0.5)
@@ -925,7 +928,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(400, {"error": "Type a question first."})
             plugins, added = visible_gear()
             status, result = ask_coach(
-                question, str(body.get("lesson", "")), plugins, str(body.get("context", ""))[:4000], added
+                question, str(body.get("lesson", "")), plugins, str(body.get("context", ""))[:4000], added,
+                str(body.get("goal", "")),
             )
             return self.send_json(status, result)
 

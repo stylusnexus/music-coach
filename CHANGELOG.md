@@ -8,6 +8,11 @@ All notable changes to this project are listed here. The format follows
 
 ### Added
 
+- A style picker: new users pick up to 5 styles in a 3-step welcome (gear,
+  styles, coach model). "Change my styles" and "Show all styles" in the
+  lesson list; "Unlock anyway" opens a style before finishing the Basics.
+- Style lessons name optional gear that would bring them closer to the
+  record, only when it's missing.
 - 30 lessons in four sections: Basics, Quick wins, GarageBand skills and
   Styles (kosmische, Eno-style ambient, dark ambient, Stereolab, new wave,
   post-punk and darkwave, shoegaze).
@@ -27,3 +32,8 @@ All notable changes to this project are listed here. The format follows
 - Sketches saved as MIDI files for GarageBand.
 - A packaged Mac app built by `packaging/build.sh`.
 - `./music-coach shortcut` makes a double-click app that starts a copy run from source.
+
+### Changed
+
+- Basics lessons and the coach model's goal describe techniques, not one
+  band; copies that started before this keep their original wording.
