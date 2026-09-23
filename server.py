@@ -4,6 +4,7 @@ scans installed gear, and forwards questions to the coach model (LM Studio, or a
 API key the learner adds). Standard library only."""
 
 import base64
+import hashlib
 import mimetypes
 import plistlib
 import json
@@ -118,6 +119,10 @@ def app_version(root=None):
 
 
 VERSION = app_version()
+# Which copy of the code this is: the server code and where it runs from. Opening the app
+# compares it with the server already running, and restarts that one if it's another copy
+# (an update, or a second copy of the app).
+BUILD = hashlib.sha1(Path(__file__).read_bytes() + str(ROOT).encode()).hexdigest()[:12]
 
 
 def lmstudio_url():
@@ -914,7 +919,7 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path == "/api/coach":
             return self.send_json(200, public_coach(coach_settings()))
         if self.path == "/api/version":
-            return self.send_json(200, {"version": VERSION})
+            return self.send_json(200, {"version": VERSION, "build": BUILD})
         if self.path == "/api/drumkits":
             return self.send_json(200, available_drum_kits())
         if self.path == "/api/loops":
@@ -978,6 +983,12 @@ class Handler(SimpleHTTPRequestHandler):
             body = self.read_json()
         except ValueError:
             return self.send_json(400, {"error": "Body must be JSON."})
+
+        if self.path == "/api/quit":
+            # A newer copy of the app is starting: stop, so it can take over.
+            self.send_json(200, {"ok": True})
+            threading.Thread(target=self.server.shutdown, daemon=True).start()
+            return
 
         if self.path == "/api/progress":
             if not isinstance(body, dict):
@@ -1112,6 +1123,9 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main():
+    if "--build" in sys.argv:
+        print(BUILD)
+        return
     port = int(os.environ.get("COACH_PORT", "8765"))
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     print(f"Music Coach running at http://localhost:{port}  (Ctrl+C to stop)")

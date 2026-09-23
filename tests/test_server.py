@@ -348,6 +348,12 @@ class ServerTest(unittest.TestCase):
         except urllib.error.HTTPError as e:
             return e.code, json.loads(e.read())
 
+    def test_version_names_this_copy_of_the_code(self):
+        with urllib.request.urlopen(self.base + "/api/version", timeout=5) as r:
+            got = json.loads(r.read())
+        self.assertEqual(got["build"], server.BUILD)
+        self.assertEqual(len(server.BUILD), 12)
+
     def test_progress_round_trip(self):
         self.assertEqual(self.call("/api/progress"), (200, {}))
         saved = {"current": "first-chord", "completed": {"hear-the-sound": "2026-09-22"}}
