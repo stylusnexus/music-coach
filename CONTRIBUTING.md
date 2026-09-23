@@ -68,10 +68,40 @@ the pull request title follows the same rules as a commit subject.
 
 ## Using Claude Code
 
-The repo ships three skills in `.claude/skills/`: `contribute` (branch, bare-Mac
-check, commit, pull request), `merge-pr` (maintainers: check and squash-merge),
-and `release` (maintainers: version, changelog, tag, app zip, GitHub release).
-They follow the same steps written out above, so you can use them or not.
+If you use [Claude Code](https://claude.com/claude-code), the repo ships three
+skills in `.claude/skills/` that walk through the steps on this page.
+
+### `contribute`: for anyone opening a pull request
+
+Type `/contribute` (or ask Claude to "open a PR for this change"). It takes
+you through:
+
+1. A branch from an up-to-date `main`, named `type/short-name`.
+2. `npm test`, and tests for what you changed.
+3. For lessons and styles, the **bare-Mac check**: a second server that
+   pretends to be a Mac with no plugins, no sample folders and no extra
+   hardware, on its own port and data so your own setup is untouched:
+
+   ```sh
+   COACH_PORT=8799 COACH_DATA=$(mktemp -d) COACH_SKETCHES=$(mktemp -d) \
+   COACH_LOCAL_SAMPLES=/nonexistent COACH_SAMPLES=/nonexistent \
+   COACH_GUITAR_DIR=/nonexistent python3 server.py
+   ```
+
+   Open http://localhost:8799 and play the lesson: every step must work with
+   the app's own sounds and GarageBand's, and every check must tick.
+4. A line under `## [Unreleased]` in CHANGELOG.md for anything a user would
+   notice.
+5. A commit in the format below, then `gh pr create` and `gh pr checks --watch`.
+
+You can do all of this by hand; the skill just keeps the steps in order.
+
+### `merge-pr` and `release`: for maintainers
+
+- `merge-pr` checks a pull request against the rules here, fixes the title if
+  needed, squash-merges it, and confirms the site rebuilt.
+- `release` picks the version, updates the changelog, builds and test-opens
+  `Music Coach.zip`, tags `vX.Y.Z`, and publishes the GitHub release.
 
 ## Code of conduct
 
