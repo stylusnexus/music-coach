@@ -81,7 +81,8 @@ you.
 **The app:** [download Music Coach](https://github.com/stylusnexus/music-coach/releases/latest/download/Music.Coach.zip)
 (the latest release, about 1 MB). Unzip it, then right-click **Music Coach**
 and choose **Open** (it isn't notarized yet, so the first open needs the
-right-click). It starts the coach and opens Chrome.
+right-click). It starts the coach, which listens only on this Mac at
+http://localhost:8765, and opens Chrome.
 
 Which version do you have? It's next to the name at the top of the app, in
 Finder's Get Info, and in the file name if you download a specific release
@@ -95,7 +96,9 @@ cd music-coach
 ./music-coach
 ```
 
-This starts the local server and opens http://localhost:8765 in Chrome.
+This starts the local server and opens http://localhost:8765 in Chrome. The
+server listens only on this Mac, on port 8765. To use another port:
+`COACH_PORT=9000 ./music-coach`.
 
 To start it with a double-click next time, make a shortcut:
 

@@ -25,6 +25,17 @@ if [ "$1" = "shortcut" ]; then
 fi
 
 PORT="${COACH_PORT:-8765}"
+# A coach already running from another copy of the code (before a git pull, or another
+# copy) is stopped, so this copy's server answers.
+# Only a Music Coach page is ever stopped; versions before 0.3 can't say which build they are.
+page=$(curl -s "http://localhost:$PORT/" || true)
+running=$(curl -s "http://localhost:$PORT/api/version" || true)
+if [[ "$page" == *"<title>Music Coach"* ]] && [[ "$running" != *"$(python3 server.py --build)"* ]]; then
+  curl -s -X POST "http://localhost:$PORT/api/quit" >/dev/null || true
+  sleep 1
+  lsof -ti "tcp:$PORT" -sTCP:LISTEN | xargs kill 2>/dev/null || true
+  sleep 0.5
+fi
 if ! curl -s -o /dev/null "http://localhost:$PORT/"; then
   python3 server.py &
   sleep 1
