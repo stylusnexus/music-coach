@@ -225,6 +225,27 @@ class CoachGoalTest(unittest.TestCase):
             server.complete = saved
 
 
+class CompareTakesTest(unittest.TestCase):
+    def test_the_model_writes_words_and_never_scores(self):
+        seen = {}
+
+        def fake(system, user, max_tokens, temperature, schema=None, timeout=120):
+            seen["system"] = system
+            return {"content": '{"improved": "You land the changes on the beat now.", "slipped": "", "next_step": "Hold the last chord to the bar line."}'}, "m"
+
+        saved = server.complete
+        server.complete = fake
+        try:
+            take = lambda n, s: {"take": n, "metrics": {"bpm": 90}, "report": {"scorecard": {"timing": {"score": s, "evidence": "e"}}}}
+            status, body = server.compare_takes("Four chords", take(1, 4), take(3, 8))
+        finally:
+            server.complete = saved
+        self.assertEqual(status, 200)
+        self.assertEqual(body["comparison"]["next_step"], "Hold the last chord to the bar line.")
+        self.assertIn("Take A (take 1)", seen["system"])
+        self.assertIn("4/10", seen["system"])
+
+
 class TakeReportTest(unittest.TestCase):
     CARD = server.clean_scorecard({
         "chords": {"score": 6, "evidence": "6 of 8"},
@@ -338,10 +359,21 @@ class ServerTest(unittest.TestCase):
         data = base64.b64encode(b"not midi").decode()
         self.assertEqual(self.call("/api/sketches", {"name": "x", "data": data})[0], 400)
 
-    def test_scoring_explains_when_lm_studio_is_off_and_saves_nothing(self):
-        status, body = self.call("/api/takes/score", {"metrics": {"ending": {}}, "lesson": "x"})
-        self.assertEqual(status, 503)
-        self.assertEqual(self.call("/api/takes"), (200, []))
+    def test_without_a_model_takes_are_kept_numbered_and_comparable(self):
+        card = {"chords": {"score": 5, "evidence": "5 of 8"}}
+        status, body = self.call("/api/takes/score", {"metrics": {"ending": {}}, "scorecard": card, "lesson": "x"})
+        self.assertEqual((status, body["take"], body["noModel"]), (503, 1, True))
+        self.call("/api/takes/score", {"metrics": {"ending": {}}, "scorecard": {"chords": {"score": 7}}, "lesson": "x"})
+        self.call("/api/takes/score", {"metrics": {}, "lesson": "other"})
+        takes = self.call("/api/takes?lesson=x")[1]
+        self.assertEqual([t["take"] for t in takes], [1, 2])
+        self.assertEqual([t["report"]["scorecard"]["chords"]["score"] for t in takes], [5, 7])
+        self.assertIsNone(takes[0]["report"]["overall"])
+        status, body = self.call("/api/takes/compare", {"lesson": "x", "a": 1, "b": 2})
+        self.assertEqual((status, body.get("noModel")), (503, True))
+        self.assertEqual(self.call("/api/takes/compare", {"lesson": "x", "a": 1, "b": 9})[0], 404)
+        self.assertEqual(self.call("/api/takes/compare", [1, 2])[0], 400)
+        self.assertRegex(takes[0]["at"], r"[+-]\d\d:\d\d$")  # carries its UTC offset
         self.assertEqual(self.call("/api/takes/score", {"lesson": "x"})[0], 400)
 
     def test_ask_explains_when_lm_studio_is_off(self):
