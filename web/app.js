@@ -7,7 +7,7 @@ import {
   sliceForNote, tempoFromName, voicing, writeMidi, METERS, meterOf, patternStep,
 } from './music.js';
 import { KEY_MODES, parseKey } from './music.js';
-import { groupPlugins, searchGear } from './gear.js';
+import { gearTags, groupPlugins, searchGear, unlabelled } from './gear.js';
 import { compareCards, comparePairs, measureTake, scoreAreas } from './takes.js';
 import { DRILLS, makeQuestion, streakDots } from './ear.js';
 import { INTERVALS, KEY_TEXT, MAJOR_MINOR, STYLE_CHORDS } from './chords.js';
@@ -67,6 +67,10 @@ let instruments = []; // every instrument: [{id, label, recorded, samples}]
 let drumKits = []; // recorded drum kits: [{id, label, sounds}]
 let loops = []; // loops for the sampler: [{label, files}]
 let pluginDetails = []; // installed plugins: [{name, maker, kind}]
+let gearLabels = {}; // what the coach model said about plugins, by maker|name
+let describing = 0; // plugins being sorted by the coach model right now
+let describeAgain = false; // coach settings changed mid-sort: sort again after
+let describeError = '';
 let progress = { current: LESSONS[0].id, completed: {}, checks: {} };
 let lesson = LESSONS[0];
 let checker = createChecker(lesson);
@@ -87,8 +91,7 @@ function saveProgress() {
 
 // What this Mac has, for lesson text: see gearEnv in lessons.js.
 function lessonEnv() {
-  const tags = {};
-  for (const a of gear.added) if (a.tag && !tags[a.tag]) tags[a.tag] = a.name;
+  const tags = gearTags(gear.added, pluginDetails, gearLabels, gear.hidden);
   const folder = gear.folders.find((f) => f.found) || gear.folders[0];
   return {
     installed: gear.plugins,
@@ -2634,7 +2637,7 @@ function gearGroups() {
     ],
   });
   const shown = pluginDetails.filter((p) => !hidden.has(p.name));
-  for (const grp of groupPlugins(shown)) groups.push({ ...grp, items: grp.items.map((i) => ({ ...i, remove: { plugin: i.name } })) });
+  for (const grp of groupPlugins(shown, gearLabels)) groups.push({ ...grp, items: grp.items.map((i) => ({ ...i, remove: { plugin: i.name } })) });
   if (gear.installers?.length) {
     groups.push({
       title: 'Downloaded but never installed',
@@ -2673,7 +2676,10 @@ function renderGear() {
     body.innerHTML = `<p class="empty">Nothing matches "${esc(query)}".</p>`;
     return;
   }
-  body.innerHTML = groups
+  const status = describing
+    ? `<p class="group-note">Sorting ${describing} plugin${describing === 1 ? '' : 's'} this app doesn't know yet, with your coach model…</p>`
+    : describeError ? `<p class="group-note">Couldn't sort your other plugins: ${esc(describeError)}</p>` : '';
+  body.innerHTML = (query.trim() ? '' : status) + groups
     .map((grp) => {
       const open = query.trim() || grp.open || grp.items.length <= 4 ? ' open' : '';
       return `<details${open}><summary>${esc(grp.title)} <span class="count">(${grp.items.length})</span></summary>${grp.note ? `<p class="group-note">${esc(grp.note)}</p>` : ''}<ul>${grp.items.map(gearItem).join('')}</ul></details>`;
@@ -2837,6 +2843,42 @@ function wireGearDrop() {
   };
 }
 
+// Ask the coach model about plugins nothing here describes. Each is sent once: name, maker, kind.
+async function describeGear() {
+  const hidden = new Set(gear.hidden);
+  const todo = unlabelled(pluginDetails.filter((p) => !hidden.has(p.name)), gearLabels);
+  if (describing) {
+    describeAgain = true;
+    return;
+  }
+  if (!todo.length) return;
+  describing = todo.length;
+  describeError = '';
+  renderGear();
+  try {
+    const res = await fetch('/api/gear/describe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ names: todo.map((p) => p.name) }),
+    });
+    const body = res.headers.get('Content-Type')?.includes('json') ? await res.json() : {};
+    if (body.labels) gearLabels = body.labels;
+    if (res.status === 409) describeError = 'another window of this app is sorting them now. Reopen Your gear in a minute.';
+    else if (!res.ok) describeError = body.error || `the app's server said no (${res.status}).`;
+    else if (body.status === 'error') describeError = body.message || 'the coach model sent an error.';
+  } catch {
+    describeError = 'the app could not reach its server.';
+  }
+  describing = 0;
+  if (describeAgain) {
+    describeAgain = false;
+    describeGear();
+  }
+  renderGear();
+  renderFxNote();
+  renderLessonList();
+}
+
 function openGear(welcome) {
   $('gear-search').value = '';
   $('gear-welcome').hidden = !welcome;
@@ -2895,6 +2937,7 @@ async function saveCoach(extra = {}) {
   coach = body;
   $('coach-key').value = '';
   renderCoach();
+  if (coach.ready) describeGear(); // a model to ask now: sort the plugins nothing here describes
   renderCoachTop();
   return true;
 }
@@ -3016,14 +3059,16 @@ async function boot() {
     $('app-version').textContent = `v${version}`;
     $('coach-version').textContent = `Music Coach v${version}`;
   });
-  const [g, p, inst, kits, loopList, plugins] = await Promise.all([
+  const [g, p, inst, kits, loopList, plugins, labels] = await Promise.all([
     loadJson('/api/gear', gear), loadJson('/api/progress', {}), loadJson('/api/instruments', []),
     loadJson('/api/drumkits', []), loadJson('/api/loops', []), loadJson('/api/plugins', []),
+    loadJson('/api/gear/labels', {}),
   ]);
   instruments = inst;
   drumKits = kits;
   loops = loopList;
   pluginDetails = plugins;
+  gearLabels = labels;
   renderKits();
   if (p.grid) state.grid = { ...state.grid, ...p.grid };
   renderGrid();
@@ -3031,6 +3076,7 @@ async function boot() {
   renderSoundButtons();
   setGear(g);
   renderFxNote();
+  describeGear();
   progress = { ...progress, ...p, completed: { ...(p.completed || {}) }, checks: { ...(p.checks || {}) } };
   // Open where to start: the first unfinished lesson that is not locked.
   // A copy that began before the style picker keeps its Durutti examples and every style.

@@ -720,6 +720,114 @@ def suggest_tag(name):
     return {"tag": tag if tag in TAGS else "", "source": "model"}
 
 
+# The "Your gear" groups (web/gear.js), and the tags a plugin can carry.
+GEAR_FAMILIES = {
+    "instrument": ["Players: hold a chord, it plays", "Keys and pianos", "Synthesizers", "Bass and drums", "Sound libraries"],
+    "effect": [
+        "Reverbs", "Echoes and delays", "Chorus and movement", "Guitar amps", "Tape, grit and saturation",
+        "EQ and tone", "Compressors and limiters", "Mastering and metering",
+    ],
+}
+PLUGIN_TAGS = ("chorus", "echo", "reverb", "amp", "fuzz", "synth", "bass", "drums")
+# An effect can't be your synth, and an instrument can't be your reverb.
+TAGS_BY_KIND = {"effect": ("chorus", "echo", "reverb", "amp", "fuzz"), "instrument": ("synth", "bass", "drums")}
+DESCRIBE_BATCH = 40
+DESCRIBE_LOCK = threading.Lock()
+DESCRIBE_PROMPT = f"""You sort audio plug-ins for a beginner's music app. For each item you get an id, name, maker and kind (instrument or effect).
+Return one entry per id:
+- family: one of the families listed for its kind, or "unknown".
+- description: what it does, in plain words a beginner understands, 12 words or fewer. No brand talk, no praise.
+- good_for: zero or more of the listed tags.
+Only describe a plug-in you actually recognise, or whose name plainly says what it does (e.g. "Plate Reverb"). If you are not sure, use family "unknown", description "" and good_for []. A blank is better than a guess.
+Families (instrument): {"; ".join(GEAR_FAMILIES["instrument"])}
+Families (effect): {"; ".join(GEAR_FAMILIES["effect"])}
+Tags: {", ".join(PLUGIN_TAGS)}
+Reply as JSON: {{"items": [{{"id": 1, "family": "...", "description": "...", "good_for": []}}]}}"""
+DESCRIBE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "items": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "integer"},
+                    "family": {"type": "string", "enum": [*GEAR_FAMILIES["instrument"], *GEAR_FAMILIES["effect"], "unknown"]},
+                    "description": {"type": "string"},
+                    "good_for": {"type": "array", "items": {"type": "string", "enum": list(PLUGIN_TAGS)}},
+                },
+                "required": ["id", "family", "description", "good_for"],
+            },
+        }
+    },
+    "required": ["items"],
+}
+
+
+def label_key(plugin):
+    return f"{plugin['maker']}|{plugin['name']}"
+
+
+def load_labels():
+    """What the coach model said about each plugin, by maker|name. Saved so each one is asked once."""
+    try:
+        raw = json.loads((DATA / "gear-labels.json").read_text())
+    except (OSError, ValueError):
+        return {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def clean_label(entry, kind):
+    """One model answer, kept only where it uses the fixed families and tags."""
+    family = entry.get("family") if entry.get("family") in GEAR_FAMILIES.get(kind, []) else ""
+    words = " ".join(str(entry.get("description") or "").split()).split(" ")
+    description = " ".join(words[:12]).strip() if family else ""
+    tags = entry.get("good_for") if isinstance(entry.get("good_for"), list) else []
+    good_for = [t for t in dict.fromkeys(tags) if t in TAGS_BY_KIND.get(kind, ())] if family else []
+    return {"family": family, "description": description, "good_for": good_for}
+
+
+def describe_plugins(names, plugins=None):
+    """Sort and describe the named plugins with the coach model. Only installed plugins the
+    model hasn't seen are sent: their name, maker and kind. Returns (status, body)."""
+    if not DESCRIBE_LOCK.acquire(blocking=False):
+        return 409, {"error": "Already sorting.", "labels": load_labels()}
+    try:
+        labels = load_labels()
+        wanted = set(names)
+        todo = [
+            p for p in (plugin_details() if plugins is None else plugins)
+            if p["name"] in wanted and p["kind"] in GEAR_FAMILIES and label_key(p) not in labels
+        ]
+        for start in range(0, len(todo), DESCRIBE_BATCH):
+            batch = todo[start : start + DESCRIBE_BATCH]
+            listing = "\n".join(
+                json.dumps({"id": i, "name": p["name"], "maker": p["maker"], "kind": p["kind"]})
+                for i, p in enumerate(batch, 1)
+            )
+            try:
+                message, _ = complete(DESCRIBE_PROMPT, listing, 2500, 0, schema=DESCRIBE_SCHEMA, timeout=120)
+                items = report_json(message).get("items")
+            except CoachOff as exc:
+                return 200, {"labels": labels, "status": "off", "message": str(exc)}
+            except (CoachError, ValueError, AttributeError) as exc:
+                return 200, {"labels": labels, "status": "error", "message": str(exc)}
+            by_id = {}
+            for e in items if isinstance(items, list) else []:
+                try:
+                    by_id[int(e.get("id"))] = e
+                except (AttributeError, TypeError, ValueError):
+                    pass
+            # A plugin the model skipped is saved blank, so it is never sent again.
+            for i, p in enumerate(batch, 1):
+                labels[label_key(p)] = clean_label(by_id.get(i, {}), p["kind"])
+            with FILE_LOCK:
+                write_json(DATA / "gear-labels.json", labels)
+        return 200, {"labels": labels, "status": "done"}
+    finally:
+        DESCRIBE_LOCK.release()
+
+
 def visible_gear(prefs=None):
     """Your plugins minus the ones you removed, plus gear you added by hand."""
     prefs = prefs or load_prefs()
@@ -921,6 +1029,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(200, loop_files())
         if self.path == "/api/plugins":
             return self.send_json(200, plugin_details())
+        if self.path == "/api/gear/labels":
+            return self.send_json(200, load_labels())
         if self.path.startswith("/local/"):
             path = local_sample_path(urllib.parse.unquote(self.path[len("/local/"):]))
             if not path:
@@ -1041,6 +1151,12 @@ class Handler(SimpleHTTPRequestHandler):
                     prefs = clean_prefs({**prefs, "folders": [*prefs["folders"], path]})
                     write_json(DATA / "gear.json", prefs)
             return self.send_json(200, {"folder": path, **prefs})
+
+        if self.path == "/api/gear/describe":
+            names = (body or {}).get("names") if isinstance(body, dict) else None
+            if not isinstance(names, list):
+                return self.send_json(400, {"error": "Send a list of plugin names."})
+            return self.send_json(*describe_plugins([str(n) for n in names[:1000]]))
 
         if self.path == "/api/gear/suggest-tag":
             name = str((body or {}).get("name", "")).strip()[:80]

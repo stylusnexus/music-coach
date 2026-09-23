@@ -35,7 +35,7 @@ export const DESCRIPTIONS = {
 };
 
 // Effect families, matched by name, in order. The note explains the family once.
-const EFFECT_FAMILIES = [
+export const EFFECT_FAMILIES = [
   { title: 'Reverbs', note: 'Add space, as if played in a room, hall or plate.', match: /reverb|hall|plate|room|spring|csr/i },
   { title: 'Echoes and delays', note: 'Repeat the sound after a moment.', match: /delay|echo/i },
   { title: 'Chorus and movement', note: 'Make a sound shimmer, swirl or move.', match: /chorus|leslie|fluxx|filter fusion|soften|triad/i },
@@ -46,7 +46,7 @@ const EFFECT_FAMILIES = [
   { title: 'Mastering and metering', note: 'Final polish and measuring. Last step, not first.', match: /master|meter|lurssen|image|t-racks|mixbox|one v6|landr|suite/i },
 ];
 
-const INSTRUMENT_FAMILIES = [
+export const INSTRUMENT_FAMILIES = [
   { title: 'Players: hold a chord, it plays', note: 'The easiest instruments if you do not play.', match: /^(vg-|vb-|vd-|beatmaker|virtual pianist)/i },
   { title: 'Keys and pianos', note: '', match: /piano|electric|keyboards/i },
   { title: 'Synthesizers', note: 'For pads, drones and sequences.', match: /zebralette|usynth|hype|gm-one/i },
@@ -60,16 +60,41 @@ export function isOlderDuplicate(name, allNames) {
   return allNames.has(`${name.slice(4)} v6`);
 }
 
-function describe(p) {
-  return DESCRIPTIONS[p.name] || '';
+// What the coach model said about a plugin (server.py, describe_plugins), by maker|name.
+export function labelFor(p, labels = {}) {
+  return labels[`${p.maker}|${p.name}`] || null;
 }
 
-export function groupPlugins(plugins) {
+function describe(p, labels) {
+  return DESCRIPTIONS[p.name] || labelFor(p, labels)?.description || '';
+}
+
+// Jobs lessons can name gear for: gear you added by hand first, then plugins the coach
+// model tagged, for jobs nothing you added covers. Removed plugins never count.
+export function gearTags(added, plugins, labels = {}, hidden = []) {
+  const tags = {};
+  for (const a of added) if (a.tag && !tags[a.tag]) tags[a.tag] = a.name;
+  const gone = new Set(hidden);
+  for (const p of plugins) {
+    if (gone.has(p.name)) continue;
+    for (const t of labelFor(p, labels)?.good_for || []) if (!tags[t]) tags[t] = p.name;
+  }
+  return tags;
+}
+
+// Plugins the hand-written tables say nothing about and the coach model hasn't seen yet.
+export function unlabelled(plugins, labels = {}) {
+  const names = new Set(plugins.map((p) => p.name));
+  return plugins.filter((p) => p.kind !== 'midi' && !isOlderDuplicate(p.name, names) && !DESCRIPTIONS[p.name] && !labelFor(p, labels));
+}
+
+// Hand-written tables first, then the coach model's family, then Other.
+export function groupPlugins(plugins, labels = {}) {
   const names = new Set(plugins.map((p) => p.name));
   const groups = new Map();
   const add = (title, note, p) => {
     if (!groups.has(title)) groups.set(title, { title, note, items: [] });
-    groups.get(title).items.push({ ...p, description: describe(p) });
+    groups.get(title).items.push({ ...p, description: describe(p, labels) });
   };
   for (const p of plugins) {
     if (p.kind === 'midi') continue;
@@ -78,7 +103,7 @@ export function groupPlugins(plugins) {
       continue;
     }
     const families = p.kind === 'instrument' ? INSTRUMENT_FAMILIES : EFFECT_FAMILIES;
-    const family = families.find((f) => f.match.test(p.name));
+    const family = families.find((f) => f.match.test(p.name)) || families.find((f) => f.title === labelFor(p, labels)?.family);
     const fallback = p.kind === 'instrument' ? 'Other instruments' : 'Other effects';
     add(family ? family.title : fallback, family ? family.note : '', p);
   }

@@ -434,5 +434,91 @@ class ServerTest(unittest.TestCase):
             self.assertIn(b"Music Coach", r.read())
 
 
+
+class DescribePluginsTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.saved = (server.DATA, server.complete)
+        server.DATA = Path(self.tmp.name)
+        self.sent = []
+
+    def tearDown(self):
+        server.DATA, server.complete = self.saved
+        self.tmp.cleanup()
+
+    def fake(self, reply):
+        def complete(system, user, max_tokens, temperature, schema=None, timeout=120):
+            self.sent.append(user)
+            return {"content": json.dumps(reply)}, "m"
+        server.complete = complete
+
+    PLUGINS = [
+        {"name": "Hypnus", "maker": "Acme", "kind": "instrument"},
+        {"name": "Glue", "maker": "Acme", "kind": "effect"},
+        {"name": "Secret", "maker": "Acme", "kind": "effect"},
+    ]
+
+    def test_sends_only_asked_plugins_once_and_keeps_only_known_labels(self):
+        self.fake({"items": [
+            {"id": 1, "family": "Synthesizers", "description": "A synth for pads and drones, " + "very " * 20, "good_for": ["synth", "keyboard"]},
+            {"id": 2, "family": "Keys and pianos", "description": "Wrong kind.", "good_for": ["reverb"]},
+            {"id": 9, "family": "Reverbs", "description": "Not asked.", "good_for": []},
+        ]})
+        status, body = server.describe_plugins(["Hypnus", "Glue", "Not installed"], self.PLUGINS)
+        self.assertEqual(status, 200)
+        self.assertEqual(body["status"], "done")
+        self.assertEqual(len(self.sent), 1)
+        self.assertIn("Hypnus", self.sent[0])
+        self.assertNotIn("Secret", self.sent[0])  # not asked for
+        hyp = body["labels"]["Acme|Hypnus"]
+        self.assertEqual(hyp["family"], "Synthesizers")
+        self.assertLessEqual(len(hyp["description"].split()), 12)
+        self.assertEqual(hyp["good_for"], ["synth"])  # "keyboard" is not a plugin tag
+        # An instrument family for an effect is dropped, with its words and tags.
+        self.assertEqual(body["labels"]["Acme|Glue"], {"family": "", "description": "", "good_for": []})
+        # Saved: asking again sends nothing.
+        server.describe_plugins(["Hypnus", "Glue"], self.PLUGINS)
+        self.assertEqual(len(self.sent), 1)
+        self.assertEqual(server.load_labels()["Acme|Hypnus"]["family"], "Synthesizers")
+
+    def test_skipped_and_string_ids_are_saved_so_nothing_is_sent_twice(self):
+        self.fake({"items": [{"id": "1", "family": "Synthesizers", "description": "Pads.", "good_for": ["synth", "reverb"]}]})
+        _, body = server.describe_plugins(["Hypnus", "Glue"], self.PLUGINS)
+        self.assertEqual(body["labels"]["Acme|Hypnus"]["good_for"], ["synth"])  # an instrument can't be your reverb
+        self.assertEqual(body["labels"]["Acme|Glue"]["family"], "")  # skipped by the model: saved blank
+        server.describe_plugins(["Hypnus", "Glue"], self.PLUGINS)
+        self.assertEqual(len(self.sent), 1)
+
+    def test_a_failed_batch_keeps_the_ones_before_it(self):
+        plugins = [{"name": f"P{i}", "maker": "Acme", "kind": "effect"} for i in range(server.DESCRIBE_BATCH + 1)]
+        calls = []
+
+        def complete(system, user, *args, **kwargs):
+            calls.append(user)
+            if len(calls) == 2:
+                raise server.CoachError("Down.")
+            return {"content": json.dumps({"items": []})}, "m"
+
+        server.complete = complete
+        status, body = server.describe_plugins([p["name"] for p in plugins], plugins)
+        self.assertEqual((status, body["status"]), (200, "error"))
+        self.assertEqual(len(server.load_labels()), server.DESCRIBE_BATCH)
+
+    def test_one_sort_at_a_time(self):
+        self.fake({"items": []})
+        with server.DESCRIBE_LOCK:
+            status, _ = server.describe_plugins(["Hypnus"], self.PLUGINS)
+        self.assertEqual(status, 409)
+        self.assertEqual(self.sent, [])
+
+    def test_without_a_model_nothing_is_saved(self):
+        def off(*args, **kwargs):
+            raise server.CoachOff("Add a key.")
+        server.complete = off
+        status, body = server.describe_plugins(["Hypnus"], self.PLUGINS)
+        self.assertEqual((status, body["status"]), (200, "off"))
+        self.assertEqual(server.load_labels(), {})
+
+
 if __name__ == "__main__":
     unittest.main()
