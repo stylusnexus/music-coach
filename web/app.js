@@ -2,7 +2,7 @@ import { Engine, DRUM_PATTERNS } from './audio.js';
 import { setupInput } from './input.js';
 import {
   ARP_PATTERNS, CHORD_PATTERNS, Latch, TICKS_PER_STEP, arpNotes, bassNote, detectChord, hasInterval,
-  inKey, keyChords, keyName, keyPitchClasses, snapToKey, spell, CIRCLE, compareKeys, friendlyChords, neighbours,
+  inKey, KEY_MODES, keyChords, keyName, keyPitchClasses, parseKey, snapToKey, spell, CIRCLE, compareKeys, friendlyChords, neighbours,
   circleSpot, keyAtSpot, lessonKey, wheelDemo, isBlackKey, noteName, pitchClass,
   sliceForNote, tempoFromName, voicing, writeMidi,
 } from './music.js';
@@ -480,9 +480,10 @@ function openLesson(id) {
   hearIt($('lesson-listen'), lesson.id);
   renderBetterWith();
   // The Key bar follows the lesson, so the keys a lesson asks for are never greyed.
-  const key = keyForLesson(lesson);
+  // A lesson can name its key outright (setup.key, e.g. "A blues") and lock to it.
+  const key = parseKey(lesson.setup?.key) || keyForLesson(lesson);
   progress.key = key ? `${key.root}:${key.mode}` : null;
-  state.scaleLock = false;
+  state.scaleLock = Boolean(key && lesson.setup?.scaleLock);
   if ($('key-select').options.length > 1) renderKeyPicker();
   resetMixer();
   $('mixer').hidden = !lesson.mixer;
@@ -783,11 +784,16 @@ function currentKey() {
   return { root: Number(root), mode };
 }
 
+const KEY_MODE_LABELS = { major: 'Major', minor: 'Minor', blues: 'Blues scale', ambassel: 'Ambassel (Ethiopian)' };
+
 function renderKeyPicker() {
   const select = $('key-select');
   if (select.options.length === 1) {
-    for (const mode of ['major', 'minor']) {
-      for (let root = 0; root < 12; root++) select.add(new Option(keyName(root, mode), `${root}:${mode}`));
+    for (const mode of Object.keys(KEY_MODES)) {
+      const group = document.createElement('optgroup');
+      group.label = KEY_MODE_LABELS[mode];
+      for (let root = 0; root < 12; root++) group.append(new Option(keyName(root, mode), `${root}:${mode}`));
+      select.append(group);
     }
   }
   select.value = progress.key || '';

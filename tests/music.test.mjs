@@ -550,6 +550,34 @@ test('scale lock snaps to the nearest note in the key', async () => {
   assert.equal(snapToKey(66, 0, 'major'), 65); // F sharp: tie between F and G goes down
 });
 
+test('blues and ambassel: notes, spelling, chords, scale lock and lesson keys', async () => {
+  const { keyPitchClasses, keyName, spell, keyChords, snapToKey, parseKey } = await import('../web/music.js');
+  assert.deepEqual(keyPitchClasses(9, 'blues'), [9, 0, 2, 3, 4, 7]); // A C D E♭ E G
+  assert.equal(keyPitchClasses(9, 'blues').map((pc) => spell(pc, 9, 'blues')).join(' '), 'A C D E♭ E G');
+  assert.deepEqual(keyPitchClasses(0, 'ambassel'), [0, 1, 5, 7, 8]); // C D♭ F G A♭
+  assert.equal(keyPitchClasses(0, 'ambassel').map((pc) => spell(pc, 0, 'ambassel')).join(' '), 'C D♭ F G A♭');
+  assert.equal(keyName(4, 'blues'), 'E blues');
+  assert.equal(keyName(6, 'ambassel'), 'F♯ ambassel'); // a sharp root keeps its sharp
+  assert.deepEqual(keyChords(9, 'blues').map((c) => c.label), ['Am', 'C', 'Dsus2', 'Gsus2']);
+  assert.deepEqual(keyChords(0, 'ambassel').map((c) => c.label), ['Csus4', 'D♭', 'Fm']);
+  for (const mode of ['blues', 'ambassel']) {
+    for (let root = 0; root < 12; root++) {
+      for (const c of keyChords(root, mode)) assert.ok(c.notes.every((pc) => keyPitchClasses(root, mode).includes(pc)), `${root} ${mode} ${c.label}`);
+    }
+  }
+  assert.deepEqual(keyChords(0, 'major').map((c) => c.label), ['C', 'Dm', 'Em', 'F', 'G', 'Am', 'Bdim']); // unchanged
+  assert.equal(snapToKey(61, 9, 'blues'), 60); // C♯ snaps down to C in A blues
+  assert.equal(snapToKey(62, 0, 'ambassel'), 61); // D snaps down to D♭ in C ambassel
+  assert.deepEqual(parseKey('A blues'), { root: 9, mode: 'blues' });
+  assert.deepEqual(parseKey('E♭ ambassel'), { root: 3, mode: 'ambassel' });
+  assert.deepEqual(parseKey('F# minor'), { root: 6, mode: 'minor' });
+  assert.equal(parseKey('H blues'), null);
+  assert.equal(parseKey('A dorian'), null);
+  const c = createChecker({ checks: [{ type: 'scaleNotes', key: 'A blues', count: 3, label: 'three blues notes' }] });
+  for (const note of [57, 61, 63, 64]) c.handle({ type: 'noteOn', note }); // C♯ is not in A blues
+  assert.ok(c.complete());
+});
+
 test('ear drills: every question has its answer among the choices', async () => {
   const { DRILLS, makeQuestion, streakDots } = await import('../web/ear.js');
   let seed = 7;
