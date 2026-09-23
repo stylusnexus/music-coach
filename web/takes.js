@@ -146,3 +146,32 @@ function round(x, places) {
   const f = 10 ** places;
   return Math.round(x * f) / f;
 }
+
+// Two takes' scorecards side by side, each area marked in words, not colour alone.
+// A dip in one area sits next to a gain in another; nothing is summed into one verdict.
+export const AREAS = [['chords', 'Chords'], ['timing', 'Timing'], ['feel', 'Feel'], ['sound', 'Sound setup'], ['ending', 'Ending']];
+
+export function compareCards(a, b) {
+  return AREAS.map(([area, name]) => {
+    const x = a?.[area]?.score ?? null;
+    const y = b?.[area]?.score ?? null;
+    if (x === null || y === null) return { area, name, a: x, b: y, change: 'unmeasured', words: 'not measured in both' };
+    if (y > x) return { area, name, a: x, b: y, change: 'better', words: '↑ better' };
+    if (y < x) return { area, name, a: x, b: y, change: 'slipped', words: '↓ slipped' };
+    return { area, name, a: x, b: y, change: 'same', words: '— about the same' };
+  });
+}
+
+// Which earlier take to open against the latest: the first take. Once a take was
+// scored after the lesson was complete, "first pass" is offered as well.
+export function comparePairs(takes, completedAt) {
+  if (takes.length < 2) return null;
+  const latest = takes[takes.length - 1];
+  const firstPass = completedAt ? takes.find((t) => t.at >= completedAt.slice(0, 19)) : null;
+  return {
+    latest: latest.take,
+    defaultOlder: takes[0].take,
+    firstPass: firstPass && firstPass.take !== takes[0].take && firstPass.take !== latest.take ? firstPass.take : null,
+    older: takes.slice(0, -1).map((t) => t.take),
+  };
+}

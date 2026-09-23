@@ -158,6 +158,36 @@ Measurements of this take (JSON): {metrics}
 Scorecard computed by the app: {scorecard}
 Previous take on this lesson (JSON, or null): {previous}"""
 
+COMPARE_PROMPT = """You are the take coach inside the Music Coach app. The learner does not
+play an instrument; they are learning with a small MIDI keyboard. Compare two takes of
+the same lesson: an earlier one (A) and a later one (B).
+
+You cannot hear the takes. You get each take's measurements and the scorecard the app
+computed from them. Rules:
+- Ground every statement in a measurement or a score. Never invent a score.
+- "improved": lead with what got better from A to B, as a behaviour the learner can
+  feel ("you're landing chord changes on the beat now"), not as numbers alone. If
+  nothing improved, say what held steady.
+- "slipped": one short sentence on what got worse, or an empty string if nothing did.
+  A dip is normal between takes; say it plainly, never as failure.
+- "next_step": exactly one concrete thing to do in the next take. Never a list.
+- One throughline: pick the change that matters most, don't list all five areas.
+- Plain words. No jargon without a short explanation.
+
+Lesson: {lesson}
+Take A (take {a}): measurements {a_metrics}; scorecard {a_card}
+Take B (take {b}): measurements {b_metrics}; scorecard {b_card}"""
+
+COMPARE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "improved": {"type": "string"},
+        "slipped": {"type": "string"},
+        "next_step": {"type": "string"},
+    },
+    "required": ["improved", "slipped", "next_step"],
+}
+
 REPORT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -766,6 +796,41 @@ def load_takes():
     return json.loads(f.read_text()) if f.exists() else []
 
 
+def lesson_takes(lesson):
+    """A lesson's takes in order, numbered from 1 (older entries have no number stored)."""
+    takes = [t for t in load_takes() if t.get("lesson") == lesson]
+    return [{**t, "take": i + 1} for i, t in enumerate(takes)]
+
+
+def readable_card(card):
+    return {
+        area: (f"{e['score']}/10" if e.get("score") is not None else "UNABLE TO ASSESS") + f" - {e.get('evidence', '')}"
+        for area, e in (card or {}).items()
+    }
+
+
+def compare_takes(lesson, a, b):
+    """The coach model's words on two takes of a lesson. Scores are the app's own."""
+    prompt = COMPARE_PROMPT.format(
+        lesson=lesson or "none",
+        a=a["take"], a_metrics=json.dumps(a["metrics"]), a_card=json.dumps(readable_card(a["report"]["scorecard"])),
+        b=b["take"], b_metrics=json.dumps(b["metrics"]), b_card=json.dumps(readable_card(b["report"]["scorecard"])),
+    )
+    try:
+        message, model = complete(prompt, "Compare these two takes.", 900, 0.3, schema=COMPARE_SCHEMA, timeout=180)
+        raw = report_json(message)
+    except CoachOff as exc:
+        return 503, {"error": str(exc), "noModel": True}
+    except CoachError as exc:
+        return 502, {"error": str(exc)}
+    except ValueError as exc:
+        return 502, {"error": f"The model's comparison didn't follow the format ({exc}). Try again."}
+    words = {k: str(raw.get(k, "")).strip() for k in ("improved", "slipped", "next_step")} if isinstance(raw, dict) else {}
+    if not words.get("improved") or not words.get("next_step"):
+        return 502, {"error": "The model's comparison was missing what improved or the next step. Try again."}
+    return 200, {"comparison": words, "model": model}
+
+
 def save_take(entry):
     DATA.mkdir(parents=True, exist_ok=True)
     takes = load_takes() + [entry]
@@ -869,6 +934,9 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(200, json.loads(f.read_text()) if f.exists() else {})
         if self.path == "/api/takes":
             return self.send_json(200, load_takes()[-20:])
+        if self.path.startswith("/api/takes?"):
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            return self.send_json(200, lesson_takes(query.get("lesson", [""])[0]))
         if self.path == "/api/sketches":
             files = sorted(SKETCHES.glob("*.mid"), key=lambda p: p.stat().st_mtime, reverse=True) if SKETCHES.is_dir() else []
             return self.send_json(200, [p.name for p in files])
@@ -986,16 +1054,36 @@ class Handler(SimpleHTTPRequestHandler):
                 body["metrics"], scorecard, lesson,
                 previous and {"scorecard": previous["report"]["scorecard"], "overall": previous["report"]["overall"]},
             )
-            if status == 200:
-                entry = {
-                    "at": datetime.now().isoformat(timespec="seconds"),
-                    "lesson": lesson,
-                    "sketch": body.get("sketch"),
-                    "metrics": body["metrics"],
-                    "report": result["report"],
-                }
-                save_take(entry)
-                result["previous"] = previous and previous["report"]["overall"]
+            # Without a model the take is still kept, scored by the app's rules, so it can
+            # be compared later; only the written report is missing.
+            report = result.get("report") if status == 200 else (
+                {"overall": None, "overall_why": "", "worked": [], "scorecard": scorecard, "one_change": "", "objective": ""}
+                if result.get("noModel") else None
+            )
+            if report:
+                with FILE_LOCK:
+                    take = len(lesson_takes(lesson)) + 1
+                    save_take({
+                        "at": datetime.now().isoformat(timespec="seconds"),
+                        "lesson": lesson,
+                        "take": take,
+                        "sketch": body.get("sketch"),
+                        "metrics": body["metrics"],
+                        "report": report,
+                    })
+                result["take"] = take
+                if status == 200:
+                    result["previous"] = previous and previous["report"]["overall"]
+            return self.send_json(status, result)
+
+        if self.path == "/api/takes/compare":
+            lesson = str((body or {}).get("lesson", ""))
+            takes = {t["take"]: t for t in lesson_takes(lesson)}
+            try:
+                a, b = takes[int(body.get("a"))], takes[int(body.get("b"))]
+            except (KeyError, TypeError, ValueError):
+                return self.send_json(404, {"error": "Those takes aren't saved for this lesson."})
+            status, result = compare_takes(lesson, a, b)
             return self.send_json(status, result)
 
         return self.send_json(404, {"error": "Unknown endpoint."})

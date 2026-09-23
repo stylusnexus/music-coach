@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   Latch, arpNote, detectChord, matchesChord, spreadChord, voicing, writeMidi, PPQ,
 } from '../web/music.js';
+import { compareCards, comparePairs } from '../web/takes.js';
 import { LESSONS, LISTEN, PICKER_ORDER, SECTIONS, STYLE_INFO, bandcampEmbed, matchesGear, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from '../web/lessons.js';
 
 test('names E minor in any order or octave', () => {
@@ -984,4 +985,13 @@ test('the last four starters check their own techniques', () => {
   assert.equal(drone.progress()[0].done, false);
   drone.handle({ type: 'hold', notes: [62, 66, 69], seconds: 8.2, freeTime: true });
   assert.equal(drone.progress()[0].done, true);
+});
+
+test('comparing takes marks each area in words and opens first vs latest', () => {
+  const rows = compareCards({ chords: { score: 5 }, timing: { score: 8 }, feel: { score: null } }, { chords: { score: 7 }, timing: { score: 6 }, feel: { score: 4 } });
+  assert.deepEqual(rows.slice(0, 3).map((r) => r.words), ['↑ better', '↓ slipped', 'not measured in both']);
+  const takes = [1, 2, 3, 4].map((n) => ({ take: n, at: `2026-09-2${n}T10:00:00` }));
+  assert.equal(comparePairs(takes.slice(0, 1)), null);
+  const pairs = comparePairs(takes, '2026-09-22T12:00:00.000Z');
+  assert.deepEqual({ latest: pairs.latest, older: pairs.defaultOlder, firstPass: pairs.firstPass }, { latest: 4, older: 1, firstPass: 3 });
 });

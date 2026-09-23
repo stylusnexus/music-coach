@@ -8,7 +8,7 @@ import {
 } from './music.js';
 import { KEY_MODES, parseKey } from './music.js';
 import { groupPlugins, searchGear } from './gear.js';
-import { measureTake, scoreAreas } from './takes.js';
+import { compareCards, comparePairs, measureTake, scoreAreas } from './takes.js';
 import { DRILLS, makeQuestion, streakDots } from './ear.js';
 import { INTERVALS, KEY_TEXT, MAJOR_MINOR, STYLE_CHORDS } from './chords.js';
 import { Looper } from './looper.js';
@@ -2368,7 +2368,9 @@ async function scoreTake() {
     const body = await res.json();
     if (res.status === 503 && body.noModel) {
       // No model to write the summary: the app's own scores still stand.
+      t.takeNumber = body.take;
       renderReport({ scorecard: scoreAreas(t) }, t, null, body.error);
+      loadScores();
       return;
     }
     if (!res.ok) {
@@ -2376,6 +2378,7 @@ async function scoreTake() {
       $('score').disabled = false;
       return;
     }
+    t.takeNumber = body.take;
     renderReport(body.report, t, body.previous);
     loadScores();
   } catch {
@@ -2401,21 +2404,81 @@ function renderReport(r, t, previous, noModel) {
     t.feel ? `key strength ${t.feel.softest}–${t.feel.hardest}` : t.feelNote || 'too few presses to judge strength',
     `stopped ${t.ending.stopPastBarBeats} beats past a bar line, ${t.ending.secondsWithoutNewNotes} s after the last new note`,
   ];
+  const head = t.takeNumber ? `<p class="take-no">Take ${t.takeNumber} of ${esc(t.lesson)}</p>` : '';
+  const compare = t.takeNumber > 1 ? '<p><button type="button" class="link" id="compare-open">Compare with an earlier take</button></p><div id="compare" class="compare"></div>' : '';
   if (noModel) {
-    $('report').innerHTML = `
+    $('report').innerHTML = head + `
       <h3>Scorecard</h3><table><tr><th>Area</th><th>Score</th><th>Evidence</th></tr>${rows}</table>
       <p class="facts">Measured: ${facts.map(esc).join('; ')}.</p>
-      <p class="muted">These scores come from the app's own rules. A written summary needs a coach model. ${esc(noModel)}</p>`;
+      <p class="muted">These scores come from the app's own rules. A written summary needs a coach model. ${esc(noModel)}</p>` + compare;
+    wireCompare(t);
     return;
   }
-  $('report').innerHTML = `
+  $('report').innerHTML = head + `
     <div class="overall">${r.overall}/10 <small>practice score${previous ? `, last take ${previous}/10` : ''}</small></div>
     <p>${esc(r.overall_why)}</p>
     <h3>What worked</h3><ul>${r.worked.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>
     <h3>Scorecard</h3><table><tr><th>Area</th><th>Score</th><th>Evidence</th></tr>${rows}</table>
     <h3>One change for the next take</h3><p>${esc(r.one_change)}</p>
     <h3>Next-take objective</h3><p>${esc(r.objective)}</p>
-    <p class="facts">Measured: ${facts.map(esc).join('; ')}. The coach cannot hear the take; it scores only these measurements.</p>`;
+    <p class="facts">Measured: ${facts.map(esc).join('; ')}. The coach cannot hear the take; it scores only these measurements.</p>` + compare;
+  wireCompare(t);
+}
+
+// ---------- compare two takes ----------
+
+function wireCompare(t) {
+  const open = $('compare-open');
+  if (open) open.onclick = () => openCompare(t);
+}
+
+async function openCompare(t) {
+  const box = $('compare');
+  box.innerHTML = '<p class="muted">Loading your takes…</p>';
+  const takes = await loadJson(`/api/takes?lesson=${encodeURIComponent(t.lesson)}`, []);
+  const pairs = comparePairs(takes, progress.completed[lesson.id]);
+  if (!pairs) {
+    box.innerHTML = '<p class="muted">Record another take of this lesson to compare.</p>';
+    return;
+  }
+  const label = (n) => (n === takes[0].take ? `First take (take ${n})` : n === pairs.firstPass ? `First pass (take ${n})` : `Take ${n}`);
+  const order = [pairs.defaultOlder, ...(pairs.firstPass ? [pairs.firstPass] : []), ...pairs.older.filter((n) => n !== pairs.defaultOlder && n !== pairs.firstPass)];
+  box.innerHTML = `<div class="compare-head"><label for="compare-older">Compare</label>
+    <select id="compare-older">${order.map((n) => `<option value="${n}">${esc(label(n))}</option>`).join('')}</select>
+    <span>with your latest (take ${pairs.latest})</span></div><div id="compare-body"></div>`;
+  const show = () => renderComparison(t.lesson, takes, Number($('compare-older').value), pairs.latest);
+  $('compare-older').onchange = show;
+  show();
+}
+
+async function renderComparison(lessonTitle, takes, older, latest) {
+  const a = takes.find((x) => x.take === older);
+  const b = takes.find((x) => x.take === latest);
+  const rows = compareCards(a.report.scorecard, b.report.scorecard)
+    .map((r) => `<tr class="${r.change}"><td>${esc(r.name)}</td><td class="num">${r.a ?? '–'}</td><td class="num">${r.b ?? '–'}</td><td>${esc(r.words)}</td></tr>`)
+    .join('');
+  $('compare-body').innerHTML = `<table><tr><th>Area</th><th>Take ${older}</th><th>Take ${latest}</th><th>Change</th></tr>${rows}</table>
+    <div id="compare-words" class="muted">The coach is comparing the two takes…</div>`;
+  try {
+    const res = await fetch('/api/takes/compare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lesson: lessonTitle, a: older, b: latest }),
+    });
+    const body = await res.json();
+    if (!$('compare-words')) return;
+    if (!res.ok) {
+      $('compare-words').textContent = body.noModel
+        ? "These scores come from the app's own rules. For a written comparison, set up a coach model: press Coach model at the top."
+        : body.error;
+      return;
+    }
+    const c = body.comparison;
+    $('compare-words').classList.remove('muted');
+    $('compare-words').innerHTML = `<h3>What got better</h3><p>${esc(c.improved)}</p>${c.slipped ? `<h3>What slipped</h3><p>${esc(c.slipped)}</p>` : ''}<h3>Next take</h3><p>${esc(c.next_step)}</p>`;
+  } catch {
+    $('compare-words').textContent = 'The Music Coach server is not running.';
+  }
 }
 
 async function loadScores() {
@@ -2425,7 +2488,7 @@ async function loadScores() {
   ul.innerHTML = takes
     .slice(-6)
     .reverse()
-    .map((t) => `<li><span>${esc(t.lesson)}</span><span class="n">${t.report.overall}/10</span></li>`)
+    .map((t) => `<li><span>${esc(t.lesson)}${t.take ? ` · take ${t.take}` : ''}</span><span class="n">${t.report.overall ?? '–'}/10</span></li>`)
     .join('');
   recentTakes = takes;
 }
