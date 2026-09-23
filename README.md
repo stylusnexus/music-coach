@@ -47,8 +47,8 @@ you.
     hip-hop, ambient drone, dub, kosmische, shoegaze, ambient techno, Afrobeat,
     bossa nova, lounge pop, post-punk and darkwave, gothic rock, minimal wave,
     classical minimalism, Eno-style ambient, new wave and dark ambient. Each
-    has a 5-second preview, and every starter works on a Mac with nothing extra
-    installed.
+    has a 5-second taste played by the app, and a real record to hear in full
+    on Bandcamp. Every starter works on a Mac with nothing extra installed.
 - **A studio:** sounds, effects, arpeggiator, drum patterns and your own beat
   grid, bass and drone layers, a looper, a sampler (it can record a sound from
   your microphone and chop it up), a mixer, and a progression builder.
