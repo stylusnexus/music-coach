@@ -737,3 +737,46 @@ test('only gear that changes what a lesson can do counts as a match', () => {
   assert.ok(matchesGear('dark-ambient', { tags: { microphone: 'Shure SM58' } }));
   assert.ok(!matchesGear('dark-ambient', []));
 });
+
+test('dub checks: echo throws while playing, a part dropped out and back in', () => {
+  const c = createChecker({ checks: [
+    { type: 'throws', count: 2, label: 'throw' },
+    { type: 'dropOut', part: 'bass', count: 1, label: 'drop the bass' },
+  ] });
+  c.handle({ type: 'throw', playing: false }); // nothing sounding: no throw
+  c.handle({ type: 'throw', playing: true });
+  c.handle({ type: 'throw', playing: true });
+  assert.equal(c.progress()[0].done, true);
+  c.handle({ type: 'mute', part: 'bass', muted: false, playing: true }); // unmute first: nothing
+  c.handle({ type: 'mute', part: 'drums', muted: true, playing: true });
+  c.handle({ type: 'mute', part: 'drums', muted: false, playing: true });
+  assert.equal(c.progress()[1].done, false);
+  c.handle({ type: 'mute', part: 'bass', muted: true, playing: true });
+  assert.equal(c.progress()[1].done, false); // out, not yet back
+  c.handle({ type: 'mute', part: 'bass', muted: false, playing: true });
+  assert.ok(c.complete());
+});
+
+test('hold checks: a chord held long enough, in free time when asked', () => {
+  const c = createChecker({ checks: [
+    { type: 'holdSeconds', seconds: 8, chord: 'Am', freeTime: true, label: 'hold Am for 8 seconds' },
+  ] });
+  c.handle({ type: 'hold', notes: [57, 60, 64], seconds: 5, freeTime: true });
+  c.handle({ type: 'hold', notes: [60, 64, 67], seconds: 9, freeTime: true }); // C, not Am
+  c.handle({ type: 'hold', notes: [57, 60, 64], seconds: 9, freeTime: false }); // with a beat
+  assert.equal(c.complete(), false);
+  c.handle({ type: 'hold', notes: [57, 60, 64], seconds: 8.2, freeTime: true });
+  assert.ok(c.complete());
+});
+
+test('drum bars can require fuzz on the drums; wobble counts as an effect', () => {
+  const c = createChecker({ checks: [
+    { type: 'drumBars', drumFuzz: true, bars: 1, label: 'fuzzy drums' },
+    { type: 'arpBars', dry: true, bars: 1, label: 'dry' },
+  ] });
+  const bar = (over) => ({ type: 'arpBar', notes: [64, 67, 71], drums: true, drumPattern: 'simple', pattern: 'picking', fx: {}, ...over });
+  c.handle(bar({ drumFuzz: false, fx: { wobble: true } }));
+  assert.deepEqual(c.progress().map((p) => p.done), [false, false]);
+  c.handle(bar({ drumFuzz: true }));
+  assert.ok(c.complete());
+});

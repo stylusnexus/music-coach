@@ -12,6 +12,7 @@ export const GEAR = {
   fuzz: { prefer: ['AmpliTube 5'], label: 'a fuzz pedal in AmpliTube 5', fallback: "GarageBand's Distortion" },
   guitarPlayer: { prefer: ['VG-SPARKLE2'], label: 'VG-SPARKLE2', fallback: 'a clean electric guitar sound' },
   tape: { prefer: ['Tape Machine 80 v6', 'TASCAM PORTA ONE v6'], labels: ['Tape Machine 80', 'TASCAM Porta One'], fallback: 'nothing extra' },
+  wobble: { prefer: ['Tape Machine 80 v6', 'TASCAM PORTA ONE v6'], labels: ['Tape Machine 80', 'TASCAM Porta One'], fallback: "GarageBand's Chorus at a slow rate" },
 };
 
 // What this Mac has, for lesson text. A bare list of plugin names still works.
@@ -1101,7 +1102,8 @@ function initialValue(check) {
   if (check.type === 'fxToggle') return { sawOff: false, done: false };
   if (check.type === 'mixSolo') return { sawSolo: false, done: false };
   if (check.type === 'mixPan' || check.type === 'mixLevel') return false;
-  if (['chord', 'saved', 'manual', 'gridHas', 'loopLoaded', 'reverseSlice', 'loopUndo'].includes(check.type)) return false;
+  if (check.type === 'dropOut') return { out: false, count: 0 };
+  if (['chord', 'saved', 'manual', 'gridHas', 'loopLoaded', 'reverseSlice', 'loopUndo', 'holdSeconds'].includes(check.type)) return false;
   if (check.type === 'distinctSlices') return [];
   if (check.type === 'filterSweep') return 0;
   return 0;
@@ -1116,6 +1118,7 @@ export function createChecker(lesson, saved) {
 
   function isDone(c, v) {
     if (c.type === 'fxToggle' || c.type === 'mixSolo') return v.done;
+    if (c.type === 'dropOut') return v.count >= target(c);
     if (c.type === 'distinctSlices') return v.length >= c.count;
     if (typeof v === 'boolean') return v;
     return v >= target(c);
@@ -1149,11 +1152,11 @@ export function createChecker(lesson, saved) {
             (!c.minNotes || new Set(evt.notes).size >= c.minNotes) &&
             (!c.interval || hasInterval(evt.notes, c.interval)) &&
             (!c.fx || c.fx.every((name) => evt.fx?.[name])) &&
-            (!c.dry || !['chorus', 'echo', 'reverb', 'fuzz', 'reverse'].some((name) => evt.fx?.[name]))
+            (!c.dry || !['chorus', 'echo', 'reverb', 'fuzz', 'reverse', 'wobble'].some((name) => evt.fx?.[name]))
           ) next = v + 1;
           break;
         case 'drumBars':
-          if (evt.type === 'arpBar' && evt.drums && evt.notes.length > 0 && (!c.drumPattern || evt.drumPattern === c.drumPattern)) next = v + 1;
+          if (evt.type === 'arpBar' && evt.drums && evt.notes.length > 0 && (!c.drumPattern || evt.drumPattern === c.drumPattern) && (!c.drumFuzz || evt.drumFuzz)) next = v + 1;
           break;
         case 'bassBars':
           if (evt.type === 'arpBar' && evt.bass && (!c.bassStyle || evt.bassStyle === c.bassStyle)) next = v + 1;
@@ -1220,6 +1223,25 @@ export function createChecker(lesson, saved) {
           break;
         case 'mixLevel':
           if (evt.type === 'mix' && evt.volumes.drums <= evt.volumes.instrument - 0.15) next = true;
+          break;
+        case 'throws':
+          // Dub echo throws, pressed while something is sounding.
+          if (evt.type === 'throw' && evt.playing) next = v + 1;
+          break;
+        case 'dropOut':
+          // A part muted while the music plays, then brought back in.
+          if (evt.type === 'mute' && evt.part === c.part && evt.playing) {
+            if (evt.muted) next = { out: true, count: v.count };
+            else if (v.out) next = { out: false, count: v.count + 1 };
+          }
+          break;
+        case 'holdSeconds':
+          if (
+            evt.type === 'hold' && evt.seconds >= c.seconds &&
+            (!c.chord || matchesChord(evt.notes, c.chord)) &&
+            (!c.minNotes || new Set(evt.notes).size >= c.minNotes) &&
+            (!c.freeTime || evt.freeTime)
+          ) next = true;
           break;
         case 'manual':
           if (evt.type === 'manual' && evt.index === i) next = true;
