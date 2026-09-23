@@ -538,5 +538,71 @@ class DescribePluginsTest(unittest.TestCase):
         self.assertEqual(server.load_labels(), {})
 
 
+
+class PlacesTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.saved = (server.DATA, server.SKETCHES, Path.home)
+        server.DATA, server.SKETCHES = root / "data", root / "Music Coach Sketches"
+        (root / "home" / ".Trash").mkdir(parents=True)
+        Path.home = staticmethod(lambda: root / "home")
+        self.root = root
+
+    def tearDown(self):
+        server.DATA, server.SKETCHES, Path.home = self.saved
+        self.tmp.cleanup()
+
+    def test_knows_when_it_runs_inside_the_app(self):
+        self.assertEqual(server.app_bundle(Path("/Applications/Music Coach.app/Contents/Resources/app")), Path("/Applications/Music Coach.app"))
+        self.assertIsNone(server.app_bundle(Path("/Users/me/music-coach")))
+
+    def test_uninstall_moves_to_the_trash_and_keeps_data_unless_asked(self):
+        app = self.root / "Music Coach.app"
+        app.mkdir()
+        server.DATA.mkdir()
+        (server.DATA / "progress.json").write_text("{}")
+        status, body = server.uninstall(False, bundle=app)
+        self.assertEqual(status, 200)
+        self.assertFalse(app.exists())
+        self.assertTrue((Path.home() / ".Trash" / "Music Coach.app").exists())
+        self.assertTrue((server.DATA / "progress.json").exists())
+
+    def test_uninstall_with_data_never_moves_a_folder_you_chose(self):
+        app = self.root / "Music Coach.app"
+        app.mkdir()
+        mine = self.root / "My songs"
+        mine.mkdir()
+        (mine / "keep.txt").write_text("not a sketch")
+        server.write_json(server.DATA / "gear.json", server.clean_prefs({"sketchesDir": str(mine)}))
+        status, body = server.uninstall(True, bundle=app)
+        self.assertEqual(status, 200)
+        self.assertFalse(server.DATA.exists())
+        self.assertTrue((mine / "keep.txt").exists())
+        self.assertEqual(body["kept"], [str(mine)])
+
+    def test_running_from_code_says_how_to_remove_it(self):
+        status, body = server.uninstall(True)  # the tests run from the code folder
+        self.assertEqual(status, 400)
+        self.assertIn("code folder", body["error"])
+
+    def test_moving_sketches_never_overwrites(self):
+        src, dest = self.root / "a", self.root / "b"
+        src.mkdir()
+        dest.mkdir()
+        (src / "one.mid").write_bytes(b"MThd1")
+        (src / "two.mid").write_bytes(b"MThd2")
+        (dest / "two.mid").write_bytes(b"MThdX")
+        self.assertEqual(server.move_sketches(src, dest), (1, 1))
+        self.assertEqual((dest / "two.mid").read_bytes(), b"MThdX")
+        self.assertTrue((src / "two.mid").exists())
+
+    def test_sketches_folder_is_the_default_until_you_choose(self):
+        self.assertEqual(server.sketches_dir(), server.SKETCHES)
+        server.write_json(server.DATA / "gear.json", server.clean_prefs({"sketchesDir": "/tmp/x"}))
+        self.assertEqual(server.sketches_dir(), Path("/tmp/x"))
+        self.assertEqual(server.clean_prefs({"sketchesDir": "relative"})["sketchesDir"], "")
+
+
 if __name__ == "__main__":
     unittest.main()

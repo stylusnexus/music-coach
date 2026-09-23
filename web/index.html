@@ -16,7 +16,7 @@
   </div>
 
   <header class="top">
-    <h1>Music Coach <span id="app-version" class="app-version" title="The version you have"></span></h1>
+    <h1>Music Coach <button id="app-version" class="app-version" type="button" title="About Music Coach: version, where your files are, support, uninstall" aria-haspopup="dialog"></button></h1>
     <span id="midi-status" class="pill">Looking for keyboard…</span>
     <button id="ear-btn" class="ghost">Ear lab</button>
     <button id="chords-btn" class="ghost">Chords</button>
@@ -269,6 +269,8 @@
         <h2>Sketches <button id="sketches-info" class="info-btn" aria-expanded="false" aria-controls="sketches-help" title="What are sketches?">ⓘ</button></h2>
         <p id="sketches-help" class="info-text" hidden>A sketch is a short recording of what you played, saved as a MIDI file: the notes, not the sound. Make one with ● Record (or Save as a sketch in Build a progression). Press Show in Finder, then drag the file into GarageBand: it becomes tracks you can give any sound, fix in the Piano Roll, and build into a song. Show in Finder also shows you the folder where sketches are kept.</p>
         <ul id="sketch-list"><li class="muted">None yet. The recording lesson makes your first.</li></ul>
+        <p id="sketch-folder" class="sketch-folder muted small"></p>
+        <p id="sketch-move" class="sketch-folder small" hidden></p>
       </section>
     </aside>
   </div>
@@ -328,6 +330,30 @@
     <p id="styles-note" class="muted small" aria-live="polite"></p>
     <p id="styles-nudge" class="nudge" hidden><span></span> <button type="button" class="link">Dismiss</button></p>
     <div class="buttons"><button id="styles-done" class="primary" type="button">Continue</button><button id="styles-skip" type="button">Skip — show me every style</button></div>
+  </dialog>
+
+  <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-title">
+    <form method="dialog"><button class="dialog-x ghost" aria-label="Close">×</button></form>
+    <h2 id="about-title">About Music Coach</h2>
+    <p id="about-version" class="muted"></p>
+    <h3>Where your things are</h3>
+    <ul class="about-places">
+      <li>Progress, gear list, coach settings and key, takes: <code id="about-data"></code></li>
+      <li>Sketches: <code id="about-sketches"></code></li>
+    </ul>
+    <p class="muted small">None of these are inside the app, so updating or replacing the app keeps them.</p>
+    <h3>Support</h3>
+    <p>Questions, stuck, or found a bug? Email <a href="mailto:admin@stylusnexus.com?subject=Music%20Coach">admin@stylusnexus.com</a>.</p>
+    <h3>Uninstall</h3>
+    <div id="uninstall-start">
+      <p id="uninstall-note" class="muted small">Moves Music Coach to the Trash. Your saved things stay unless you choose otherwise.</p>
+      <button id="uninstall-btn" type="button">Uninstall Music Coach…</button>
+    </div>
+    <div id="uninstall-confirm" hidden>
+      <label class="uninstall-data"><input id="uninstall-data" type="checkbox"> Also move my progress, gear list, coach key and takes to the Trash<span id="uninstall-sketches-note"></span></label>
+      <div class="buttons"><button id="uninstall-go" class="danger" type="button">Move Music Coach to the Trash</button><button id="uninstall-cancel" type="button">Cancel</button></div>
+    </div>
+    <p id="uninstall-status" aria-live="polite"></p>
   </dialog>
 
   <dialog id="coach-dialog" class="coach-dialog">
