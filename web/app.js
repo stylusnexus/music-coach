@@ -1492,6 +1492,7 @@ function setFreeTime(on) {
   state.arp = false;
   state.drums = false;
   state.click = false;
+  state.bass = false;
   latch.clear();
 }
 
@@ -1553,6 +1554,7 @@ function wireStudio() {
   };
   $('bass').onclick = () => {
     state.bass = !state.bass;
+    if (state.bass) state.freeTime = false;
     loadSound(BASS_SOUND);
     renderStudio();
   };
