@@ -8,7 +8,8 @@ readable only by the user's account.
 
 Please report security problems privately: open the
 [Security tab](https://github.com/stylusnexus/music-coach/security) and choose
-**Report a vulnerability**. Don't open a public issue.
+**Report a vulnerability**, or email [admin@stylusnexus.com](mailto:admin@stylusnexus.com).
+Don't open a public issue.
 
 Especially welcome: anything that lets another website or another user on the
 Mac read the API key, read files outside the chosen sample folders, or send

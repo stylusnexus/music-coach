@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Music Coach</title>
+  <meta name="description" content="Learn to make music on your Mac, and learn GarageBand while you do it. No instrument needed.">
+  <meta property="og:title" content="Music Coach">
+  <meta property="og:description" content="Learn to make music on your Mac, and learn GarageBand while you do it. No instrument needed.">
+  <meta property="og:image" content="img/app.jpg">
+  <style>
+    :root {
+      --bg: #15161a;
+      --panel: #1e2026;
+      --panel-2: #262932;
+      --line: #33363f;
+      --text: #e9e6df;
+      --muted: #9a978f;
+      --accent: #e8b86b;
+      --accent-ink: #1b1508;
+      --radius: 12px;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    a { color: var(--accent); }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+    header.top { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
+    header.top .name { font-weight: 700; font-size: 18px; }
+    header.top nav a { color: var(--muted); text-decoration: none; margin-left: 20px; }
+    header.top nav a:hover { color: var(--text); }
+    .hero { padding: 48px 0 32px; text-align: center; }
+    .hero h1 { font-size: clamp(32px, 6vw, 54px); line-height: 1.1; margin: 0 0 16px; letter-spacing: -0.02em; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero p { color: var(--muted); font-size: 19px; max-width: 640px; margin: 0 auto 28px; }
+    .buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .button {
+      display: inline-block; padding: 12px 22px; border-radius: 999px; text-decoration: none;
+      font-weight: 600; border: 1px solid var(--line); color: var(--text); background: var(--panel);
+    }
+    .button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+    .shot { margin: 16px 0 64px; }
+    .shot img {
+      width: 100%; height: auto; display: block; border-radius: var(--radius);
+      border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+    }
+    h2 { font-size: 28px; margin: 0 0 20px; letter-spacing: -0.01em; }
+    section { margin-bottom: 72px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+    .card h3 { margin: 0 0 8px; font-size: 18px; }
+    .card p { margin: 0; color: var(--muted); }
+    .steps { counter-reset: step; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+    .steps li {
+      counter-increment: step; background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 16px 20px 16px 64px; position: relative; min-width: 0;
+    }
+    .steps li::before {
+      content: counter(step); position: absolute; left: 20px; top: 14px; width: 30px; height: 30px;
+      border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 700;
+      display: grid; place-items: center;
+    }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; }
+    pre {
+      background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px;
+      overflow-x: auto; margin: 10px 0 0;
+    }
+    .needs { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; list-style: none; margin: 0; }
+    .needs li { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; }
+    .styles { color: var(--muted); }
+    footer { border-top: 1px solid var(--line); padding: 28px 0 48px; color: var(--muted); font-size: 15px; }
+    @media (max-width: 600px) {
+      header.top nav a { margin-left: 14px; }
+      .hero { padding-top: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <span class="name">Music Coach</span>
+      <nav>
+        <a href="#start">Get started</a>
+        <a href="https://github.com/stylusnexus/music-coach">GitHub</a>
+      </nav>
+    </header>
+
+    <div class="hero">
+      <h1>Learn to make music on your Mac,<br>and learn <em>GarageBand</em> while you do it.</h1>
+      <p>Guided lessons take you from your first chord to a finished track. No instrument needed: a small MIDI keyboard helps, and your computer keys work too.</p>
+      <div class="buttons">
+        <a class="button primary" href="#start">Get started</a>
+        <a class="button" href="https://github.com/stylusnexus/music-coach">View on GitHub</a>
+      </div>
+    </div>
+
+    <div class="shot">
+      <img src="img/app.jpg" width="2000" height="1250" alt="Music Coach: the lesson list, a lesson on four chords, the chord display showing E minor, and a keyboard with the chord's keys lit.">
+    </div>
+
+    <section>
+      <h2>What you learn</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Make music first</h3>
+          <p>Chords, a drum machine, an arpeggiator that does the picking for you, a looper and a sampler. Everything you play already sounds good, so you hear progress from the first note.</p>
+        </div>
+        <div class="card">
+          <h3>Then learn GarageBand</h3>
+          <p>Take your sketch into GarageBand and learn its tools step by step, with real screenshots: tracks, the grid, the Piano Roll, mixing, fades and exporting a song.</p>
+        </div>
+        <div class="card">
+          <h3>Lessons that notice</h3>
+          <p>Short lessons tick themselves off as you play. A take coach scores chords, timing, feel, sound and ending from what it measured, and names one thing to try next.</p>
+        </div>
+        <div class="card">
+          <h3>Your gear, by name</h3>
+          <p>It finds the plugins on your Mac. Lessons name your own gear when you have it, and GarageBand's built-in effects when you don't.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Styles</h2>
+      <p class="styles">Kosmische, Eno-style ambient, dark ambient, Stereolab, new wave, post-punk and darkwave, shoegaze. More on the way, and you pick which to show: house, dub and reggae, lo-fi hip-hop, downtempo, Afrobeat, punk, folk, ambient drone, ambient techno. Every starter style works on a Mac with nothing extra installed.</p>
+    </section>
+
+    <section id="start">
+      <h2>Get started</h2>
+      <ul class="needs" aria-label="What you need">
+        <li>A Mac with GarageBand (free)</li>
+        <li>Google Chrome</li>
+        <li>Python 3.9 or newer</li>
+        <li>A MIDI keyboard (optional)</li>
+      </ul>
+      <ol class="steps" style="margin-top: 20px">
+        <li>Download the code and start it:
+          <pre>git clone https://github.com/stylusnexus/music-coach.git
+cd music-coach
+./music-coach</pre>
+        </li>
+        <li>Chrome opens the app. Press <strong>Start</strong>, tell it what gear you have (or skip), and open lesson 1.</li>
+        <li>Want a double-click app next time? Run <code>./music-coach shortcut</code> to put one on your Desktop.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>A coach that stays on your Mac</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Ask questions</h3>
+          <p>"Why does my chord sound muddy?" Answers come from a model you choose: one running on your Mac in LM Studio, or your own OpenAI or Anthropic key.</p>
+        </div>
+        <div class="card">
+          <h3>Private by default</h3>
+          <p>Your progress, gear list, sketches and key stay in local files. The app only goes online to reach the coach model you picked. No account.</p>
+        </div>
+        <div class="card">
+          <h3>Works without it</h3>
+          <p>Lessons, the studio and take scores all work with no model at all. Only the written summaries and questions need one.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="wrap">
+      Music Coach is free and open source under the MIT license. Mac only for now.
+      <a href="https://github.com/stylusnexus/music-coach">Source, issues and contributing</a>.
+    </div>
+  </footer>
+</body>
+</html>

@@ -19,7 +19,7 @@ export const DESCRIPTIONS = {
   Zebralette3: 'A synthesizer for pads and drones.',
   USYNTH: 'A simple synthesizer from UJAM.',
   Hype: 'A synthesizer with ready-made modern sounds.',
-  'MPC Beats': 'Akai drum pads and samples; matches the pads on the MPK Mini.',
+  'MPC Beats': 'Akai drum pads and samples; matches the pads on Akai keyboards like the MPK Mini.',
   'AmpliTube 5': 'Guitar amps and pedals (chorus, delay) in one window.',
   TONEX: 'Copies of real guitar amps.',
   MixBox: 'A rack of mixing effects in one plugin.',
