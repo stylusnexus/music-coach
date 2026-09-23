@@ -60,6 +60,15 @@ cd music-coach
 
 This starts the local server and opens http://localhost:8765 in Chrome.
 
+To start it with a double-click next time, make a shortcut:
+
+```sh
+./music-coach shortcut
+```
+
+This puts a **Music Coach** app on your Desktop that starts this copy (add a
+folder to put it elsewhere, e.g. `./music-coach shortcut ~/Applications`).
+
 The first time, a welcome screen asks what gear you have. Skip it if you have
 none: every lesson works with the app's own sounds and GarageBand's.
 

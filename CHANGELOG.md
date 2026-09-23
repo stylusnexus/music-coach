@@ -26,3 +26,4 @@ All notable changes to this project are listed here. The format follows
   Anthropic or OpenAI-compatible key.
 - Sketches saved as MIDI files for GarageBand.
 - A packaged Mac app built by `packaging/build.sh`.
+- `./music-coach shortcut` makes a double-click app that starts a copy run from source.

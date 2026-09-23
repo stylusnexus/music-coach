@@ -1,6 +1,29 @@
 #!/usr/bin/env bash
 # Start Music Coach and open it in Chrome (Safari has no MIDI keyboard support).
+#   ./music-coach                    start it
+#   ./music-coach shortcut [folder]  make a "Music Coach" app that starts this copy
+#                                    (on the Desktop unless you name a folder)
 cd "$(dirname "$0")"
+
+if [ "$1" = "shortcut" ]; then
+  dest="${2:-$HOME/Desktop}/Music Coach.app"
+  if [ -e "$dest" ]; then
+    echo "\"$dest\" already exists. Remove it first, or name another folder: ./music-coach shortcut ~/Applications"
+    exit 1
+  fi
+  # The shared app's launcher, pointed at this folder: its data/ and sketches/ stay in use.
+  here=$(pwd | sed 's/\\/\\\\/g; s/"/\\"/g')
+  script=$(mktemp -t music-coach).applescript
+  sed -e "s|^set appDir to .*|set appDir to \"$here\"|" \
+      -e "s|^set dataDir to .*|set dataDir to \"$here/data\"|" \
+      -e "s|^set sketchDir to .*|set sketchDir to \"$here/sketches\"|" \
+      packaging/launcher.applescript > "$script"
+  osacompile -o "$dest" "$script" && codesign --force -s - "$dest" 2>/dev/null
+  rm -f "$script"
+  echo "Made \"$dest\". Double-click it to start Music Coach."
+  exit 0
+fi
+
 PORT="${COACH_PORT:-8765}"
 if ! curl -s -o /dev/null "http://localhost:$PORT/"; then
   python3 server.py &
