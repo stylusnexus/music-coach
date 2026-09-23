@@ -81,7 +81,7 @@ folder to put it elsewhere, e.g. `./music-coach shortcut ~/Applications`).
 The first time, a welcome screen asks what gear you have. Skip it if you have
 none: every lesson works with the app's own sounds and GarageBand's.
 
-## The coach model
+## The coach model (bring your own key)
 
 The coach model answers your questions ("why does my chord sound muddy?") and
 writes a short summary under a take's scores. Press **Coach model** at the top
