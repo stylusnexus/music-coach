@@ -118,7 +118,7 @@ To get the real sound:
 
 1. **In GarageBand (free):** open your sketch, select the track, and pick a real instrument from the Library (press Y). GarageBand has acoustic and electric guitars, pianos and strings. For more, choose GarageBand > Sound Library > Download All Available Sounds.
 2. **Plugins you own:** instrument plugins, like a guitar player or piano library, go on a GarageBand track the same way. The Your gear window lists what you have.
-3. **With Logic Pro's sound library installed,** the practice room's guitar switches to Logic's recorded 12-string automatically.
+3. **After you download GarageBand's full Sound Library,** the practice room's guitar switches to a recorded 12-string automatically: it uses one of those sounds.
 
 ## Privacy
 

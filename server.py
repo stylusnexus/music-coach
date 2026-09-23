@@ -36,7 +36,9 @@ MARS = "Vintage Synths"
 # Recorded instruments the app can play. Makers label octaves differently, so each
 # set carries the offset that makes its file names match the pitch actually heard
 # (measured, not assumed): MIDI note = 12 * (octave + offset) + note.
-# "dir" is a fixed place (Logic's own sounds); "rel" is looked for in each sample folder.
+# "dir" is a fixed place: Apple's shared sound library, which GarageBand's Sound Library
+# download installs (the folder is named Logic because Logic uses it too). "rel" is
+# looked for in each sample folder.
 # Without the recordings the app plays a built-in tone, named by "standIn".
 INSTRUMENTS = [
     {
