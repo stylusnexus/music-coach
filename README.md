@@ -1,12 +1,21 @@
 # Music Coach
 
-A practice room and music teacher for people who don't play an instrument.
+[![test](https://github.com/stylusnexus/music-coach/actions/workflows/test.yml/badge.svg)](https://github.com/stylusnexus/music-coach/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey.svg)
+![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-3776ab.svg)
+![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
-Plug in a small MIDI keyboard, or just use your computer keys, and whatever
-you play already sounds good: a clean plucked guitar through chorus, echo and
-reverb. Short lessons show you which keys to press, name the chord you're
-holding, and tick themselves off as you play. Every lesson ends in something
-you keep: a sketch you can drag straight into GarageBand and finish there.
+Learn to make music on your Mac, and learn GarageBand while you do it.
+
+Guided lessons take you from your first chord to a finished track. You play
+chords, beats and loops in a practice room that sounds good from the first
+note, then take what you made into GarageBand and learn its tools step by
+step, with screenshots: tracks, the grid, the Piano Roll, mixing, fades and
+exporting. You don't need to play an instrument: a small MIDI keyboard helps,
+and your computer keys work too.
+
+![Music Coach: a lesson, the chord display and the keyboard](docs/img/app.jpg)
 
 It runs on your Mac and opens in Chrome. Nothing is uploaded, and there's no
 account.

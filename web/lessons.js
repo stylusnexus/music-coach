@@ -632,7 +632,7 @@ const ALL_LESSONS = [
     why: 'Multi-tracking is recording one part at a time while the others play back. It is how one person makes a whole band.',
     guided: true,
     steps: [
-      { label: 'Added a track', text: 'Add a track: the + above the track names (or Track → New Tracks…). Choose MIDI (Software Instrument) for your keyboard, then Create.', image: 'img/gb/new-track.jpg', boxes: [{ x: 24.2, y: 30.5, w: 12.6, h: 19.3, label: 'For the MPK Mini' }] },
+      { label: 'Added a track', text: 'Add a track: the + above the track names (or Track → New Tracks…). Choose MIDI (Software Instrument) for your keyboard, then Create.', image: 'img/gb/new-track.jpg', boxes: [{ x: 24.2, y: 30.5, w: 12.6, h: 19.3, label: 'For a MIDI keyboard' }] },
       { label: 'Picked a sound', text: 'Pick its sound in the Library (press Y to open it).' },
       { label: 'Cycle set', text: 'Press C to turn on Cycle, and drag the yellow strip in the ruler across 4 bars. Playback now loops over just those bars.' },
       { label: 'Recorded a part', text: 'Select the new track, press R to record, play along while the other tracks play, and press Space to stop. Every track keeps playing together.' },

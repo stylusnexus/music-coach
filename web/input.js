@@ -25,7 +25,7 @@ export function setupInput({ onNoteOn, onNoteOff, onStatus }) {
         onStatus(
           names.length
             ? { connected: true, message: names.join(', ') }
-            : { connected: false, message: 'No keyboard found. Plug in the MPK Mini, or play with the computer keys A–K.' },
+            : { connected: false, message: 'No keyboard found. Plug in a MIDI keyboard, or play with the computer keys A–K.' },
         );
       };
       access.onstatechange = bind;
