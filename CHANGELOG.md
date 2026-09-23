@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.5.0](https://github.com/stylusnexus/music-coach/compare/v0.4.0...v0.5.0) (2026-09-23)
+
+
+### Added
+
+* **lessons:** open sampler lessons by recording ([#92](https://github.com/stylusnexus/music-coach/issues/92)) ([7176664](https://github.com/stylusnexus/music-coach/commit/717666405b0d06da9319166b67d37deef00947ca))
+* **styles:** add synthwave, metal, techno, more ([#95](https://github.com/stylusnexus/music-coach/issues/95)) ([95b7ce4](https://github.com/stylusnexus/music-coach/commit/95b7ce4a376a2356a12b36dd83b156676cc606db))
+
+
+### Documentation
+
+* add AGENTS.md for AI coding agents ([#94](https://github.com/stylusnexus/music-coach/issues/94)) ([a319311](https://github.com/stylusnexus/music-coach/commit/a319311341745ab9e2e1ea80ac9fcba485af34a3))
+* lead Get started with the download ([#89](https://github.com/stylusnexus/music-coach/issues/89)) ([e924510](https://github.com/stylusnexus/music-coach/commit/e924510f61ca03701ac76b3cccf1bf0b2bf3595f))
+* refresh the app screenshot for 0.4.0 ([#86](https://github.com/stylusnexus/music-coach/issues/86)) ([45d3e89](https://github.com/stylusnexus/music-coach/commit/45d3e894a87eac29164d24dfdcc27ecdcde36260))
+* say which preview is 5 seconds ([#90](https://github.com/stylusnexus/music-coach/issues/90)) ([dfc86c8](https://github.com/stylusnexus/music-coach/commit/dfc86c8fa9bf8bf3d596f5764321b92e47b2b9dd))
+* show two styles screenshots on the site ([#88](https://github.com/stylusnexus/music-coach/issues/88)) ([533556c](https://github.com/stylusnexus/music-coach/commit/533556ce4e30e6fbd536febb540c8a2988142968))
+* **site:** add search and AI-search metadata ([#93](https://github.com/stylusnexus/music-coach/issues/93)) ([3f5f65e](https://github.com/stylusnexus/music-coach/commit/3f5f65ec6f665112887a8671cc7dd2963e07d30d))
+
 ## [0.4.0](https://github.com/stylusnexus/music-coach/compare/v0.3.0...v0.4.0) (2026-09-23)
 
 
