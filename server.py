@@ -96,6 +96,17 @@ LOOP_FOLDERS = [
 ]
 
 AUDIO_TYPES = (".wav", ".aif", ".aiff", ".mp3", ".m4a")
+# Where a sample pack sits in the Sampler. Guessed from plain words any library might
+# use, never from pack or maker names: the first section whose words match wins.
+SECTIONS = ("Drums", "Bass", "Keys", "Strings", "Texture", "Vocals", "Other")
+SECTION_WORDS = [
+    ("Drums", r"\b(drum|kick|snare|hat|hihat|perc|beat|break|groove|clap|cymbal|rim)"),
+    ("Bass", r"\bbass"),
+    ("Vocals", r"\b(vocal|vox|voice|choir|acapella)"),
+    ("Strings", r"\b(string|violin|viola|cello|orchestra|guitar|ukulele|harp)"),
+    ("Keys", r"\b(key|piano|organ|rhodes|synth|clav|epiano)"),
+    ("Texture", r"\b(pad|ambient|texture|tape|drone|atmos|noise|field|fx|soundscape)"),
+]
 # Tags for gear added by hand. Effect tags let a lesson say "your X" in place of a
 # GarageBand effect; keyboard and microphone let lessons and the coach name them.
 TAGS = ("keyboard", "microphone", "chorus", "echo", "reverb", "amp", "fuzz", "synth", "bass", "drums")
@@ -265,11 +276,15 @@ def clean_prefs(raw):
     hidden = sorted({h[:120] for h in raw.get("hidden") or [] if isinstance(h, str) and h.strip()})
     slots = raw.get("slots") if isinstance(raw.get("slots"), dict) else {}
     slots = {str(k)[:120]: v for k, v in list(slots.items())[:1000] if v in SLOTS}
+    # Sample packs you moved to another section or hid, by folder.
+    packs = raw.get("packs") if isinstance(raw.get("packs"), dict) else {}
+    packs = {k: v for k, v in list(packs.items())[:5000] if isinstance(k, str) and k.startswith("/") and v in (*SECTIONS, "hidden")}
     return {
         "folders": list(dict.fromkeys(folders))[:20],
         "added": added[:200],
         "hidden": hidden[:500],
         "slots": slots,
+        "packs": packs,
         "sketchesDir": raw["sketchesDir"] if isinstance(raw.get("sketchesDir"), str) and raw["sketchesDir"].startswith("/") else "",
         "setupDone": bool(raw.get("setupDone")),
     }
@@ -313,6 +328,12 @@ def change_prefs(change, prefs):
         if change.get("slot") in SLOTS:
             slots[name] = change["slot"]
         return clean_prefs({**prefs, "slots": slots})
+    elif op == "pack":
+        path = str(change.get("path", ""))
+        packs = {k: v for k, v in prefs["packs"].items() if k != path}
+        if change.get("section") in (*SECTIONS, "hidden"):
+            packs[path] = change["section"]
+        return clean_prefs({**prefs, "packs": packs})
     elif op == "hide" and name:
         hidden.append(name)
     elif op == "unhide":
@@ -412,33 +433,194 @@ def available_drum_kits(root=None):
     ]
 
 
-def first_audio_files(base, limit, max_dirs=400):
-    """Up to `limit` audio files under base, stopping early: a big drive stays quick."""
-    files, seen = [], 0
-    for folder, dirs, names in os.walk(base):
+def find_packs(root, big=5000, max_dirs=20000):
+    """Sample packs in one folder, found by how the folders are laid out, never by name.
+    The folders at the top are kinds ("Drums", "Synths"), not packs. Below one, a folder
+    with only one folder inside is a wrapper and is passed through; a folder that splits
+    in two or more gives one pack per branch; a folder holding sounds itself is a pack.
+    A branch with more than `big` sounds is a collection of packs, so it is split again.
+    One walk of the drive, then everything is worked out in memory."""
+    root = Path(root)
+    direct, kids, seen = {}, {}, 0
+    for folder, dirs, names in os.walk(root):
         dirs[:] = sorted(d for d in dirs if not d.startswith("."))
+        direct[folder] = sorted(n for n in names if n.lower().endswith(AUDIO_TYPES) and not n.startswith("."))
+        kids[folder] = [os.path.join(folder, d) for d in dirs]
         seen += 1
-        files += [Path(folder, n) for n in sorted(names) if n.lower().endswith(AUDIO_TYPES) and not n.startswith(".")]
-        if len(files) >= limit or seen >= max_dirs:
+        if seen >= max_dirs:
             break
-    return files[:limit]
+    count = {}
+    for folder in sorted(direct, key=len, reverse=True):
+        count[folder] = len(direct[folder]) + sum(count.get(k, 0) for k in kids[folder])
+    found = []
+
+    def resolve(folder, depth=0):
+        live = [k for k in kids[folder] if count.get(k)]
+        if direct[folder] or not live or depth > 8:
+            return found.append(folder)
+        if len(live) == 1:
+            return resolve(live[0], depth + 1)
+        for k in live:
+            resolve(k, depth + 1) if count[k] > big else found.append(k)
+
+    top = str(root)
+    if top not in direct:
+        return []
+    if direct[top]:
+        found.append(top)
+    for k in kids[top]:
+        if count.get(k):
+            # A kind folder is never a pack itself, unless it holds sounds directly.
+            live = [c for c in kids[k] if count.get(c)]
+            if direct[k] or len(live) <= 1:
+                resolve(k)
+            else:
+                for c in live:
+                    resolve(c, 1) if count[c] > big else found.append(c)
+
+    packs = []
+    for folder in found:
+        rel = Path(folder).relative_to(root)
+        # Sounds loose in the top folder are one pack; the packs below keep their own.
+        inner = [folder] if folder == top else [d for d in sorted(direct) if d == folder or d.startswith(folder + os.sep)]
+        files = [str(Path(d, n).relative_to(root)) for d in inner for n in direct[d]]
+        inside = len(rel.parts)
+        # Loops first: the Sampler is for cutting up loops, and packs say which are loops.
+        files.sort(key=lambda f: (not is_loop(f, inside), f.lower()))
+        packs.append({
+            "path": str(rel) if rel.parts else "",
+            "label": rel.name or root.name,
+            "where": str(rel.parent) if len(rel.parts) > 1 else "",
+            "guess": guess_section(rel),
+            "loops": sum(is_loop(f, inside) for f in files),
+            "files": files,
+        })
+    return packs
 
 
-def loop_files(root=None, per_folder=60):
+def is_loop(relative, inside=0):
+    """Packs name their loop folders: "Drum Loops 120 BPM", "01. Loops". Only the part
+    of the path inside the pack counts, so a pack called "Ambient Loops" isn't all loops."""
+    parts = Path(relative).parts[inside:]
+    return any("loop" in p.lower() for p in parts)
+
+
+def guess_section(rel):
+    """A guess at what a pack holds, from plain words in its name and then in the folders
+    above it, nearest first. Unsure goes to Other; you can move any pack in Your gear."""
+    for part in reversed(Path(rel).parts):
+        words = re.sub(r"[_\-.]+", " ", part).lower()
+        for section, pattern in SECTION_WORDS:
+            if re.search(pattern, words):
+                return section
+    return "Other"
+
+
+def saved_packs():
+    try:
+        saved = json.loads((DATA / "packs.json").read_text())
+    except (OSError, ValueError):
+        return {}
+    return saved.get("roots", {}) if isinstance(saved, dict) and isinstance(saved.get("roots"), dict) else {}
+
+
+# Folders being looked through right now. A big drive over the network takes a while,
+# so this runs in the background and the result is saved in packs.json.
+SCANNING = set()
+SCAN_LOCK = threading.Lock()
+
+
+def scan_folders(folders):
+    """Look through these folders now and save what was found. A folder that isn't
+    connected keeps what was last found in it."""
+    found = {f: find_packs(f) for f in folders if Path(f).is_dir()}
+    with FILE_LOCK:
+        roots = saved_packs()
+        keep = set(load_prefs()["folders"])
+        roots = {f: v for f, v in {**roots, **{f: {"scannedAt": datetime.now().isoformat(timespec="seconds"), "packs": p} for f, p in found.items()}}.items() if f in keep}
+        write_json(DATA / "packs.json", {"roots": roots})
+
+
+def start_scan(folders):
+    """Look through folders in the background, each at most once at a time."""
+    with SCAN_LOCK:
+        todo = [f for f in folders if f not in SCANNING and Path(f).is_dir()]
+        SCANNING.update(todo)
+    if not todo:
+        return
+
+    def run():
+        try:
+            scan_folders(todo)
+        finally:
+            with SCAN_LOCK:
+                SCANNING.difference_update(todo)
+
+    threading.Thread(target=run, daemon=True).start()
+
+
+def scan_new_folders():
+    """Your folders that have never been looked through, once they are connected."""
+    roots = saved_packs()
+    start_scan([f for f in load_prefs()["folders"] if f not in roots])
+
+
+def all_packs(root=None):
+    """Every pack in your folders, with your choices: [(root, pack)]. Given folders
+    (tests) are looked through on the spot; your own come from the saved list."""
+    if root is not None:
+        return [(r, p) for r in sample_roots(root) if r.is_dir() for p in find_packs(r)]
+    roots = saved_packs()
+    return [(Path(f), p) for f in load_prefs()["folders"] for p in (roots.get(f) or {}).get("packs", [])]
+
+
+def pack_list(root=None, prefs=None):
+    """Packs as Your gear shows them: section you chose or the guess, hidden or not."""
+    if prefs is None:
+        prefs = load_prefs() if root is None else clean_prefs({})
+    out = []
+    for r, p in all_packs(root):
+        pid = str(r / p["path"]) if p["path"] else str(r)
+        choice = prefs["packs"].get(pid, "")
+        out.append({
+            "id": pid,
+            "label": p["label"],
+            "where": p["where"],
+            "folder": str(r),
+            "connected": r.is_dir(),
+            "guess": p["guess"],
+            "section": choice if choice in SECTIONS else p["guess"],
+            "hidden": choice == "hidden",
+            "total": len(p["files"]),
+            "loops": p["loops"],
+            "files": p["files"],
+        })
+    order = {s: i for i, s in enumerate(SECTIONS)}
+    out.sort(key=lambda p: (order[p["section"]], not p["loops"], p["label"].lower(), p["id"]))
+    return out
+
+
+def loop_files(root=None, per_folder=60, prefs=None):
     """Loops for the sampler, grouped by where they came from. Paths are relative to
-    the sample folder they are in. Known packs get their own groups; any other folder
-    is one group, named after it."""
-    groups = []
+    the sample folder they are in. The packs lessons name come first, as they always
+    have; then every other pack, by section, loops before one-shot hits."""
+    groups, taken = [], set()
     for r in sample_roots(root):
         if not r.is_dir():
             continue
-        known = [(label, r / folder) for label, folder in LOOP_FOLDERS if (r / folder).is_dir()]
-        # A drive's own name says more than "Samples": "Samples on Media".
-        name = f"{r.name} on {r.parts[2]}" if len(r.parts) > 3 and r.parts[1] == "Volumes" else r.name
-        for label, base in known or [(name, r)]:
-            files = sorted(p for p in base.rglob("*.wav") if not p.name.startswith(".")) if known else first_audio_files(base, per_folder)
-            if files:
-                groups.append({"label": label, "files": [str(p.relative_to(r)) for p in files[:per_folder]]})
+        for label, folder in LOOP_FOLDERS:
+            base = r / folder
+            if base.is_dir():
+                files = [str(p.relative_to(r)) for p in sorted(p for p in base.rglob("*.wav") if not p.name.startswith("."))][:per_folder]
+                if files:
+                    groups.append({"label": label, "files": files, "known": True})
+                    taken.update((str(r), f) for f in files)
+    for p in pack_list(root, prefs):
+        if p["hidden"] or not p["connected"]:
+            continue
+        files = [f for f in p["files"] if (p["folder"], f) not in taken]
+        if files:
+            groups.append({"label": p["label"], "id": p["id"], "section": p["section"], "total": len(files), "files": files[:per_folder]})
     return groups
 
 
@@ -1141,6 +1323,10 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(200, available_drum_kits())
         if self.path == "/api/loops":
             return self.send_json(200, loop_files())
+        if self.path == "/api/packs":
+            scan_new_folders()
+            packs = [{k: v for k, v in p.items() if k != "files"} for p in pack_list()]
+            return self.send_json(200, {"packs": packs, "sections": SECTIONS, "scanning": bool(SCANNING)})
         if self.path == "/api/plugins":
             return self.send_json(200, plugin_details())
         if self.path == "/api/places":
@@ -1303,7 +1489,13 @@ class Handler(SimpleHTTPRequestHandler):
                 except ValueError as exc:
                     return self.send_json(400, {"error": str(exc)})
                 write_json(DATA / "gear.json", prefs)
+            if body.get("op") == "addFolder":
+                scan_new_folders()
             return self.send_json(200, prefs)
+
+        if self.path == "/api/packs/refresh":
+            start_scan(load_prefs()["folders"])
+            return self.send_json(200, {"scanning": bool(SCANNING)})
 
         if self.path == "/api/gear/choose-folder":
             path = choose_folder()
@@ -1314,6 +1506,7 @@ class Handler(SimpleHTTPRequestHandler):
                 if path not in prefs["folders"]:
                     prefs = clean_prefs({**prefs, "folders": [*prefs["folders"], path]})
                     write_json(DATA / "gear.json", prefs)
+            scan_new_folders()
             return self.send_json(200, {"folder": path, **prefs})
 
         if self.path == "/api/gear/describe":
@@ -1398,6 +1591,7 @@ def main():
     port = int(os.environ.get("COACH_PORT", "8765"))
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     print(f"Music Coach running at http://localhost:{port}  (Ctrl+C to stop)")
+    scan_new_folders()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
