@@ -17,8 +17,8 @@ All notable changes to this project are listed here. The format follows
   runs from 50 to 180 BPM.
 - House and ambient techno, on a new four-on-the-floor drum pattern.
 - The style picker shows six different kinds of style first.
-- "Hear it" on every style: one real record, played from the artist's or
-  label's Bandcamp page, loaded only when pressed.
+- "Hear it" on every style: one or two real records, played from the
+  artist's or label's Bandcamp page, loaded only when pressed.
 - Style lessons name optional gear that would bring them closer to the
   record, only when it's missing.
 - 30 lessons in four sections: Basics, Quick wins, GarageBand skills and
