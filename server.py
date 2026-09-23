@@ -4,6 +4,7 @@ scans installed gear, and forwards questions to the coach model (LM Studio, or a
 API key the learner adds). Standard library only."""
 
 import base64
+import shutil
 import hashlib
 import mimetypes
 import plistlib
@@ -269,6 +270,7 @@ def clean_prefs(raw):
         "added": added[:200],
         "hidden": hidden[:500],
         "slots": slots,
+        "sketchesDir": raw["sketchesDir"] if isinstance(raw.get("sketchesDir"), str) and raw["sketchesDir"].startswith("/") else "",
         "setupDone": bool(raw.get("setupDone")),
     }
 
@@ -471,6 +473,97 @@ def plugin_details(plugin_dirs=None):
                 pass
             details.append({"name": comp.stem, "maker": maker, "kind": kind})
     return details
+
+
+def sketches_dir():
+    """Where sketches are saved: the folder you chose, or the default."""
+    return Path(load_prefs()["sketchesDir"] or SKETCHES)
+
+
+def app_bundle(root=None):
+    """The Music Coach app this server runs inside, or None when it runs from its code."""
+    root = ROOT if root is None else root
+    if root.parts[-3:] == ("Contents", "Resources", "app") and root.parents[2].suffix == ".app":
+        return root.parents[2]
+    return None
+
+
+def to_trash(path):
+    """Move a file or folder to your Trash, so it can be put back. Returns where it went."""
+    trash = Path.home() / ".Trash"
+    dest, n = trash / path.name, 1
+    while dest.exists():
+        n += 1
+        dest = trash / f"{path.stem} {n}{path.suffix}"
+    shutil.move(str(path), str(dest))
+    return dest
+
+
+UNINSTALLED = threading.Event()  # set once uninstalled: nothing may recreate the data folder
+
+
+def inside(a, b):
+    """Whether folder a is b or inside it."""
+    return a == b or b in a.parents
+
+
+def uninstall(remove_data, bundle=None):
+    """Move the app to the Trash and, if asked, its saved data too. A sketches folder you
+    chose yourself is never moved: it may hold other files. Each step reports what it did."""
+    bundle = app_bundle() if bundle is None else bundle
+    if bundle is None:
+        return 400, {"error": "You're running Music Coach from its code folder. To remove it, delete that folder, and any Music Coach shortcut you made."}
+    if str(bundle).startswith("/Volumes/") or "AppTranslocation" in str(bundle):
+        return 400, {"error": "Music Coach is running from a download or a disk image, not your Applications folder. Drag it to the Trash yourself, or move it to Applications first."}
+    sketches = sketches_dir()
+    chosen = sketches != SKETCHES
+    UNINSTALLED.set()
+    moved, kept, failed = [], [], []
+
+    def trash(path):
+        try:
+            moved.append(str(to_trash(path)))
+        except OSError as exc:
+            failed.append(f"{path}: {exc.strerror or exc}")
+
+    trash(bundle)
+    if failed:
+        UNINSTALLED.clear()
+        return 500, {"error": f"Couldn't move the app to the Trash ({failed[0]}). Nothing else was touched.", "moved": moved}
+    if remove_data:
+        if chosen:
+            kept.append(str(sketches))
+        elif sketches.is_dir():
+            trash(sketches)
+        if chosen and (inside(sketches, DATA) or inside(DATA, sketches)):
+            kept.append(str(DATA))  # your chosen folder shares it: leave both
+        elif DATA.is_dir():
+            trash(DATA)
+    return 200, {"moved": moved, "kept": kept, "failed": failed}
+
+
+# Sketches this app saved: "2026-09-23-1405 my idea 90bpm.mid". Other MIDI files in the
+# same folder are yours, and are never listed or moved.
+SKETCH_NAME = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{4} .+\.mid$")
+
+
+def sketch_files(folder):
+    return [f for f in folder.glob("*.mid") if SKETCH_NAME.match(f.name)] if folder.is_dir() else []
+
+
+def move_sketches(src, dest):
+    """Move sketch files from one folder to another, never over a file already there."""
+    moved = skipped = 0
+    for f in sorted(sketch_files(src)):
+        if (dest / f.name).exists():
+            skipped += 1
+            continue
+        shutil.move(str(f), str(dest / f.name))
+        moved += 1
+    return moved, skipped
+
+
+LEFT_SKETCHES = {}  # the folder sketches were saved in before you chose another
 
 
 def safe_sketch_name(name):
@@ -853,12 +946,12 @@ def visible_gear(prefs=None):
     return plugins, prefs["added"]
 
 
-def choose_folder():
+def choose_folder(prompt="Pick a folder of samples or loops for Music Coach"):
     """Ask macOS for a folder with its own picker; a web page is never told a dropped
     folder's full path. Returns the path, or None when you cancel."""
     script = (
         "tell current application\nactivate\n"
-        'set f to choose folder with prompt "Pick a folder of samples or loops for Music Coach"\n'
+        f'set f to choose folder with prompt "{prompt}"\n'
         "end tell\nPOSIX path of f"
     )
     try:
@@ -1030,6 +1123,8 @@ class Handler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_GET(self):
+        if UNINSTALLED.is_set():
+            return self.send_json(503, {"error": "Music Coach was uninstalled."})
         if self.from_elsewhere():
             return self.send_json(403, {"error": "Requests from other sites are refused."})
         if self.path == "/api/gear":
@@ -1048,6 +1143,12 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(200, loop_files())
         if self.path == "/api/plugins":
             return self.send_json(200, plugin_details())
+        if self.path == "/api/places":
+            bundle = app_bundle()
+            return self.send_json(200, {
+                "data": str(DATA), "sketches": str(sketches_dir()), "customSketches": sketches_dir() != SKETCHES,
+                "app": str(bundle) if bundle else None, "home": str(Path.home()),
+            })
         if self.path == "/api/gear/labels":
             return self.send_json(200, load_labels())
         if self.path.startswith("/local/"):
@@ -1086,7 +1187,8 @@ class Handler(SimpleHTTPRequestHandler):
             query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             return self.send_json(200, lesson_takes(query.get("lesson", [""])[0]))
         if self.path == "/api/sketches":
-            files = sorted(SKETCHES.glob("*.mid"), key=lambda p: p.stat().st_mtime, reverse=True) if SKETCHES.is_dir() else []
+            folder = sketches_dir()
+            files = sorted(sketch_files(folder), key=lambda p: p.stat().st_mtime, reverse=True)
             return self.send_json(200, [p.name for p in files])
         return super().do_GET()
 
@@ -1101,12 +1203,48 @@ class Handler(SimpleHTTPRequestHandler):
         return bool(origin) and origin not in {f"http://{h}" for h in ours}
 
     def do_POST(self):
+        if UNINSTALLED.is_set():
+            return self.send_json(503, {"error": "Music Coach was uninstalled."})
         if self.from_elsewhere():
             return self.send_json(403, {"error": "Requests from other sites are refused."})
         try:
             body = self.read_json()
         except ValueError:
             return self.send_json(400, {"error": "Body must be JSON."})
+
+        if self.path == "/api/sketches/folder":
+            # Choose where sketches are saved, or go back to the default. Sketches already
+            # saved stay where they are unless you then ask to move them.
+            old_dir = sketches_dir()
+            if (body or {}).get("reset"):
+                path = ""
+            else:
+                path = choose_folder("Pick a folder for your Music Coach sketches")
+                if not path:
+                    return self.send_json(200, {"cancelled": True})
+            with FILE_LOCK:
+                write_json(DATA / "gear.json", clean_prefs({**load_prefs(), "sketchesDir": path}))
+            new_dir = sketches_dir()
+            left = len(sketch_files(old_dir)) if old_dir != new_dir else 0
+            LEFT_SKETCHES["dir"] = old_dir if left else None
+            return self.send_json(200, {"folder": str(new_dir), "previous": str(old_dir), "left": left})
+
+        if self.path == "/api/sketches/move":
+            # Only from the folder you just left: the page can't name any other.
+            src, dest = LEFT_SKETCHES.get("dir"), sketches_dir()
+            if not src or src == dest:
+                return self.send_json(400, {"error": "Nothing to move."})
+            dest.mkdir(parents=True, exist_ok=True)
+            moved, skipped = move_sketches(src, dest)
+            LEFT_SKETCHES["dir"] = None
+            return self.send_json(200, {"moved": moved, "skipped": skipped})
+
+        if self.path == "/api/uninstall":
+            status, result = uninstall(bool((body or {}).get("removeData")))
+            self.send_json(status, result)
+            if status == 200:
+                threading.Thread(target=self.server.shutdown, daemon=True).start()
+            return
 
         if self.path == "/api/quit":
             # A newer copy of the app is starting: stop, so it can take over.
@@ -1130,15 +1268,16 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(400, {"error": "Sketch data is not valid base64."})
             if not data.startswith(b"MThd"):
                 return self.send_json(400, {"error": "Sketch is not a MIDI file."})
-            SKETCHES.mkdir(parents=True, exist_ok=True)
+            folder = sketches_dir()
+            folder.mkdir(parents=True, exist_ok=True)
             stamp = datetime.now().strftime("%Y-%m-%d-%H%M")
-            path = SKETCHES / f"{stamp} {safe_sketch_name(body.get('name', 'sketch'))}.mid"
+            path = folder / f"{stamp} {safe_sketch_name(body.get('name', 'sketch'))}.mid"
             path.write_bytes(data)
             return self.send_json(200, {"file": path.name})
 
         if self.path == "/api/sketches/reveal":
             name = Path(str((body or {}).get("file", ""))).name
-            path = SKETCHES / name
+            path = sketches_dir() / name
             if not name or not path.is_file():
                 return self.send_json(404, {"error": "Sketch not found."})
             subprocess.run(["open", "-R", str(path)], check=False)

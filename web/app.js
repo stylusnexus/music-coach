@@ -1472,6 +1472,111 @@ async function loadSketches() {
   }
 }
 
+// ---------- where things live: sketches folder, About, uninstall ----------
+
+let places = null; // {data, sketches, customSketches, app, home} from the server
+let appVersion = '';
+
+function placePath(path) {
+  return places?.home && path.startsWith(`${places.home}/`) ? `~${path.slice(places.home.length)}` : path;
+}
+
+async function loadPlaces() {
+  places = await loadJson('/api/places', null);
+  renderSketchFolder();
+}
+
+function renderSketchFolder() {
+  if (!places) return;
+  $('sketch-folder').innerHTML = `Saved in <code>${esc(placePath(places.sketches))}</code> · <button id="sketch-change" class="link" type="button">Change folder…</button>${places.customSketches ? ' · <button id="sketch-default" class="link" type="button">Use the default</button>' : ''}`;
+  $('sketch-change').onclick = () => changeSketchFolder(false);
+  if (places.customSketches) $('sketch-default').onclick = () => changeSketchFolder(true);
+}
+
+// Pick where new sketches are saved. Sketches already saved stay put unless you say move them.
+async function changeSketchFolder(reset) {
+  const res = await fetch('/api/sketches/folder', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reset }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.cancelled) return;
+  await loadPlaces();
+  await loadSketches();
+  const note = $('sketch-move');
+  if (!body.left) {
+    note.hidden = true;
+    return;
+  }
+  note.hidden = false;
+  note.innerHTML = `${body.left} sketch${body.left === 1 ? ' is' : 'es are'} still in <code>${esc(placePath(body.previous))}</code>. <button id="sketch-move-go" class="link" type="button">Move them here</button> · <button id="sketch-move-no" class="link" type="button">Leave them</button>`;
+  $('sketch-move-no').onclick = () => { note.hidden = true; };
+  $('sketch-move-go').onclick = async () => {
+    const r = await fetch('/api/sketches/move', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const m = await r.json().catch(() => ({}));
+    note.textContent = r.ok
+      ? `Moved ${m.moved}.${m.skipped ? ` ${m.skipped} stayed behind: a file with the same name is already here.` : ''}`
+      : m.error || 'Could not move them.';
+    await loadSketches();
+  };
+}
+
+async function openAbout() {
+  await loadPlaces();
+  $('about-version').textContent = appVersion ? `Version ${appVersion}` : 'Running from its code folder.';
+  $('about-data').textContent = places ? placePath(places.data) : '';
+  $('about-sketches').textContent = places ? placePath(places.sketches) : '';
+  $('uninstall-confirm').hidden = true;
+  $('uninstall-start').hidden = false;
+  $('uninstall-status').textContent = '';
+  $('uninstall-data').checked = false;
+  const packaged = Boolean(places?.app);
+  $('uninstall-btn').hidden = !packaged;
+  $('uninstall-note').textContent = packaged
+    ? 'Moves Music Coach to the Trash. Your saved things stay unless you choose otherwise.'
+    : "You're running Music Coach from its code folder. To remove it, delete that folder, and any Music Coach shortcut you made.";
+  $('uninstall-sketches-note').textContent = places?.customSketches
+    ? ' (the sketches folder you chose stays where it is)'
+    : ', and my sketches';
+  $('about-dialog').showModal();
+}
+
+function wireAbout() {
+  $('app-version').onclick = openAbout;
+  $('uninstall-btn').onclick = () => {
+    $('uninstall-start').hidden = true;
+    $('uninstall-confirm').hidden = false;
+    $('uninstall-cancel').focus();
+  };
+  $('uninstall-cancel').onclick = () => {
+    $('uninstall-confirm').hidden = true;
+    $('uninstall-start').hidden = false;
+    $('uninstall-btn').focus();
+  };
+  $('uninstall-go').onclick = async () => {
+    $('uninstall-go').disabled = true;
+    $('uninstall-cancel').disabled = true;
+    try {
+      const res = await fetch('/api/uninstall', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ removeData: $('uninstall-data').checked }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error);
+      $('uninstall-confirm').hidden = true;
+      const kept = body.kept?.length ? ` Left where they are: ${body.kept.map(placePath).join(', ')}.` : '';
+      const failed = body.failed?.length ? ` Couldn't move: ${body.failed.join('; ')}. Drag those to the Trash yourself.` : '';
+      $('uninstall-status').textContent = `Music Coach is in the Trash, and the coach has stopped. You can close this tab. Changed your mind? Open the Trash and drag Music Coach back out.${kept}${failed}`;
+    } catch (err) {
+      $('uninstall-go').disabled = false;
+      $('uninstall-cancel').disabled = false;
+      $('uninstall-status').textContent = `Couldn't uninstall: ${err.message || 'the coach did not answer.'}`;
+    }
+  };
+}
+
 // ---------- studio controls ----------
 
 function setSeg(id, value) {
@@ -3091,6 +3196,7 @@ async function boot() {
   wireGearDrop();
   wireWelcome();
   wireCoach();
+  wireAbout();
   $('gear-search').oninput = renderGear;
   $('sound-info').onclick = () => {
     const help = $('sound-help');
@@ -3122,11 +3228,14 @@ async function boot() {
   };
   $('popout').onclick = popOut;
 
+  $('app-version').textContent = 'About';
   loadJson('/api/version', {}).then(({ version }) => {
     if (!version) return;
+    appVersion = version;
     $('app-version').textContent = `v${version}`;
     $('coach-version').textContent = `Music Coach v${version}`;
   });
+  loadPlaces();
   const [g, p, inst, kits, loopList, plugins, labels] = await Promise.all([
     loadJson('/api/gear', gear), loadJson('/api/progress', {}), loadJson('/api/instruments', []),
     loadJson('/api/drumkits', []), loadJson('/api/loops', []), loadJson('/api/plugins', []),

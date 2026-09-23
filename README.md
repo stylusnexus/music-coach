@@ -177,7 +177,30 @@ When you run from source:
 
 The packaged app keeps these in `~/Library/Application Support/Music Coach`,
 and sketches in `~/Music/Music Coach Sketches`. The two copies don't share
-progress, so pick one.
+progress, so pick one. None of it is inside the app, so updating or replacing
+the app keeps it.
+
+To save sketches somewhere else, press **Change folder…** under Sketches.
+Sketches already saved stay where they are unless you choose to move them.
+The version number at the top of the app opens **About**, which shows where
+everything is.
+
+## Uninstall
+
+Click the version number at the top of the app, then **Uninstall Music
+Coach…**. It moves the app to the Trash and stops the coach. Tick the box to
+also move your progress, gear list, coach key and takes to the Trash, plus your
+sketches if they're in the default folder. A sketches folder you chose yourself
+is never moved. Nothing is deleted outright: drag it back out of the Trash to
+undo.
+
+By hand: close the Music Coach tab, then stop the coach: restart your Mac, or
+in Activity Monitor quit the process named Python. Drag Music Coach to the
+Trash and, if you want your data gone too,
+`~/Library/Application Support/Music Coach` and `~/Music/Music Coach Sketches`.
+
+Running from the code: delete the `music-coach` folder, and any Music Coach
+shortcut you made with `./music-coach shortcut`.
 
 ## Build the app
 
@@ -212,6 +235,12 @@ side, Logic Pro and Ableton Live lessons, phone and tablet layouts, and
 Windows. See [the issues](https://github.com/stylusnexus/music-coach/issues).
 
 Mac only for now.
+
+## Support
+
+Questions, bugs or feedback: [open an issue](https://github.com/stylusnexus/music-coach/issues),
+or email [admin@stylusnexus.com](mailto:admin@stylusnexus.com) if you'd rather
+not use GitHub.
 
 ## Contributing
 

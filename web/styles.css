@@ -58,7 +58,15 @@ kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 
   padding: 12px 20px; border-bottom: 1px solid var(--line);
 }
 .top h1 { font-size: 18px; margin-right: auto; }
-.app-version { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 6px; }
+.app-version { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 6px; border: none; background: none; padding: 2px 4px; text-decoration: underline dotted; cursor: pointer; }
+.app-version:hover { color: var(--text); }
+.about-dialog h3 { font-size: 15px; margin: 18px 0 6px; }
+.about-places { margin: 0; padding-left: 20px; font-size: 14px; }
+.about-places code { overflow-wrap: anywhere; }
+.uninstall-data { display: block; margin: 0 0 10px; font-size: 14px; }
+.danger { border-color: var(--rec, #c0392b); color: var(--text); }
+.sketch-folder { margin: 8px 0 0; overflow-wrap: anywhere; }
+.sketch-folder .link { font-size: inherit; }
 .coach-state { color: var(--accent); font-weight: 600; }
 #coach-top.needs-setup { border-color: var(--accent); }
 .pill { font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--panel-2); color: var(--muted); }
