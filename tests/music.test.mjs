@@ -463,9 +463,9 @@ test('reverse reverb names the IK plugin when installed', () => {
 });
 
 test('lesson order: basics, then quick wins, then styles; every lesson placed once', () => {
-  assert.equal(LESSONS.length, 43);
+  assert.equal(LESSONS.length, 44);
   assert.ok(LESSONS.every(Boolean));
-  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 43);
+  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 44);
   assert.equal(lockReason('looping', {}), null); // a quick win: always open
   assert.deepEqual(SECTIONS.map((s) => s.title), ['Basics', 'Quick wins', 'GarageBand skills', 'Styles', 'Optional']);
   assert.equal(LESSONS[3].id, 'major-minor'); // right after the four chords

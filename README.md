@@ -32,14 +32,15 @@ you.
 
 ## What's inside
 
-- **43 short lessons: 42 in four sections, plus one optional.**
+- **44 short lessons: 43 in four sections, plus one optional.**
   - **Basics:** your first chord, four chords that carry a song, major and
     minor, letting an arpeggiator do the picking, a drum machine, 7th chords,
     recording a sketch, and taking it to GarageBand.
   - **Quick wins:** build a beat, cut up a loop in the sampler, build a piece
     in layers with the looper.
   - **GarageBand skills:** the map, drag and drop, the grid, the Piano Roll,
-    multi-tracking, blending, fades, exporting. Each step has a screenshot.
+    making instruments sound played, multi-tracking, blending, fades,
+    exporting. Most steps have a screenshot.
   - **Optional:** carry a sketch to GarageBand on iPhone and iPad, with what's
     different from the Mac.
   - **Styles:** pick up to 5 of 19: folk, punk, house, lo-fi hip-hop, ambient
@@ -122,15 +123,24 @@ only to the service you picked. Without any model, the lessons, the studio
 and the take scores all still work. Only the written summary and the Ask box
 need one.
 
-## Why doesn't my guitar sound like a real guitar?
+## Why doesn't my instrument sound like a real one?
 
-In the practice room, it isn't one. To stay small, free and quick to start, the app plays stand-in sounds: a plucked-string model for the guitar, and simple synth tones for bass, strings and organ. They're there so you can hear chords and rhythm while you learn, not to sound like the record.
+Most of the difference is how the notes are played, not which sound you pick. These work on any track in GarageBand:
 
-To get the real sound:
+1. **Write what the real instrument could play.** A guitar has six strings, so spread a chord out the way they would: E major, low to high, is E B E G♯ B E, not three notes bunched together. Keep a bass line to one note at a time, low down. Wrong notes sound fake even with a great sound.
+2. **Vary how hard each note is hit.** Real players never hit two notes the same. In the Piano Roll, select notes and change their velocity. Make the notes on the beat a little louder than the ones between.
+3. **Loosen the timing.** Notes locked exactly to the grid sound robotic. Turn off Edit > Snap to Grid, then nudge a few notes slightly early or late. For a strum, spread the chord's notes 10 to 30 milliseconds apart: low string first on a down-strum, high string first on an up-strum.
+4. **Vary how long notes last.** Drawn notes all run the same length and never stop. Real players shorten some notes and leave gaps; horn and wind players stop to breathe. Overlap string notes slightly so they connect, and hold the sustain pedal on piano.
+5. **Give it a room.** A little reverb makes it sound played in a space. Run an electric guitar through Amp Designer and the Pedalboard, like a real amp and pedals.
 
-1. **In GarageBand (free):** open your sketch, select the track, and pick a real instrument from the Library (press Y). GarageBand has acoustic and electric guitars, pianos and strings. For more, choose GarageBand > Sound Library > Download All Available Sounds.
-2. **Plugins you own:** instrument plugins, like a guitar player or piano library, go on a GarageBand track the same way. The Your gear window lists what you have.
-3. **After you download GarageBand's full Sound Library,** the practice room's guitar switches to a recorded 12-string automatically: it uses one of those sounds.
+More ways:
+
+- **No pedal or mod wheel?** Musical Typing (Command-K) has both: Tab is the sustain pedal, and 4 to 8 move the mod wheel (3 sets it back). On Studio Strings and Studio Horns, the mod wheel makes long notes swell and fade.
+- **Use recordings.** Drummer plays like a session drummer, with human timing and feel. Apple Loops (press O) with a blue icon are audio recordings, often of real players; green ones are MIDI.
+- **Record the real thing.** With a microphone and headphones you can record a voice, a shaker or hand claps.
+- **Use better sounds.** In GarageBand, choose GarageBand > Sound Library > Download All Available Sounds, then pick instruments from the Library (press Y). Sample libraries and instrument plugins you own usually sound more detailed still; the Your gear window lists them.
+
+The practice room's own sounds are simple stand-ins, there so you can hear chords and rhythm while you learn. Once GarageBand's full Sound Library is downloaded, its guitar switches to a recorded 12-string.
 
 ## Privacy
 

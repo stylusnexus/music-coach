@@ -393,7 +393,7 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 .coach-row input { flex: 1 1 240px; }
 #coach-status { margin-left: 8px; }
 .info-text p { margin: 0 0 6px; }
-.info-text ol { margin: 0; padding-left: 18px; }
+.info-text ol, .info-text ul { margin: 0 0 6px; padding-left: 18px; }
 #sound-help { max-width: 520px; }
 
 /* Comparing two takes */

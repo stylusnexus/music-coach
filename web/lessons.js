@@ -893,6 +893,20 @@ const ALL_LESSONS = [
     ],
   },
   {
+    id: 'gb-sound-real',
+    title: 'Make it sound played',
+    minutes: 15,
+    why: 'A sketch made in a grid sounds like a machine: every note the same strength, exactly on the beat, the same length. Real players are never that even. Most of what makes an instrument sound real is how its notes are played, not which sound you pick, and you can fix that in the Piano Roll. The ⓘ next to Sound in the practice room lists more ways: a pedal and mod wheel without a keyboard, Drummer, recorded loops, and your own microphone.',
+    guided: true,
+    steps: [
+      { label: 'Parts fit their instruments', text: 'Open your sketch\'s Piano Roll (press E). Make each part something its instrument could play. A guitar has six strings, so spread a chord out the way they would: E major, low to high, is E B E G♯ B E, not three notes bunched together. Keep a bass line to one note at a time, low down.' },
+      { label: 'Varied how hard notes are hit', text: 'Real players never hit two notes the same. Select a few notes and drag the Velocity slider on the Note tab: lower is softer. Make the notes on the beat a little louder than the ones between. Play it and compare.' },
+      { label: 'Loosened the timing', text: 'Choose Edit → Snap to Grid to turn it off, zoom in, and nudge a few notes slightly early or late. For a strum, spread a chord\'s notes 10 to 30 milliseconds apart: low string first on a down-strum, high string first on an up-strum. Turn Snap to Grid back on when you are done.' },
+      { label: 'Varied how long notes last', text: 'Drawn notes all run the same length and never stop. Drag the right edge of some notes shorter to leave small gaps; horn and wind parts need gaps to breathe. Let string notes overlap slightly so they connect.' },
+      { label: 'Gave it a room', text: 'Select a track and press B for Smart Controls. Turn up the Reverb knob a little, if the sound has one: now it sounds played in a space. For an electric guitar part, click an empty Plug-ins slot and add Amp Designer: it plays through a copy of a real amp.' },
+    ],
+  },
+  {
     id: 'gb-major-minor',
     title: 'Major to minor in GarageBand',
     minutes: 15,
@@ -1027,7 +1041,7 @@ export const SECTIONS = [
   {
     title: 'GarageBand skills',
     note: 'Unlocks after Take it to GarageBand. Do these with GarageBand open; Pop out steps keeps each step on top.',
-    ids: ['gb-map', 'gb-drag', 'gb-snap', 'gb-piano-roll', 'gb-major-minor', 'gb-multitrack', 'gb-blend', 'gb-fades', 'gb-export'],
+    ids: ['gb-map', 'gb-drag', 'gb-snap', 'gb-piano-roll', 'gb-sound-real', 'gb-major-minor', 'gb-multitrack', 'gb-blend', 'gb-fades', 'gb-export'],
     requiresLessons: ['to-garageband'],
   },
   {
