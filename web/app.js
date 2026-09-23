@@ -2,10 +2,11 @@ import { Engine, DRUM_PATTERNS } from './audio.js';
 import { setupInput } from './input.js';
 import {
   ARP_PATTERNS, CHORD_PATTERNS, Latch, TICKS_PER_STEP, arpNotes, bassNote, detectChord, hasInterval,
-  inKey, KEY_MODES, keyChords, keyName, keyPitchClasses, parseKey, snapToKey, spell, CIRCLE, compareKeys, friendlyChords, neighbours,
+  inKey, keyChords, keyName, keyPitchClasses, snapToKey, spell, CIRCLE, compareKeys, friendlyChords, neighbours,
   circleSpot, keyAtSpot, lessonKey, wheelDemo, isBlackKey, noteName, pitchClass,
   sliceForNote, tempoFromName, voicing, writeMidi,
 } from './music.js';
+import { KEY_MODES, parseKey } from './music.js';
 import { groupPlugins, searchGear } from './gear.js';
 import { measureTake, scoreAreas } from './takes.js';
 import { DRILLS, makeQuestion, streakDots } from './ear.js';
