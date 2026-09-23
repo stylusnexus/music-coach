@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   Latch, arpNote, detectChord, matchesChord, spreadChord, voicing, writeMidi, PPQ,
 } from '../web/music.js';
-import { LESSONS, PICKER_ORDER, SECTIONS, STYLE_INFO, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from '../web/lessons.js';
+import { LESSONS, LISTEN, PICKER_ORDER, SECTIONS, STYLE_INFO, bandcampEmbed, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from '../web/lessons.js';
 
 test('names E minor in any order or octave', () => {
   assert.equal(detectChord([64, 67, 71]).name, 'Em');
@@ -700,4 +700,14 @@ test('the picker lists every style once, the first six all different kinds', () 
   assert.deepEqual([...PICKER_ORDER].sort(), [...styles].sort());
   assert.equal(new Set(PICKER_ORDER.slice(0, 6).map((id) => STYLE_INFO[id].name)).size, 6);
   assert.ok(new Set(PICKER_ORDER.slice(0, 6).map((id) => STYLE_INFO[id].texture)).size >= 3);
+});
+
+test('every style has a real recording to hear, from an official Bandcamp page', () => {
+  for (const id of SECTIONS.find((s) => s.title === 'Styles').ids) {
+    const l = LISTEN[id];
+    assert.ok(l, id);
+    assert.match(l.url, /^https:\/\/[a-z0-9-]+\.bandcamp\.com\/album\//, id);
+    assert.ok(Number.isInteger(l.id), id);
+  }
+  assert.match(bandcampEmbed(LISTEN.shoegaze), /^https:\/\/bandcamp\.com\/EmbeddedPlayer\/album=2948336751\/size=large\/.*artwork=small/);
 });

@@ -944,6 +944,35 @@ export const STYLE_INFO = {
     betterWith: [{ any: ['gear:reverse'], label: 'a reverse reverb plugin' }, { any: ['gear:amp', 'gear:fuzz'], label: 'an amp plugin' }] },
 };
 
+// One real recording per style, from the artist's or label's own Bandcamp page, so a
+// learner can hear what the style sounds like. Loaded only when they press Hear it.
+// id: the Bandcamp album or track id (from the page's bc-page-properties).
+// Checked by hand: each is the artist's or label's official Bandcamp page. Where the
+// artists on a card aren't on Bandcamp, it is the closest honest match that is.
+export const LISTEN = {
+  folk: { artist: 'Vashti Bunyan', title: 'Lookaftering', url: 'https://fatcatrecords.bandcamp.com/album/lookaftering', kind: 'album', id: 3414026607 },
+  punk: { artist: 'Amyl and the Sniffers', title: 'Amyl and the Sniffers', url: 'https://amylandthesniffers.bandcamp.com/album/amyl-and-the-sniffers', kind: 'album', id: 513673940 },
+  house: { artist: 'Mr. Fingers', title: 'Cerebral Hemispheres', url: 'https://alleviatedrecords.bandcamp.com/album/mr-fingers-cerebral-hemispheres', kind: 'album', id: 1094426324 },
+  kosmische: { artist: 'Cluster', title: 'Sowiesoso', url: 'https://clusterofficial.bandcamp.com/album/sowiesoso', kind: 'album', id: 3099152958 },
+  shoegaze: { artist: 'Slowdive', title: 'Slowdive', url: 'https://slowdive.bandcamp.com/album/slowdive', kind: 'album', id: 2948336751 },
+  'ambient-techno': { artist: 'Boards of Canada', title: 'Music Has the Right to Children', url: 'https://boardsofcanada.bandcamp.com/album/music-has-the-right-to-children', kind: 'album', id: 3297123711 },
+  'bossa-nova': { artist: 'Sessa', title: 'Grandeza', url: 'https://sessa.bandcamp.com/album/grandeza-2', kind: 'album', id: 3088703589 },
+  stereolab: { artist: 'Stereolab', title: 'Emperor Tomato Ketchup', url: 'https://stereolab.bandcamp.com/album/emperor-tomato-ketchup', kind: 'album', id: 1014556783 },
+  'post-punk': { artist: 'Boy Harsher', title: 'Careful', url: 'https://boyharsher.bandcamp.com/album/careful', kind: 'album', id: 711789267 },
+  'minimal-wave': { artist: 'Minimal Wave label', title: 'The Bedroom Tapes', url: 'https://minimalwave.bandcamp.com/album/the-bedroom-tapes', kind: 'album', id: 850253089 },
+  'classical-minimalism': { artist: 'Philip Glass', title: 'Philip Glass Solo', url: 'https://philipglass.bandcamp.com/album/philip-glass-solo', kind: 'album', id: 3793286961 },
+  'ambient-eno': { artist: 'Stars of the Lid', title: 'And Their Refinement of the Decline', url: 'https://starsofthelid.bandcamp.com/album/and-their-refinement-of-the-decline', kind: 'album', id: 605498052 },
+  'new-wave': { artist: 'Molchat Doma', title: 'Etazhi', url: 'https://domamolchat.bandcamp.com/album/etazhi-2018', kind: 'album', id: 3397703812 },
+  'dark-ambient': { artist: 'Lustmord', title: 'The Word as Power', url: 'https://lustmord.bandcamp.com/album/the-word-as-power', kind: 'album', id: 4167059370 },
+};
+
+// Bandcamp's own embed (Share / Embed on the album page), in this app's colours: the
+// standard player with small artwork, or the slim one-line player where space is tight.
+export function bandcampEmbed(listen, slim = false) {
+  const size = slim ? 'size=small' : 'size=large/tracklist=false/artwork=small';
+  return `https://bandcamp.com/EmbeddedPlayer/${listen.kind}=${listen.id}/${size}/bgcol=1e2026/linkcol=e8b86b/transparent=true/`;
+}
+
 // The order the picker shows styles in: the first six cover different kinds of sound,
 // then the other starters, then styles that suit more gear or come later in skill.
 export const PICKER_ORDER = [

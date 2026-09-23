@@ -366,6 +366,13 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 .lessons .styles-toggle { padding: 4px 0 8px; font-size: 13px; }
 .section-head .link { font-size: 12px; margin-left: 6px; }
 
+.listen { margin: 0 0 10px; }
+.listen[hidden] { display: none; }
+.listen iframe, .style-card iframe { border: 0; width: 100%; max-width: 700px; height: 120px; display: block; margin-top: 6px; }
+.style-card iframe.slim { height: 42px; }
+.style-card .hear { padding: 0 12px 10px; font-size: 12px; }
+.listen .muted { font-size: 12px; }
+
 /* Coach settings */
 .coach-providers { border: none; padding: 0; margin: 12px 0; display: grid; gap: 6px; }
 .coach-providers legend { font-weight: 600; margin-bottom: 6px; }

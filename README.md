@@ -45,6 +45,8 @@ you.
 - **A studio:** sounds, effects, arpeggiator, drum patterns and your own beat
   grid, bass and drone layers, a looper, a sampler (it can record a sound from
   your microphone and chop it up), a mixer, and a progression builder.
+- **Hear the real thing:** each style links one real record, played from the
+  artist's or label's Bandcamp page when you press Hear it.
 - **Chords and keys:** a chord explorer, a circle-of-fifths wheel, a key
   picker with scale lock, and a way to find a song's key by ear.
 - **Ear lab:** short ear-training drills that unlock as you go.
@@ -123,8 +125,12 @@ To get the real sound:
 ## Privacy
 
 Everything runs on your Mac. Your progress, gear list, sketches and key stay
-in local files. The app talks to the internet only when you pick an online
-coach model, and then only to that service.
+in local files. The app goes online only in two cases:
+
+- when you pick an online coach model, and then only to that service;
+- when you press **Hear it** on a style, which loads that track's player from
+  Bandcamp. Bandcamp, and the analytics its player uses, see that visit.
+  Nothing loads until you press it.
 
 ## Where things live
 
