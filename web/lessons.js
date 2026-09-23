@@ -89,6 +89,9 @@ const PHRASES = {
     ? `In GarageBand: drag the same WAV from ${e.folder} onto a track, click where you want to cut, and press Cmd+T to split it there. Drag the pieces into a new order.`
     : 'In GarageBand: drag a loop from the Loop Browser (press O) onto a track, click where you want to cut, and press Cmd+T to split it there. Drag the pieces into a new order.'),
   samplesFolder: (e) => e.folder || 'your samples folder',
+  tapeStep: (e) => (e.loopGroups.has('Tape fragments')
+    ? 'Switch the sound to Sampler, pick a tape fragment, and turn on Half speed and Reverse. Play one slice every few seconds and let it hang.'
+    : 'Switch the sound to Sampler. Pick a loop, or press ● Record a sound and hum or rumble for a few seconds. Turn on Half speed and Reverse, then play one slice every few seconds and let it hang.'),
   // Only with a microphone added, or with no loops to cut up (then it is the way in).
   // Basics speak technique first; a copy that began with the Durutti examples keeps them.
   hearWhy: (e) => (e.durutti
@@ -443,7 +446,7 @@ const ALL_LESSONS = [
       'Switch Drone on: a low string note settles underneath.',
       'Tap the black key between A and B (B flat). E to B flat is the tritone, the most unsettled interval in music.',
       'Breathe with the Filter: open it a little over 8 bars, then close it again.',
-      'Switch the sound to Sampler, pick a tape fragment, and turn on Half speed and Reverse. Play one slice every few seconds and let it hang.',
+      '{tapeStep}',
       'Record a minute (see Record an 8-bar sketch) and score the take.',
     ],
     setup: { sound: 'vp330-strings', arp: true, latch: true, arpPattern: 'eno', drums: false, drone: false, brightness: 0.3, bpm: 50 },
@@ -940,6 +943,14 @@ export const STYLE_INFO = {
   shoegaze: { name: 'Shoegaze', artists: 'My Bloody Valentine, Slowdive', sound: 'A wall of fuzz, and reverb that swells up backwards into each note.', texture: 'chord',
     betterWith: [{ any: ['gear:reverse'], label: 'a reverse reverb plugin' }, { any: ['gear:amp', 'gear:fuzz'], label: 'an amp plugin' }] },
 };
+
+// The order the picker shows styles in: the first six cover different kinds of sound,
+// then the other starters, then styles that suit more gear or come later in skill.
+export const PICKER_ORDER = [
+  'folk', 'punk', 'house', 'kosmische', 'shoegaze', 'ambient-techno',
+  'bossa-nova', 'stereolab', 'post-punk', 'minimal-wave', 'classical-minimalism',
+  'ambient-eno', 'new-wave', 'dark-ambient',
+];
 
 // The optional gear that would bring a style closer to the record, missing on this Mac.
 export function missingBetterWith(id, env) {

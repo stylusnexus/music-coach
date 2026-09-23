@@ -16,6 +16,7 @@ All notable changes to this project are listed here. The format follows
 - Punk: power chords, fuzz and a fast punk drum beat. The tempo slider now
   runs from 50 to 180 BPM.
 - House and ambient techno, on a new four-on-the-floor drum pattern.
+- The style picker shows six different kinds of style first.
 - Style lessons name optional gear that would bring them closer to the
   record, only when it's missing.
 - 30 lessons in four sections: Basics, Quick wins, GarageBand skills and
@@ -42,3 +43,8 @@ All notable changes to this project are listed here. The format follows
 
 - Basics lessons and the coach model's goal describe techniques, not one
   band; copies that started before this keep their original wording.
+
+### Fixed
+
+- Dark ambient no longer asks for a tape fragment on a Mac without one; it
+  offers recording a sound instead.
