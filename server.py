@@ -491,35 +491,70 @@ def app_bundle(root=None):
 def to_trash(path):
     """Move a file or folder to your Trash, so it can be put back. Returns where it went."""
     trash = Path.home() / ".Trash"
-    dest = trash / path.name
-    if dest.exists():
-        dest = trash / f"{path.stem} {time.strftime('%Y-%m-%d %H.%M.%S')}{path.suffix}"
+    dest, n = trash / path.name, 1
+    while dest.exists():
+        n += 1
+        dest = trash / f"{path.stem} {n}{path.suffix}"
     shutil.move(str(path), str(dest))
     return dest
 
 
+UNINSTALLED = threading.Event()  # set once uninstalled: nothing may recreate the data folder
+
+
+def inside(a, b):
+    """Whether folder a is b or inside it."""
+    return a == b or b in a.parents
+
+
 def uninstall(remove_data, bundle=None):
     """Move the app to the Trash and, if asked, its saved data too. A sketches folder you
-    chose yourself is never moved: it may hold other files."""
+    chose yourself is never moved: it may hold other files. Each step reports what it did."""
     bundle = app_bundle() if bundle is None else bundle
     if bundle is None:
         return 400, {"error": "You're running Music Coach from its code folder. To remove it, delete that folder, and any Music Coach shortcut you made."}
+    if str(bundle).startswith("/Volumes/") or "AppTranslocation" in str(bundle):
+        return 400, {"error": "Music Coach is running from a download or a disk image, not your Applications folder. Drag it to the Trash yourself, or move it to Applications first."}
     sketches = sketches_dir()
-    moved, kept = [str(to_trash(bundle))], []
+    chosen = sketches != SKETCHES
+    UNINSTALLED.set()
+    moved, kept, failed = [], [], []
+
+    def trash(path):
+        try:
+            moved.append(str(to_trash(path)))
+        except OSError as exc:
+            failed.append(f"{path}: {exc.strerror or exc}")
+
+    trash(bundle)
+    if failed:
+        UNINSTALLED.clear()
+        return 500, {"error": f"Couldn't move the app to the Trash ({failed[0]}). Nothing else was touched.", "moved": moved}
     if remove_data:
-        if sketches == SKETCHES and sketches.is_dir():
-            moved.append(str(to_trash(sketches)))
-        elif sketches.is_dir():
+        if chosen:
             kept.append(str(sketches))
-        if DATA.is_dir():
-            moved.append(str(to_trash(DATA)))
-    return 200, {"moved": moved, "kept": kept}
+        elif sketches.is_dir():
+            trash(sketches)
+        if chosen and (inside(sketches, DATA) or inside(DATA, sketches)):
+            kept.append(str(DATA))  # your chosen folder shares it: leave both
+        elif DATA.is_dir():
+            trash(DATA)
+    return 200, {"moved": moved, "kept": kept, "failed": failed}
+
+
+# Sketches this app saved: "2026-09-23-1405 my idea 90bpm.mid". Other MIDI files in the
+# same folder are yours, and are never listed or moved.
+SKETCH_NAME = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{4} .+\.mid$")
+
+
+def sketch_files(folder):
+    return [f for f in folder.glob("*.mid") if SKETCH_NAME.match(f.name)] if folder.is_dir() else []
 
 
 def move_sketches(src, dest):
     """Move sketch files from one folder to another, never over a file already there."""
     moved = skipped = 0
-    for f in sorted(src.glob("*.mid")) if src.is_dir() else []:
+    for f in sorted(sketch_files(src)):
         if (dest / f.name).exists():
             skipped += 1
             continue
@@ -1088,6 +1123,8 @@ class Handler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_GET(self):
+        if UNINSTALLED.is_set():
+            return self.send_json(503, {"error": "Music Coach was uninstalled."})
         if self.from_elsewhere():
             return self.send_json(403, {"error": "Requests from other sites are refused."})
         if self.path == "/api/gear":
@@ -1109,7 +1146,7 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path == "/api/places":
             bundle = app_bundle()
             return self.send_json(200, {
-                "data": str(DATA), "sketches": str(sketches_dir()), "customSketches": bool(load_prefs()["sketchesDir"]),
+                "data": str(DATA), "sketches": str(sketches_dir()), "customSketches": sketches_dir() != SKETCHES,
                 "app": str(bundle) if bundle else None, "home": str(Path.home()),
             })
         if self.path == "/api/gear/labels":
@@ -1151,7 +1188,7 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(200, lesson_takes(query.get("lesson", [""])[0]))
         if self.path == "/api/sketches":
             folder = sketches_dir()
-            files = sorted(folder.glob("*.mid"), key=lambda p: p.stat().st_mtime, reverse=True) if folder.is_dir() else []
+            files = sorted(sketch_files(folder), key=lambda p: p.stat().st_mtime, reverse=True)
             return self.send_json(200, [p.name for p in files])
         return super().do_GET()
 
@@ -1166,6 +1203,8 @@ class Handler(SimpleHTTPRequestHandler):
         return bool(origin) and origin not in {f"http://{h}" for h in ours}
 
     def do_POST(self):
+        if UNINSTALLED.is_set():
+            return self.send_json(503, {"error": "Music Coach was uninstalled."})
         if self.from_elsewhere():
             return self.send_json(403, {"error": "Requests from other sites are refused."})
         try:
@@ -1186,7 +1225,7 @@ class Handler(SimpleHTTPRequestHandler):
             with FILE_LOCK:
                 write_json(DATA / "gear.json", clean_prefs({**load_prefs(), "sketchesDir": path}))
             new_dir = sketches_dir()
-            left = len(list(old_dir.glob("*.mid"))) if old_dir != new_dir and old_dir.is_dir() else 0
+            left = len(sketch_files(old_dir)) if old_dir != new_dir else 0
             LEFT_SKETCHES["dir"] = old_dir if left else None
             return self.send_json(200, {"folder": str(new_dir), "previous": str(old_dir), "left": left})
 

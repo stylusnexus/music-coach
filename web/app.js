@@ -1566,7 +1566,9 @@ function wireAbout() {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error);
       $('uninstall-confirm').hidden = true;
-      $('uninstall-status').textContent = `Music Coach is in the Trash, and the coach has stopped. You can close this tab. Changed your mind? Open the Trash and drag Music Coach back out.${body.kept?.length ? ` Your sketches folder (${placePath(body.kept[0])}) was left alone.` : ''}`;
+      const kept = body.kept?.length ? ` Left where they are: ${body.kept.map(placePath).join(', ')}.` : '';
+      const failed = body.failed?.length ? ` Couldn't move: ${body.failed.join('; ')}. Drag those to the Trash yourself.` : '';
+      $('uninstall-status').textContent = `Music Coach is in the Trash, and the coach has stopped. You can close this tab. Changed your mind? Open the Trash and drag Music Coach back out.${kept}${failed}`;
     } catch (err) {
       $('uninstall-go').disabled = false;
       $('uninstall-cancel').disabled = false;

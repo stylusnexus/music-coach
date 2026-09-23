@@ -551,6 +551,7 @@ class PlacesTest(unittest.TestCase):
 
     def tearDown(self):
         server.DATA, server.SKETCHES, Path.home = self.saved
+        server.UNINSTALLED.clear()
         self.tmp.cleanup()
 
     def test_knows_when_it_runs_inside_the_app(self):
@@ -590,12 +591,38 @@ class PlacesTest(unittest.TestCase):
         src, dest = self.root / "a", self.root / "b"
         src.mkdir()
         dest.mkdir()
-        (src / "one.mid").write_bytes(b"MThd1")
-        (src / "two.mid").write_bytes(b"MThd2")
-        (dest / "two.mid").write_bytes(b"MThdX")
+        one, two = "2026-09-23-1405 one.mid", "2026-09-23-1406 two.mid"
+        (src / one).write_bytes(b"MThd1")
+        (src / two).write_bytes(b"MThd2")
+        (src / "my own song.mid").write_bytes(b"MThd3")  # not made by the app: never moved
+        (dest / two).write_bytes(b"MThdX")
         self.assertEqual(server.move_sketches(src, dest), (1, 1))
-        self.assertEqual((dest / "two.mid").read_bytes(), b"MThdX")
-        self.assertTrue((src / "two.mid").exists())
+        self.assertEqual((dest / two).read_bytes(), b"MThdX")
+        self.assertTrue((src / two).exists())
+        self.assertTrue((src / "my own song.mid").exists())
+
+    def test_refuses_a_copy_running_from_a_disk_image(self):
+        status, body = server.uninstall(True, bundle=Path("/Volumes/Music Coach/Music Coach.app"))
+        self.assertEqual(status, 400)
+        self.assertFalse(server.UNINSTALLED.is_set())
+
+    def test_a_chosen_folder_that_holds_the_data_keeps_both(self):
+        app = self.root / "Music Coach.app"
+        app.mkdir()
+        server.DATA.mkdir()
+        server.write_json(server.DATA / "gear.json", server.clean_prefs({"sketchesDir": str(server.DATA / "sk")}))
+        status, body = server.uninstall(True, bundle=app)
+        self.assertEqual(status, 200)
+        self.assertTrue(server.DATA.exists())
+        self.assertIn(str(server.DATA), body["kept"])
+
+    def test_trash_names_never_collide(self):
+        for _ in range(3):
+            f = self.root / "Music Coach.app"
+            f.mkdir()
+            server.to_trash(f)
+        self.assertEqual(sorted(p.name for p in (Path.home() / ".Trash").iterdir()),
+                         ["Music Coach 2.app", "Music Coach 3.app", "Music Coach.app"])
 
     def test_sketches_folder_is_the_default_until_you_choose(self):
         self.assertEqual(server.sketches_dir(), server.SKETCHES)

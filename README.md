@@ -194,9 +194,10 @@ sketches if they're in the default folder. A sketches folder you chose yourself
 is never moved. Nothing is deleted outright: drag it back out of the Trash to
 undo.
 
-By hand: quit Chrome's Music Coach tab, drag Music Coach to the Trash, and, if
-you want your data gone too, `~/Library/Application Support/Music Coach` and
-`~/Music/Music Coach Sketches`.
+By hand: close the Music Coach tab, then stop the coach: restart your Mac, or
+in Activity Monitor quit the process named Python. Drag Music Coach to the
+Trash and, if you want your data gone too,
+`~/Library/Application Support/Music Coach` and `~/Music/Music Coach Sketches`.
 
 Running from the code: delete the `music-coach` folder, and any Music Coach
 shortcut you made with `./music-coach shortcut`.
