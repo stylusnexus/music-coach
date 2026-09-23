@@ -205,6 +205,26 @@ class CoachSettingsTest(unittest.TestCase):
         self.assertIn("Anthropic API key", str(caught.exception))
 
 
+class CoachGoalTest(unittest.TestCase):
+    def test_the_goal_follows_the_learner_not_one_band(self):
+        seen = {}
+
+        def fake(system, user, max_tokens, temperature, schema=None, timeout=120):
+            seen["system"] = system
+            return {"content": "ok"}, "m"
+
+        saved = server.complete
+        server.complete = fake
+        try:
+            server.ask_coach("q", "", [], goal="music in the styles they picked: Punk.")
+            self.assertIn("Their first goal is music in the styles they picked: Punk.", seen["system"])
+            server.ask_coach("q", "", [])
+            self.assertIn(server.DEFAULT_GOAL, seen["system"])
+            self.assertNotIn("Durutti", seen["system"])
+        finally:
+            server.complete = saved
+
+
 class TakeReportTest(unittest.TestCase):
     CARD = server.clean_scorecard({
         "chords": {"score": 6, "evidence": "6 of 8"},

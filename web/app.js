@@ -11,7 +11,7 @@ import { measureTake, scoreAreas } from './takes.js';
 import { DRILLS, makeQuestion, streakDots } from './ear.js';
 import { INTERVALS, KEY_TEXT, MAJOR_MINOR, STYLE_CHORDS } from './chords.js';
 import { Looper } from './looper.js';
-import { LESSONS, SECTIONS, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonHighlightPcs, lockReason, resolveGear } from './lessons.js';
+import { LESSONS, SECTIONS, STYLE_INFO, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonHighlightPcs, lockReason, missingBetterWith, resolveGear, varietyNudge } from './lessons.js';
 
 const $ = (id) => document.getElementById(id);
 const KEY_LOW = 48;
@@ -90,6 +90,7 @@ function lessonEnv() {
     loopGroups: loops.map((g) => g.label),
     folder: folder ? shortPath(folder.path) : null,
     tags,
+    durutti: progress.flavour === 'durutti',
   };
 }
 
@@ -108,36 +109,226 @@ async function loadJson(url, fallback) {
 
 // ---------- lessons ----------
 
+function lessonRow(id) {
+  const l = LESSONS.find((x) => x.id === id);
+  const number = LESSONS.indexOf(l) + 1;
+  const locked = lockReason(id, progress.completed, progress.unlocked);
+  const li = document.createElement('li');
+  if (progress.completed[id]) li.classList.add('complete');
+  if (id === lesson.id) li.classList.add('current');
+  if (locked) li.classList.add('locked');
+  const b = document.createElement('button');
+  b.innerHTML = `<span class="mark">${progress.completed[id] ? '✓' : locked ? '🔒' : number}</span><span></span>`;
+  b.lastChild.textContent = l.title;
+  b.title = locked || '';
+  b.disabled = Boolean(locked);
+  if (locked) b.setAttribute('aria-label', `${l.title}. Locked: ${locked}`);
+  b.onclick = () => openLesson(id);
+  li.append(b);
+  return li;
+}
+
+// A style lesson locked behind the Basics can still be opened on purpose.
+function unlockRow(id) {
+  const li = document.createElement('li');
+  li.className = 'unlock-row';
+  const b = document.createElement('button');
+  b.className = 'link';
+  b.textContent = 'Unlock anyway';
+  b.onclick = () => unlockStyle(id, true);
+  li.append(b);
+  return li;
+}
+
+function unlockStyle(id, open) {
+  progress.unlocked = { ...(progress.unlocked || {}), [id]: true };
+  saveProgress();
+  renderLessonList();
+  if (open) openLesson(id);
+}
+
+// My styles first, in the order picked; the rest behind "Show all styles".
+function styleIds(sec) {
+  const picked = (progress.styles || []).filter((id) => sec.ids.includes(id));
+  if (!picked.length) return { shown: sec.ids, rest: [] };
+  const rest = sec.ids.filter((id) => !picked.includes(id));
+  return { shown: state.showAllStyles ? [...picked, ...rest] : picked, rest };
+}
+
 function renderLessonList() {
   const list = $('lesson-list');
   list.innerHTML = '';
-  let number = 0;
   for (const sec of SECTIONS) {
+    const isStyles = sec.title === 'Styles';
     const head = document.createElement('li');
     head.className = 'section-head';
     head.innerHTML = '<strong></strong><span></span>';
     head.firstChild.textContent = sec.title;
-    head.lastChild.textContent = sec.note;
+    head.lastChild.textContent = isStyles && progress.styles?.length
+      ? 'Your picks. They unlock after the Basics, or unlock one early.'
+      : sec.note;
+    if (isStyles) {
+      const change = document.createElement('button');
+      change.className = 'link';
+      change.textContent = progress.styles?.length ? 'Change my styles' : 'Choose my styles';
+      change.onclick = () => openStyles(false);
+      head.firstChild.after(change);
+    }
     list.append(head);
-    for (const id of sec.ids) {
-      const l = LESSONS.find((x) => x.id === id);
-      number += 1;
-      const locked = lockReason(id, progress.completed);
+    const { shown, rest } = isStyles ? styleIds(sec) : { shown: sec.ids, rest: [] };
+    for (const id of shown) {
+      list.append(lessonRow(id));
+      if (isStyles && lockReason(id, progress.completed, progress.unlocked)) list.append(unlockRow(id));
+    }
+    if (rest.length) {
       const li = document.createElement('li');
-      if (progress.completed[id]) li.classList.add('complete');
-      if (id === lesson.id) li.classList.add('current');
-      if (locked) li.classList.add('locked');
+      li.className = 'styles-toggle';
       const b = document.createElement('button');
-      b.innerHTML = `<span class="mark">${progress.completed[id] ? '✓' : locked ? '🔒' : number}</span><span></span>`;
-      b.lastChild.textContent = l.title;
-      b.title = locked || '';
-      b.disabled = Boolean(locked);
-      if (locked) b.setAttribute('aria-label', `${l.title}. Locked: ${locked}`);
-      b.onclick = () => openLesson(id);
+      b.className = 'link';
+      b.textContent = state.showAllStyles ? 'Show only my styles' : `Show all styles (${rest.length} more)`;
+      b.onclick = () => {
+        state.showAllStyles = !state.showAllStyles;
+        renderLessonList();
+      };
       li.append(b);
       list.append(li);
     }
   }
+}
+
+// On a style lesson, name the optional gear that would bring it closer to the record.
+function renderBetterWith() {
+  const missing = STYLE_INFO[lesson.id] ? missingBetterWith(lesson.id, lessonEnv()) : [];
+  $('lesson-better').hidden = !missing.length;
+  if (!missing.length) return;
+  const list = missing.length > 1 ? `${missing.slice(0, -1).join(', ')} and ${missing.at(-1)}` : missing[0];
+  $('lesson-better').firstChild.textContent = `Works now with this app's sounds and GarageBand's. Sounds closer to the record with ${list}: add it any time.`;
+}
+
+// What the coach model should aim the learner at.
+function coachGoal() {
+  if (progress.flavour === 'durutti') {
+    return 'music in the spirit of The Durutti Column\'s "Dance II": clean picked guitar, chorus, long echo, reverb, a simple drum machine.';
+  }
+  const names = (progress.styles || []).map((id) => STYLE_INFO[id]?.name).filter(Boolean);
+  return names.length
+    ? `music in the styles they picked: ${names.join(', ')}. Then finishing it in GarageBand.`
+    : 'making their own music and finishing it in GarageBand.';
+}
+
+// ---------- style picker ----------
+
+let stylePicks = [];
+let stylesExpanded = false;
+let nudgeDismissed = false;
+const STARTER_CARDS = 6;
+
+function styleIdsInApp() {
+  return SECTIONS.find((s) => s.title === 'Styles').ids.filter((id) => STYLE_INFO[id]);
+}
+
+function renderStyles() {
+  const ids = styleIdsInApp();
+  const shown = stylesExpanded ? ids : ids.slice(0, STARTER_CARDS);
+  $('style-cards').innerHTML = '';
+  for (const id of shown) {
+    const info = STYLE_INFO[id];
+    const card = document.createElement('div');
+    card.className = 'style-card';
+    const pick = document.createElement('button');
+    pick.type = 'button';
+    pick.className = 'pick';
+    pick.setAttribute('aria-pressed', String(stylePicks.includes(id)));
+    pick.innerHTML = '<span class="artists"></span><span class="name"></span><span class="sound"></span>';
+    pick.querySelector('.artists').textContent = info.artists;
+    pick.querySelector('.name').textContent = info.name;
+    pick.querySelector('.sound').textContent = info.sound;
+    pick.onclick = () => toggleStyle(id);
+    card.append(pick);
+    if (lockReason(id, progress.completed, progress.unlocked)) {
+      const lock = document.createElement('p');
+      lock.className = 'lock';
+      lock.textContent = 'After the Basics · ';
+      const u = document.createElement('button');
+      u.type = 'button';
+      u.className = 'link';
+      u.textContent = 'Unlock anyway';
+      u.onclick = () => {
+        unlockStyle(id, false);
+        renderStyles();
+      };
+      lock.append(u);
+      card.append(lock);
+    }
+    $('style-cards').append(card);
+  }
+  const more = ids.length - STARTER_CARDS;
+  $('styles-more').hidden = more <= 0;
+  $('styles-more').textContent = stylesExpanded ? 'Show fewer' : `Show ${more} more`;
+  const nudge = nudgeDismissed ? null : varietyNudge(stylePicks);
+  $('styles-nudge').hidden = !nudge;
+  if (nudge) $('styles-nudge').firstChild.textContent = nudge;
+  $('styles-note').textContent = stylePicks.length ? `${stylePicks.length} of 5 picked.` : '';
+}
+
+function toggleStyle(id) {
+  if (stylePicks.includes(id)) stylePicks = stylePicks.filter((x) => x !== id);
+  else if (stylePicks.length >= 5) {
+    $('styles-note').textContent = 'Up to 5 to start. Unpick one first; the rest stay one click away.';
+    return;
+  } else stylePicks = [...stylePicks, id];
+  renderStyles();
+}
+
+let welcomeAdvancing = false;
+
+function openStyles(welcome) {
+  stylePicks = [...(progress.styles || [])];
+  stylesExpanded = false;
+  nudgeDismissed = false;
+  $('styles-step').hidden = !welcome;
+  $('styles-dialog').dataset.welcome = welcome ? '1' : '';
+  $('styles-done').textContent = welcome ? 'Continue' : 'Save';
+  $('styles-skip').textContent = welcome ? 'Skip — show me every style' : 'Show every style';
+  renderStyles();
+  $('styles-dialog').showModal();
+}
+
+function saveStyles(picks) {
+  progress.styles = picks;
+  state.showAllStyles = false;
+  saveProgress();
+  renderLessonList();
+  welcomeAdvancing = true;
+  $('styles-dialog').close();
+}
+
+// The welcome: gear, then styles, then the coach model, one window at a time.
+// × or Escape ends it where it is.
+function wireWelcome() {
+  const next = (from, open) => {
+    welcomeAdvancing = true;
+    $(from).close();
+    open();
+  };
+  $('gear-next').onclick = () => next('gear-dialog', () => openStyles(true));
+  $('gear-skip').onclick = () => next('gear-dialog', () => openStyles(true));
+  $('styles-more').onclick = () => {
+    stylesExpanded = !stylesExpanded;
+    renderStyles();
+  };
+  $('styles-nudge').querySelector('button').onclick = () => {
+    nudgeDismissed = true;
+    renderStyles();
+  };
+  $('styles-done').onclick = () => saveStyles(stylePicks);
+  $('styles-skip').onclick = () => saveStyles([]);
+  $('styles-dialog').addEventListener('close', () => {
+    const advancing = welcomeAdvancing;
+    welcomeAdvancing = false;
+    if (advancing && $('styles-dialog').dataset.welcome) openCoach(true);
+  });
+  $('better-gear').onclick = () => openGear(false);
 }
 
 function openLesson(id) {
@@ -149,7 +340,8 @@ function openLesson(id) {
   latch.clear();
   $('lesson-title').textContent = lesson.title;
   $('lesson-minutes').textContent = `about ${lesson.minutes} min`;
-  $('lesson-why').textContent = lesson.why;
+  $('lesson-why').textContent = resolveGear(lesson.why, lessonEnv());
+  renderBetterWith();
   // The Key bar follows the lesson, so the keys a lesson asks for are never greyed.
   const key = keyForLesson(lesson);
   progress.key = key ? `${key.root}:${key.mode}` : null;
@@ -326,7 +518,7 @@ function renderChecks() {
 
 // The next lesson after this one that is not locked.
 function nextOpenLesson() {
-  return LESSONS.slice(LESSONS.indexOf(lesson) + 1).find((l) => !lockReason(l.id, progress.completed));
+  return LESSONS.slice(LESSONS.indexOf(lesson) + 1).find((l) => !lockReason(l.id, progress.completed, progress.unlocked));
 }
 
 // Every musical event goes through here so lesson checks can tick.
@@ -1955,7 +2147,7 @@ let recentTakes = [];
 function tutorContext() {
   const done = LESSONS.filter((l) => progress.completed[l.id]).map((l) => l.title);
   const remaining = checker.progress().filter((p) => !p.done).map((p) => p.label);
-  const notStarted = LESSONS.filter((l) => !progress.completed[l.id] && l.id !== lesson.id && !lockReason(l.id, progress.completed)).slice(0, 4).map((l) => l.title);
+  const notStarted = LESSONS.filter((l) => !progress.completed[l.id] && l.id !== lesson.id && !lockReason(l.id, progress.completed, progress.unlocked)).slice(0, 4).map((l) => l.title);
   const sketches = [...$('sketch-list').querySelectorAll('li span')].map((s) => s.textContent);
   const scores = recentTakes.slice(-3).map((t) => `${t.lesson}: ${t.report.overall}/10 (next: ${t.report.one_change})`);
   return [
@@ -1984,7 +2176,7 @@ async function ask() {
     const res = await fetch('/api/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, lesson: `${lesson.title}: ${lesson.steps.join(' ')}`, context: tutorContext() }),
+      body: JSON.stringify({ question, lesson: `${lesson.title}: ${lesson.steps.map((s) => resolveGear(typeof s === 'string' ? s : s.text, lessonEnv())).join(' ')}`, context: tutorContext(), goal: coachGoal() }),
     });
     const body = await res.json();
     out.textContent = body.answer || body.error;
@@ -2045,7 +2237,7 @@ function gearGroups() {
   const hidden = new Set(gear.hidden);
   const groups = [
     {
-      title: 'Your Durutti chain in GarageBand',
+      title: progress.flavour === 'durutti' ? 'Your Durutti chain in GarageBand' : 'Your guitar effects in GarageBand',
       note: 'Add these effects to a track, in this order.',
       open: true,
       items: [
@@ -2306,7 +2498,9 @@ function renderCoach() {
   $('coach-model-hint').textContent = def ? `Leave empty for ${def}, a small, cheap model.` : 'The model name your service uses.';
 }
 
-async function openCoach() {
+async function openCoach(welcome = false) {
+  $('coach-step').hidden = !welcome;
+  $('coach-close').textContent = welcome ? 'Finish' : 'Close';
   coach = await loadJson('/api/coach', coach);
   renderCoachTop();
   for (const r of document.querySelectorAll('input[name="coach-provider"]')) r.checked = r.value === coach.provider;
@@ -2351,11 +2545,6 @@ function renderCoachTop() {
 function wireCoach() {
   $('coach-btn').onclick = openCoach;
   $('coach-top').onclick = openCoach;
-  // One window at a time: the welcome closes before the coach settings open.
-  $('welcome-coach').onclick = () => {
-    $('gear-dialog').close();
-    openCoach();
-  };
   loadJson('/api/coach', coach).then((c) => {
     coach = c;
     renderCoachTop();
@@ -2421,10 +2610,12 @@ async function boot() {
   });
   $('gear-btn').onclick = () => openGear(false);
   $('gear-dialog').addEventListener('close', () => {
+    welcomeAdvancing = false;
     // Closing the welcome counts as setup done, whatever was added.
     if (!$('gear-welcome').hidden && !gear.setupDone) changeGear({ op: 'setupDone' });
   });
   wireGearDrop();
+  wireWelcome();
   wireCoach();
   $('gear-search').oninput = renderGear;
   $('sound-info').onclick = () => {
@@ -2474,7 +2665,12 @@ async function boot() {
   renderFxNote();
   progress = { ...progress, ...p, completed: { ...(p.completed || {}) }, checks: { ...(p.checks || {}) } };
   // Open where to start: the first unfinished lesson that is not locked.
-  openLesson(firstUnfinished(progress.completed).id);
+  // A copy that began before the style picker keeps its Durutti examples and every style.
+  if (progress.flavour === undefined) {
+    progress.flavour = Object.keys(progress.completed).length ? 'durutti' : 'neutral';
+    saveProgress();
+  }
+  openLesson(firstUnfinished(progress.completed, progress.unlocked).id);
   renderKeyPicker();
   renderEarButton();
   loadSketches();

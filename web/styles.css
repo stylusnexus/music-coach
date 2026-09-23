@@ -345,6 +345,27 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 .small { font-size: 12px; }
 .rec.on { background: var(--rec, #c0392b); color: #fff; }
 
+/* Welcome steps and the style picker */
+.step { color: var(--accent); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 6px; }
+.step[hidden] { display: none; }
+.gear-welcome .buttons, .styles-dialog .buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.styles-dialog { max-width: 760px; }
+.style-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin: 12px 0; }
+.style-card { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.style-card .pick { text-align: left; border: none; background: transparent; padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.style-card .pick[aria-pressed="true"] { background: var(--panel-2); box-shadow: inset 0 0 0 2px var(--accent); border-radius: var(--radius); }
+.style-card .artists { font-size: 12px; color: var(--muted); }
+.style-card .name { font-weight: 600; }
+.style-card .sound { font-size: 13px; color: var(--muted); }
+.style-card .lock { font-size: 12px; color: var(--muted); margin: 0; padding: 0 12px 10px; }
+.link { border: none; background: none; padding: 0; color: var(--accent); text-decoration: underline; font-size: inherit; cursor: pointer; }
+.nudge { background: var(--panel-2); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+.nudge[hidden], .better[hidden] { display: none; }
+.better { font-size: 13px; color: var(--muted); margin: 4px 0 10px; }
+.lessons .unlock-row { padding: 0 0 6px 34px; font-size: 12px; }
+.lessons .styles-toggle { padding: 4px 0 8px; font-size: 13px; }
+.section-head .link { font-size: 12px; margin-left: 6px; }
+
 /* Coach settings */
 .coach-providers { border: none; padding: 0; margin: 12px 0; display: grid; gap: 6px; }
 .coach-providers legend { font-weight: 600; margin-bottom: 6px; }

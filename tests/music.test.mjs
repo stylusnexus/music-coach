@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   Latch, arpNote, detectChord, matchesChord, spreadChord, voicing, writeMidi, PPQ,
 } from '../web/music.js';
-import { LESSONS, SECTIONS, createChecker, firstUnfinished, fitChecks, keyForLesson, lockReason, resolveGear } from '../web/lessons.js';
+import { LESSONS, SECTIONS, STYLE_INFO, createChecker, firstUnfinished, fitChecks, keyForLesson, lockReason, missingBetterWith, resolveGear, varietyNudge } from '../web/lessons.js';
 
 test('names E minor in any order or octave', () => {
   assert.equal(detectChord([64, 67, 71]).name, 'Em');
@@ -83,6 +83,7 @@ const EVE = {
   loopGroups: ['Minipops drum loops', 'VP-330 string loops', 'Tape fragments'],
   folder: '~/Music/Samples',
   tags: {},
+  durutti: true,
 };
 const ORIGINAL = {
   'to-garageband': ['Plug-ins → Audio Units → IK Multimedia: add Triad Chorus, then Tape Echo, then CSR Plate.', 'Bonus: add a new Software Instrument track with VG-SPARKLE2 and hold the same chords. It plays real recorded guitar.'],
@@ -101,9 +102,9 @@ test('with all of Eve\'s gear, lessons read as they always did', () => {
 });
 
 test('on a bare Mac, lessons claim no sound, folder or plugin it lacks', () => {
-  const all = LESSONS.flatMap((l) => [...l.steps.map((s) => (typeof s === 'string' ? s : s.text)), ...l.checks.map((c) => c.label || '')]);
+  const all = LESSONS.flatMap((l) => [l.why, ...l.steps.map((s) => (typeof s === 'string' ? s : s.text)), ...l.checks.map((c) => c.label || '')]);
   const text = all.map((t) => resolveGear(t, [])).join('\n');
-  for (const claim of ['real Minimoog', 'VP-330', 'CR-78', 'Farfisa organ,', 'Minipops', 'IK Multimedia', '~/Music/Samples', 'VG-SPARKLE2', '{']) {
+  for (const claim of ['Durutti', 'Vini Reilly', 'real Minimoog', 'VP-330', 'CR-78', 'Farfisa organ,', 'Minipops', 'IK Multimedia', '~/Music/Samples', 'VG-SPARKLE2', '{']) {
     assert.ok(!text.includes(claim), claim);
   }
   assert.ok(text.includes('Record your own'), 'no loops: the mic step shows');
@@ -640,4 +641,24 @@ test('each lesson sets the Key bar to its key, or Off when its notes leave the k
       assert.ok(chordPitchClasses(c).every((pc) => inKey.has(pc)), `${l.id}: ${c}`);
     }
   }
+});
+
+test('every style has a card, and the picker nudges toward variety', () => {
+  const styles = SECTIONS.find((s) => s.title === 'Styles').ids;
+  for (const id of styles) assert.ok(STYLE_INFO[id]?.artists && STYLE_INFO[id]?.sound, id);
+  assert.match(varietyNudge(['kosmische', 'ambient-eno', 'dark-ambient']), /drone and ambient/);
+  assert.equal(varietyNudge(['kosmische', 'shoegaze', 'stereolab']), null);
+});
+
+test('unlock anyway opens a locked style; better-with names only missing gear', () => {
+  assert.ok(lockReason('shoegaze', {}));
+  assert.equal(lockReason('shoegaze', {}, { shoegaze: true }), null);
+  assert.deepEqual(missingBetterWith('shoegaze', []), ['a reverse reverb plugin', 'an amp plugin']);
+  assert.deepEqual(missingBetterWith('shoegaze', { installed: ['CSR Inverse v6', 'AmpliTube 5'] }), []);
+});
+
+test('a copy that began with the Durutti examples keeps them; new ones are technique-first', () => {
+  const hear = byId('hear-the-sound').why;
+  assert.match(resolveGear(hear, EVE), /Durutti Column/);
+  assert.doesNotMatch(resolveGear(hear, []), /Durutti/);
 });

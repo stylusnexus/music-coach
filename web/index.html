@@ -38,6 +38,7 @@
           <button id="popout" class="ghost popout" hidden title="Keep the steps in a small window on top of GarageBand">⧉ Pop out steps</button>
         </div>
         <p id="lesson-why" class="why"></p>
+        <p id="lesson-better" class="better" hidden><span></span> <button id="better-gear" class="link" type="button">Open Your gear</button></p>
         <ol id="lesson-steps" class="steps"></ol>
         <ul id="lesson-checks" class="checks"></ul>
         <div id="lesson-done" class="done" hidden>
@@ -270,8 +271,9 @@
   <dialog id="gear-dialog" class="gear-dialog">
     <h2>Your gear</h2>
     <div id="gear-welcome" class="gear-welcome" hidden>
+      <p class="step">Step 1 of 3: your gear</p>
       <p><strong>Welcome.</strong> Tell the coach what you have, so lessons can name your own gear. All of it is optional: the app works with none of it, and you can change it any time under Your gear.</p>
-      <button id="welcome-coach" type="button">Set up the coach model</button>
+      <div class="buttons"><button id="gear-next" class="primary" type="button">Continue</button><button id="gear-skip" type="button">Skip — I'll add gear later</button></div>
     </div>
     <section class="gear-add" aria-label="Add gear">
       <div id="gear-drop" class="gear-drop">Drag a plugin here, or <button id="gear-folder" type="button">Choose a folder of samples…</button></div>
@@ -289,7 +291,19 @@
     <form method="dialog"><button class="primary">Close</button></form>
   </dialog>
 
+  <dialog id="styles-dialog" class="styles-dialog">
+    <p id="styles-step" class="step" hidden>Step 2 of 3: your styles</p>
+    <h2>What do you want to make?</h2>
+    <p class="muted">Pick up to 5 styles to start. The rest stay one click away, and you can change these any time.</p>
+    <div id="style-cards" class="style-cards"></div>
+    <button id="styles-more" class="ghost" type="button" hidden></button>
+    <p id="styles-note" class="muted small" aria-live="polite"></p>
+    <p id="styles-nudge" class="nudge" hidden><span></span> <button type="button" class="link">Dismiss</button></p>
+    <div class="buttons"><button id="styles-done" class="primary" type="button">Continue</button><button id="styles-skip" type="button">Skip — show me every style</button></div>
+  </dialog>
+
   <dialog id="coach-dialog" class="coach-dialog">
+    <p id="coach-step" class="step" hidden>Step 3 of 3: the coach model</p>
     <h2>Coach settings</h2>
     <p class="muted">The coach model answers questions and writes the summary under a take's scores. The scores, lessons and everything else work without it.</p>
     <fieldset class="coach-providers">
@@ -304,7 +318,7 @@
     <div id="coach-model-row" class="coach-row"><label for="coach-model">Model</label><input id="coach-model" autocomplete="off"><span id="coach-model-hint" class="muted small"></span></div>
     <p class="muted small">Your key is saved only on this Mac, in the app's data folder, readable by your account only. It is sent only to the service you picked.</p>
     <div class="buttons"><button id="coach-save" class="primary">Save</button><button id="coach-test">Save and test</button><span id="coach-status" aria-live="polite"></span></div>
-    <form method="dialog"><button class="ghost">Close</button></form>
+    <form method="dialog"><button id="coach-close" class="ghost">Close</button></form>
   </dialog>
 
   <script type="module" src="app.js"></script>

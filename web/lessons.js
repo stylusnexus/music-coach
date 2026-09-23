@@ -27,6 +27,7 @@ function gearEnv(env) {
     loopGroups: new Set(e.loopGroups || []),
     folder: e.folder || null,
     tags: e.tags || {},
+    durutti: Boolean(e.durutti),
   };
 }
 
@@ -88,6 +89,22 @@ const PHRASES = {
     : 'In GarageBand: drag a loop from the Loop Browser (press O) onto a track, click where you want to cut, and press Cmd+T to split it there. Drag the pieces into a new order.'),
   samplesFolder: (e) => e.folder || 'your samples folder',
   // Only with a microphone added, or with no loops to cut up (then it is the way in).
+  // Basics speak technique first; a copy that began with the Durutti examples keeps them.
+  hearWhy: (e) => (e.durutti
+    ? 'The Durutti Column sound is mostly three effects on a clean, plucked tone: chorus (shimmer), echo (repeats), and reverb (space). Hearing each one on its own is how you learn to reach for it later.'
+    : 'A lot of guitar music leans on three effects over a clean, plucked tone: chorus (shimmer), echo (repeats), and reverb (space). Hearing each one on its own is how you learn to reach for it later.'),
+  pickWhy: (e) => (e.durutti
+    ? 'Vini Reilly rarely strums. He picks one string at a time, fast, and the echo fills the gaps.'
+    : 'Many guitarists rarely strum. They pick one string at a time, fast, and an echo fills the gaps.'),
+  pickTip: (e) => (e.durutti
+    ? 'Try the other pattern choices. "picking" is the closest to Durutti.'
+    : 'Try the other pattern choices. "picking" sounds most like a guitarist picking.'),
+  drumWhy: (e) => (e.durutti
+    ? 'Early Durutti Column records often sit on a plain, slightly stiff drum machine. The contrast between the machine and the drifting guitar is part of the charm.'
+    : 'Plenty of records sit on a plain, slightly stiff drum machine. The contrast between the machine and a drifting guitar is part of the charm.'),
+  bitterWhy: (e) => (e.durutti ? 'Much of the Durutti feel lives here.' : 'Much of that dreamy, bittersweet feel lives here.'),
+  gbWhy: (e) => (e.durutti ? 'the Durutti sound' : 'the sound'),
+  susLove: (e) => (e.durutti ? 'shoegaze and Durutti' : 'shoegaze and ambient music'),
   micStep: (e) => (e.tags.microphone || !e.loopGroups.size
     ? `Record your own: press ● Record a sound${e.tags.microphone ? ` with ${yours(e.tags.microphone)}` : ''} and make a noise for a few seconds: your voice, a cup, keys, a door. It is cut into 8 slices the same way. Can and Cluster sampled the room around them.`
     : ''),
@@ -117,7 +134,7 @@ const ALL_LESSONS = [
     id: 'hear-the-sound',
     title: 'Hear the sound',
     minutes: 5,
-    why: 'The Durutti Column sound is mostly three effects on a clean, plucked tone: chorus (shimmer), echo (repeats), and reverb (space). Hearing each one on its own is how you learn to reach for it later.',
+    why: '{hearWhy}',
     steps: [
       'Play any keys. Slow, single notes sound best.',
       'Switch Echo off, play a note, then switch it back on. Hear the repeats disappear and return.',
@@ -170,11 +187,11 @@ const ALL_LESSONS = [
     id: 'arpeggiator',
     title: 'Let the machine do the picking',
     minutes: 5,
-    why: 'Vini Reilly rarely strums. He picks one string at a time, fast, and the echo fills the gaps. The arpeggiator does that picking for you: hold a chord, and it plays the notes one after another in time.',
+    why: '{pickWhy} The arpeggiator does that picking for you: hold a chord, and it plays the notes one after another in time.',
     steps: [
       'Arp is on, with Latch: tap a chord once and it keeps playing.',
       'Tap E minor and listen for two bars (count 1-2-3-4, twice).',
-      'Try the other pattern choices. "picking" is the closest to Durutti.',
+      '{pickTip}',
     ],
     setup: { sound: 'guitar', arp: true, latch: true, arpPattern: 'picking', drums: false, bpm: 100 },
     targets: ['Em'],
@@ -203,7 +220,7 @@ const ALL_LESSONS = [
     id: 'drum-machine',
     title: 'Add a drum machine',
     minutes: 10,
-    why: 'Early Durutti Column records often sit on a plain, slightly stiff drum machine. The contrast between the machine and the drifting guitar is part of the charm.',
+    why: '{drumWhy}',
     steps: [
       'Switch Drums on. Try the three patterns and keep the one you like.',
       'Play the chart again over the drums for 4 bars.',
@@ -216,7 +233,7 @@ const ALL_LESSONS = [
     id: 'bittersweet',
     title: 'The bittersweet colour: 7th chords',
     minutes: 10,
-    why: 'Add one more note to a chord and the mood shifts. Em7 (E G B D) and Cmaj7 (C E G B) sound open and unresolved, happy and sad at once. Much of the Durutti feel lives here.',
+    why: 'Add one more note to a chord and the mood shifts. Em7 (E G B D) and Cmaj7 (C E G B) sound open and unresolved, happy and sad at once. {bitterWhy}',
     steps: [
       'Em7 = E G B D. Your Em plus one more white key on top.',
       'Cmaj7 = C E G B. Your C plus B on top.',
@@ -267,7 +284,7 @@ const ALL_LESSONS = [
     id: 'to-garageband',
     title: 'Take it to GarageBand',
     minutes: 15,
-    why: 'The sketch is MIDI: the notes, not the sound. GarageBand plays those notes with its own instruments, then your plugins add the Durutti sound back.',
+    why: 'The sketch is MIDI: the notes, not the sound. GarageBand plays those notes with its own instruments, then your plugins add {gbWhy} back.',
     steps: [
       'Press "Show in Finder" beside your sketch in the Sketches list.',
       'In GarageBand: File → New → Empty Project → Software Instrument. Set the tempo to match the sketch.',
@@ -621,7 +638,7 @@ const ALL_LESSONS = [
       ] },
       { label: 'Found the third in a flipped chord', text: 'Flipped chords (bars 7 and 8): played E G C, the root C is on top and the third E is at the bottom. Find the root first, then the note four keys above it, wherever it sits, and lower that one.' },
       { label: 'Changed an add9 chord', text: 'Add9 chords (bars 9 and 10): keep the extra D, lower only the E.' },
-      { label: 'Heard a sus chord', text: 'Sus chords (bars 11 and 12) have no third at all, so they are neither major nor minor: the open, floating sound shoegaze and Durutti love. To make one minor, add the third: E flat.' },
+      { label: 'Heard a sus chord', text: 'Sus chords (bars 11 and 12) have no third at all, so they are neither major nor minor: the open, floating sound {susLove} love. To make one minor, add the third: E flat.' },
       { label: 'Changed a chord in my own song', text: 'Now in your own sketch: select a chord\'s notes to read its name, drag its third down one row, and select them again: the name gains an m for minor. Play it: the passage turns darker.' },
     ],
   },
@@ -742,6 +759,55 @@ export const SECTIONS = [
   },
 ];
 
+// The style picker's cards. Artists come first: without sound previews they are
+// what a beginner recognises. Texture groups styles by how they are made, so the
+// picker can nudge toward variety; it is never shown.
+export const STYLE_INFO = {
+  kosmische: { name: 'Kosmische', artists: 'Tangerine Dream, Cluster', sound: 'Repeating synth patterns over a drone, slowly opening up.', texture: 'drone',
+    betterWith: [{ any: ['sound:moog-bass', 'tag:synth'], label: 'a synth plugin' }] },
+  'ambient-eno': { name: 'Ambient', artists: 'Brian Eno, Harold Budd', sound: 'Notes that loop at different lengths and drift into new patterns.', texture: 'drone',
+    betterWith: [{ any: ['gear:reverb'], label: 'a reverb plugin' }] },
+  'dark-ambient': { name: 'Dark ambient', artists: 'Lustmord, Thomas Köner', sound: 'Low drones, clashing notes and slowed-down tape.', texture: 'drone',
+    betterWith: [{ any: ['gear:tape'], label: 'a tape plugin' }, { any: ['folder'], label: 'a folder of samples' }] },
+  stereolab: { name: 'Lounge pop', artists: 'Stereolab, Broadcast', sound: 'A buzzing organ on two jazzy chords over a steady beat.', texture: 'chord',
+    betterWith: [{ any: ['sound:farfisa', 'tag:synth'], label: 'an organ or synth plugin' }, { any: ['gear:chorus'], label: 'a chorus plugin' }] },
+  'new-wave': { name: 'New wave', artists: 'A Flock of Seagulls, The Cure', sound: 'Echoing guitar, a jumping synth bass and a fast drum machine.', texture: 'chord',
+    betterWith: [{ any: ['sound:moog-bass', 'tag:bass', 'tag:synth'], label: 'a synth bass plugin' }, { any: ['gear:echo'], label: 'an echo plugin' }] },
+  'post-punk': { name: 'Post-punk and darkwave', artists: 'Joy Division, Siouxsie and the Banshees', sound: 'A melodic bass up front, tribal drums and cold minor chords.', texture: 'chord',
+    betterWith: [{ any: ['gear:chorus'], label: 'a chorus plugin' }, { any: ['gear:amp', 'gear:fuzz'], label: 'an amp plugin' }] },
+  shoegaze: { name: 'Shoegaze', artists: 'My Bloody Valentine, Slowdive', sound: 'A wall of fuzz, and reverb that swells up backwards into each note.', texture: 'chord',
+    betterWith: [{ any: ['gear:reverse'], label: 'a reverse reverb plugin' }, { any: ['gear:amp', 'gear:fuzz'], label: 'an amp plugin' }] },
+};
+
+// The optional gear that would bring a style closer to the record, missing on this Mac.
+export function missingBetterWith(id, env) {
+  const e = gearEnv(env);
+  const has = (need) => {
+    const [kind, value] = need.split(':');
+    if (kind === 'sound') return e.sounds.has(value);
+    if (kind === 'tag') return Boolean(e.tags[value]);
+    if (kind === 'gear') return preferred(value, e) !== -1 || Boolean(e.tags[value]);
+    if (kind === 'folder') return Boolean(e.folder);
+    return false;
+  };
+  return (STYLE_INFO[id]?.betterWith || []).filter((b) => !b.any.some(has)).map((b) => b.label);
+}
+
+// When three or more picks are made the same way, suggest a different kind of style.
+export function varietyNudge(picks) {
+  const counts = {};
+  for (const id of picks) {
+    const t = STYLE_INFO[id]?.texture;
+    if (t) counts[t] = (counts[t] || 0) + 1;
+  }
+  const crowded = Object.keys(counts).find((t) => counts[t] >= 3);
+  if (!crowded) return null;
+  const others = [...new Set(Object.values(STYLE_INFO).map((s) => s.texture))].filter((t) => t !== crowded);
+  const words = { drone: 'drone and ambient', chord: 'chord-based', groove: 'groove-based', sample: 'sample-based' };
+  if (!others.length) return null;
+  return `These are all ${words[crowded] || crowded} styles. Want to add something ${others.map((t) => words[t] || t).join(' or ')}?`;
+}
+
 // Lessons that also need another lesson first, because they use what it teaches.
 const REQUIRES = { 'dark-ambient': ['sampling'] };
 
@@ -752,7 +818,8 @@ export function sectionOf(id) {
 }
 
 // Why a lesson is locked, in one line, or null when it is open.
-export function lockReason(id, completed) {
+export function lockReason(id, completed, unlocked = {}) {
+  if (unlocked[id]) return null; // "Unlock anyway"
   const sec = sectionOf(id);
   const gate = sec?.requiresSection && SECTIONS.find((s) => s.title === sec.requiresSection);
   if (gate && !gate.ids.every((g) => completed[g])) return `Finish the ${gate.title} first.`;
@@ -764,8 +831,8 @@ export function lockReason(id, completed) {
 }
 
 // Where to start: the first open lesson not yet finished. Half-done counts as not finished.
-export function firstUnfinished(completed) {
-  return LESSONS.find((l) => !completed[l.id] && !lockReason(l.id, completed)) || LESSONS[0];
+export function firstUnfinished(completed, unlocked = {}) {
+  return LESSONS.find((l) => !completed[l.id] && !lockReason(l.id, completed, unlocked)) || LESSONS[0];
 }
 
 // ---- Checker: turns app events into ticked-off lesson steps ----
