@@ -78,6 +78,10 @@
     .needs { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; list-style: none; margin: 0; }
     .needs li { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; }
     .styles { color: var(--muted); }
+    .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin: 20px 0 0; }
+    .shots figure { margin: 0; }
+    .shots img { width: 100%; height: auto; display: block; border-radius: var(--radius); border: 1px solid var(--line); }
+    .shots figcaption { color: var(--muted); font-size: 14px; margin-top: 8px; }
     .why { border-left: 3px solid var(--accent); padding: 4px 0 4px 24px; max-width: 720px; margin: 0; }
     .why p { margin: 0 0 12px; font-size: 19px; }
     .why .sign { color: var(--muted); font-size: 16px; margin: 0; }
@@ -144,7 +148,17 @@
 
     <section>
       <h2>Styles</h2>
-      <p class="styles">Pick up to 5 of 19: folk, punk, house, lo-fi hip-hop, ambient drone, dub, kosmische, shoegaze, ambient techno, Afrobeat, bossa nova, lounge pop, post-punk and darkwave, gothic rock, minimal wave, classical minimalism, Eno-style ambient, new wave and dark ambient. Each has a 5-second preview and a real record to hear. Every starter style works on a Mac with nothing extra installed.</p>
+      <p class="styles">Pick up to 5 of 19 (to start): folk, punk, house, lo-fi hip-hop, ambient drone, dub, kosmische, shoegaze, ambient techno, Afrobeat, bossa nova, lounge pop, post-punk and darkwave, gothic rock, minimal wave, classical minimalism, Eno-style ambient, new wave and dark ambient. Each has a 5-second preview and a real record to hear. Every starter style works on a Mac with nothing extra installed.</p>
+      <div class="shots">
+        <figure>
+          <img src="img/styles-picker.jpg" width="1000" height="625" loading="lazy" alt="The style picker: cards for folk, punk, house, lo-fi hip-hop, ambient drone and dub, each naming its artists, with punk, ambient drone and dub picked.">
+          <figcaption>Pick up to 5 styles, each card naming real artists.</figcaption>
+        </figure>
+        <figure>
+          <img src="img/styles-lesson.jpg" width="1000" height="625" loading="lazy" alt="The post-punk and darkwave lesson, with links to hear Boy Harsher and Molchat Doma, and its steps.">
+          <figcaption>Each style links real records to hear, from Bandcamp.</figcaption>
+        </figure>
+      </div>
     </section>
 
     <section id="start">
@@ -162,7 +176,7 @@ cd music-coach
 ./music-coach</pre>
         </li>
         <li>Chrome opens the app. Press <strong>Start</strong>, tell it what gear you have (or skip), and open lesson 1.</li>
-        <li>Want a double-click app next time? Run <code>./music-coach shortcut</code> to put one on your Desktop.</li>
+        <li>Drag Music Coach to your Applications folder: it opens from there next time, and Uninstall works.</li>
       </ol>
     </section>
 
