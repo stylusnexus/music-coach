@@ -96,6 +96,10 @@ LOOP_FOLDERS = [
 ]
 
 AUDIO_TYPES = (".wav", ".aif", ".aiff", ".mp3", ".m4a")
+# Chrome can't open AIFF (Apple Loops are .aif). Once you agree, the Sampler plays a
+# WAV copy made with the Mac's own afconvert, kept in the app's data folder. Your
+# original files are never changed.
+AIFF = (".aif", ".aiff")
 # Where a sample pack sits in the Sampler. Guessed from plain words any library might
 # use, never from pack or maker names: the first section whose words match wins.
 SECTIONS = ("Drums", "Bass", "Keys", "Strings", "Texture", "Vocals", "Other")
@@ -285,6 +289,7 @@ def clean_prefs(raw):
         "hidden": hidden[:500],
         "slots": slots,
         "packs": packs,
+        "copyAiff": bool(raw.get("copyAiff")),
         "sketchesDir": raw["sketchesDir"] if isinstance(raw.get("sketchesDir"), str) and raw["sketchesDir"].startswith("/") else "",
         "setupDone": bool(raw.get("setupDone")),
     }
@@ -345,6 +350,8 @@ def change_prefs(change, prefs):
         # Put back a folder (a network drive may be unplugged right now), or a real folder.
         if path.startswith("/Volumes/") or Path(path).is_dir():
             folders.append(path)
+    elif op == "copyAiff":
+        return clean_prefs({**prefs, "copyAiff": bool(change.get("on", True))})
     elif op == "setupDone":
         return clean_prefs({**prefs, "setupDone": True})
     else:
@@ -584,6 +591,7 @@ def pack_list(root=None, prefs=None):
         choice = prefs["packs"].get(pid, "")
         out.append({
             "id": pid,
+            "path": p["path"],
             "label": p["label"],
             "where": p["where"],
             "folder": str(r),
@@ -619,9 +627,53 @@ def loop_files(root=None, per_folder=60, prefs=None):
         if p["hidden"] or not p["connected"]:
             continue
         files = [f for f in p["files"] if (p["folder"], f) not in taken]
+        inside = len(Path(p["path"]).parts)
         if files:
-            groups.append({"label": p["label"], "id": p["id"], "section": p["section"], "total": len(files), "files": files[:per_folder]})
+            groups.append({
+                "label": p["label"], "id": p["id"], "section": p["section"], "where": p["where"],
+                "total": len(files), "loops": sum(is_loop(f, inside) for f in files), "files": files[:per_folder],
+            })
     return groups
+
+
+def find_loops(query, root=None, prefs=None, limit=200):
+    """Files whose pack or path has every word you typed: [{label, id, file}]."""
+    words = query.lower().split()
+    if not words:
+        return []
+    found = []
+    for g in loop_files(root, per_folder=10**6, prefs=prefs):
+        for f in g["files"]:
+            text = f"{g['label']} {f}".lower()
+            if all(w in text for w in words):
+                found.append({"label": g["label"], "id": g.get("id", ""), "file": f})
+                if len(found) >= limit:
+                    return found
+    return found
+
+
+def wav_copy_path(path):
+    """Where the WAV copy of an AIFF file lives. The name changes when the original
+    does, so an edited file gets a fresh copy."""
+    info = path.stat()
+    key = hashlib.sha1(f"{path.resolve()}|{info.st_size}|{info.st_mtime_ns}".encode()).hexdigest()[:16]
+    return DATA / "WAV copies" / f"{path.stem[:60]} {key}.wav"
+
+
+def make_wav_copy(path, copy):
+    """Convert with afconvert, which every Mac has. Written whole or not at all."""
+    copy.parent.mkdir(parents=True, exist_ok=True)
+    tmp = copy.with_name(f"{copy.name}.{threading.get_ident()}.tmp.wav")
+    try:
+        done = subprocess.run(["afconvert", "-f", "WAVE", "-d", "LEI24", str(path), str(tmp)], capture_output=True, timeout=60)
+        if done.returncode or not tmp.is_file():
+            return False
+        tmp.replace(copy)
+        return True
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def local_sample_path(relative, root=None):
@@ -1314,7 +1366,7 @@ class Handler(SimpleHTTPRequestHandler):
             folders = [{"path": f, "found": Path(f).is_dir()} for f in prefs["folders"]]
             # Gear with no job in lessons (headphones, speakers, cables) says so instead of offering tags.
             added = [{**a, "noJob": not a["tag"] and rule_tag(a["name"]) == ""} for a in prefs["added"]]
-            return self.send_json(200, {**scan_gear(), **prefs, "added": added, "folders": folders, "tags": TAGS, "home": str(Path.home())})
+            return self.send_json(200, {**scan_gear(), **prefs, "added": added, "folders": folders, "tags": TAGS, "home": str(Path.home()), "copiesDir": str(DATA / "WAV copies")})
         if self.path == "/api/coach":
             return self.send_json(200, public_coach(coach_settings()))
         if self.path == "/api/version":
@@ -1323,6 +1375,13 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(200, available_drum_kits())
         if self.path == "/api/loops":
             return self.send_json(200, loop_files())
+        if self.path.startswith("/api/loops?"):
+            q = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+            if "find" in q:
+                return self.send_json(200, find_loops(q["find"][0]))
+            pack = q.get("pack", [""])[0]
+            group = next((g for g in loop_files(per_folder=10**6) if g.get("id") == pack), None)
+            return self.send_json(200, group) if group else self.send_json(404, {"error": "No such pack."})
         if self.path == "/api/packs":
             scan_new_folders()
             packs = [{k: v for k, v in p.items() if k != "files"} for p in pack_list()]
@@ -1341,6 +1400,14 @@ class Handler(SimpleHTTPRequestHandler):
             path = local_sample_path(urllib.parse.unquote(self.path[len("/local/"):]))
             if not path:
                 return self.send_json(404, {"error": "No such sample."})
+            if path.suffix.lower() in AIFF:
+                copy = wav_copy_path(path)
+                if not copy.is_file():
+                    if not load_prefs()["copyAiff"]:
+                        return self.send_json(409, {"error": "Chrome can't play AIFF files.", "needsCopy": True})
+                    if not make_wav_copy(path, copy):
+                        return self.send_json(500, {"error": "Could not make a WAV copy of that file."})
+                path = copy
             data = path.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", mimetypes.guess_type(path.name)[0] or "application/octet-stream")

@@ -225,11 +225,12 @@
       <section id="sampler" class="sampler" hidden aria-label="Sampler">
         <div class="beat-head">
           <h2>Sampler</h2>
-          <select id="loop" aria-label="Loop to cut up"><option value="">Pick a loop…</option></select>
+          <input id="loop-search" type="search" placeholder="Search loops and packs…" aria-label="Search loops and packs" autocomplete="off">
           <button class="toggle" id="reverse">Reverse</button>
           <button class="toggle" id="half-speed" title="Slower and an octave lower">Half speed</button>
           <button id="mic-rec" class="rec" title="Record up to 8 seconds from your microphone and cut it up">● Record a sound</button>
         </div>
+        <div id="loop-list" class="loop-list" role="region" aria-label="Loops to cut up" aria-live="polite"></div>
         <canvas id="wave" class="wave" width="1200" height="140" aria-label="The loop, cut into 8 slices"></canvas>
         <div id="slice-keys" class="slice-keys"></div>
         <p id="loop-info" class="muted"></p>

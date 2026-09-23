@@ -2,12 +2,15 @@ import base64
 import json
 import os
 import plistlib
+import shutil
+import subprocess
 import sys
 import tempfile
 import threading
 import unittest
 import urllib.error
 import urllib.request
+import wave
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
@@ -101,14 +104,14 @@ class SampleFoldersTest(unittest.TestCase):
             (a / "Vintage Synths/VP330 From Mars/SVC350 Loops/01. WAV").mkdir(parents=True)
             (a / "Vintage Synths/VP330 From Mars/SVC350 Loops/01. WAV/pad.wav").write_text("")
             (b / "sub").mkdir(parents=True)
-            (b / "sub" / "hit.aif").write_text("")
+            (b / "sub" / "hit.wav").write_text("")
             (b / "notes.txt").write_text("")
             groups = server.loop_files([a, b])
             self.assertEqual([(g["label"], g["files"]) for g in groups], [
                 ("VP-330 string loops", ["Vintage Synths/VP330 From Mars/SVC350 Loops/01. WAV/pad.wav"]),
-                ("sub", ["sub/hit.aif"]),
+                ("sub", ["sub/hit.wav"]),
             ])
-            self.assertEqual(server.local_sample_path("sub/hit.aif", [a, b]), (b / "sub/hit.aif").resolve())
+            self.assertEqual(server.local_sample_path("sub/hit.wav", [a, b]), (b / "sub/hit.wav").resolve())
             self.assertIsNone(server.local_sample_path("notes.txt", [a, b]))
             self.assertIsNone(server.local_sample_path("../A/Vintage Synths", [a, b]))
 
@@ -129,7 +132,7 @@ class SamplePacksTest(unittest.TestCase):
             make_files(root,
                        "Drum Machines/Rhythm Box/WAV/One Shots/Kick.wav",
                        "Drum Machines/Rhythm Box/WAV/Drum Loops 120 BPM/Clean/Rock.wav",
-                       "Drum Machines/Beat Box/hit.aif",
+                       "Drum Machines/Beat Box/hit.mp3",
                        "Drum Machines/Beat Box/readme.txt")
             got = self.packs(root)
             self.assertEqual(sorted(got), ["Drum Machines/Beat Box", "Drum Machines/Rhythm Box"])
@@ -199,6 +202,37 @@ class SamplePacksTest(unittest.TestCase):
             prefs = server.change_prefs({"op": "pack", "path": a, "section": "Kazoo"}, prefs)
             self.assertEqual(prefs["packs"], {b: "hidden"})
             self.assertEqual(server.clean_prefs({"packs": {"relative": "Bass", "/x": "Drums"}})["packs"], {"/x": "Drums"})
+
+
+class FindLoopsTest(unittest.TestCase):
+    def test_every_word_must_match_the_pack_or_the_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            make_files(root, "Kinds/Rhythm Box/Loops/Rock 120.wav", "Kinds/Rhythm Box/Loops/Waltz 90.wav", "Kinds/Other/Rock.wav")
+            got = server.find_loops("rhythm rock", root)
+            self.assertEqual([(f["label"], f["file"]) for f in got], [("Rhythm Box", "Kinds/Rhythm Box/Loops/Rock 120.wav")])
+            self.assertEqual(len(server.find_loops("rock", root)), 2)
+            self.assertEqual(server.find_loops("  ", root), [])
+            self.assertEqual(len(server.find_loops("wav", root, limit=1)), 1)
+
+
+@unittest.skipUnless(shutil.which("afconvert"), "afconvert comes with macOS")
+class WavCopyTest(unittest.TestCase):
+    def test_afconvert_makes_a_wav_and_leaves_the_original(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src, aiff = Path(tmp, "tone.wav"), Path(tmp, "tone.aif")
+            with wave.open(str(src), "wb") as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(44100)
+                w.writeframes(b"\x00\x10" * 4410)
+            subprocess.run(["afconvert", "-f", "AIFF", "-d", "BEI16", str(src), str(aiff)], check=True)
+            before = aiff.read_bytes()
+            copy = Path(tmp, "copies", "tone.wav")
+            self.assertTrue(server.make_wav_copy(aiff, copy))
+            self.assertEqual(copy.read_bytes()[:4], b"RIFF")
+            self.assertEqual(aiff.read_bytes(), before)
+            self.assertEqual(list(copy.parent.iterdir()), [copy])  # no half-written file left
 
 
 class SavedPacksTest(unittest.TestCase):
@@ -504,6 +538,38 @@ class ServerTest(unittest.TestCase):
         finally:
             (server.DATA / "gear.json").unlink(missing_ok=True)
             server.LOCAL_SAMPLES, server.SAMPLES_DIR = saved
+
+    def test_aiff_plays_as_a_wav_copy_only_once_you_agree(self):
+        saved = server.LOCAL_SAMPLES, server.SAMPLES_DIR, server.make_wav_copy
+        server.LOCAL_SAMPLES = Path(self.tmp.name, "AIFF Samples")
+        server.SAMPLES_DIR = Path(self.tmp.name, "Drive")
+        (server.DATA / "gear.json").unlink(missing_ok=True)
+        made = []
+
+        def fake_copy(path, copy):
+            made.append(path)
+            copy.parent.mkdir(parents=True, exist_ok=True)
+            copy.write_bytes(b"RIFF copy")
+            return True
+
+        server.make_wav_copy = fake_copy
+        try:
+            make_files(server.LOCAL_SAMPLES, "Pack/Apple Loop.aif")
+            original = server.LOCAL_SAMPLES / "Pack/Apple Loop.aif"
+            original.write_bytes(b"FORM original")
+            status, body = self.call("/local/Pack/Apple%20Loop.aif")
+            self.assertEqual((status, body["needsCopy"]), (409, True))
+            self.assertEqual(made, [])
+            self.assertEqual(self.call("/api/gear/change", {"op": "copyAiff"})[0], 200)
+            for _ in range(2):  # made once, then played from the copy
+                with urllib.request.urlopen(self.base + "/local/Pack/Apple%20Loop.aif", timeout=10) as r:
+                    self.assertEqual(r.read(), b"RIFF copy")
+            self.assertEqual(len(made), 1)
+            self.assertEqual(original.read_bytes(), b"FORM original")
+            self.assertTrue(server.wav_copy_path(original).is_relative_to(server.DATA))
+        finally:
+            (server.DATA / "gear.json").unlink(missing_ok=True)
+            server.LOCAL_SAMPLES, server.SAMPLES_DIR, server.make_wav_copy = saved
 
     def test_version_names_this_copy_of_the_code(self):
         with urllib.request.urlopen(self.base + "/api/version", timeout=5) as r:
