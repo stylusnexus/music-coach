@@ -11,7 +11,7 @@ import { measureTake, scoreAreas } from './takes.js';
 import { DRILLS, makeQuestion, streakDots } from './ear.js';
 import { INTERVALS, KEY_TEXT, MAJOR_MINOR, STYLE_CHORDS } from './chords.js';
 import { Looper } from './looper.js';
-import { LESSONS, SECTIONS, STYLE_INFO, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonHighlightPcs, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from './lessons.js';
+import { LESSONS, PICKER_ORDER, SECTIONS, STYLE_INFO, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonHighlightPcs, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from './lessons.js';
 
 const $ = (id) => document.getElementById(id);
 const KEY_LOW = 48;
@@ -223,7 +223,8 @@ let nudgeDismissed = false;
 const STARTER_CARDS = 6;
 
 function styleIdsInApp() {
-  return SECTIONS.find((s) => s.title === 'Styles').ids.filter((id) => STYLE_INFO[id]);
+  const ids = SECTIONS.find((s) => s.title === 'Styles').ids.filter((id) => STYLE_INFO[id]);
+  return [...PICKER_ORDER.filter((id) => ids.includes(id)), ...ids.filter((id) => !PICKER_ORDER.includes(id))];
 }
 
 function renderStyles() {

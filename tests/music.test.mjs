@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   Latch, arpNote, detectChord, matchesChord, spreadChord, voicing, writeMidi, PPQ,
 } from '../web/music.js';
-import { LESSONS, SECTIONS, STYLE_INFO, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from '../web/lessons.js';
+import { LESSONS, PICKER_ORDER, SECTIONS, STYLE_INFO, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from '../web/lessons.js';
 
 test('names E minor in any order or octave', () => {
   assert.equal(detectChord([64, 67, 71]).name, 'Em');
@@ -693,4 +693,11 @@ test('punk: power chords are recognised and need the fuzz on', () => {
   punk.handle(bar([52, 59, 64], { fuzz: true }));
   punk.handle(bar([52, 59, 64], { fuzz: true }));
   assert.equal(punk.progress()[0].done, true); // E5, with the octave doubled
+});
+
+test('the picker lists every style once, the first six all different kinds', () => {
+  const styles = SECTIONS.find((s) => s.title === 'Styles').ids;
+  assert.deepEqual([...PICKER_ORDER].sort(), [...styles].sort());
+  assert.equal(new Set(PICKER_ORDER.slice(0, 6).map((id) => STYLE_INFO[id].name)).size, 6);
+  assert.ok(new Set(PICKER_ORDER.slice(0, 6).map((id) => STYLE_INFO[id].texture)).size >= 3);
 });
