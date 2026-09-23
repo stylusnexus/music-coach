@@ -96,12 +96,15 @@
             </ol>
           </div>
           <div class="seg" id="sound">
-            <button data-v="guitar">Guitar</button><button data-v="epiano">E-Piano</button><button data-v="pad">Pad</button>
+            <button data-v="guitar">Guitar</button><button data-v="nylon">Nylon</button><button data-v="epiano">E-Piano</button><button data-v="pad">Pad</button><button data-v="swell">Swell</button><button data-v="saw">Saw lead</button>
           </div>
         </div>
         <div class="group">
           <label for="bpm">Tempo <span id="bpm-val"></span></label>
           <input id="bpm" type="range" min="50" max="180" step="1">
+          <div class="toggles">
+            <button class="toggle" id="free-time" title="No click, drums or arpeggiator: held notes just ring, in free time">No beat</button>
+          </div>
         </div>
         <div class="group">
           <label>Effects</label>
@@ -111,6 +114,8 @@
             <button class="toggle" data-fx="echo">Echo</button>
             <button class="toggle" data-fx="reverb">Reverb</button>
             <button class="toggle" data-fx="reverse">Reverse reverb</button>
+            <button class="toggle" data-fx="wobble">Wobble</button>
+            <button id="throw" title="Hold for a burst of echo, as dub producers do; let go and it settles">Throw</button>
           </div>
           <p id="fx-note" class="fx-note muted"></p>
         </div>
@@ -154,6 +159,7 @@
             <select id="drum-pattern" aria-label="Drum pattern"></select>
             <select id="drum-kit" aria-label="Drum kit"><option value="synth">Built-in kit</option></select>
             <button class="toggle" id="click">Click</button>
+            <button class="toggle" id="drum-fuzz" title="Put the drums through the fuzz too">Fuzz on drums</button>
           </div>
         </div>
         <div class="group">

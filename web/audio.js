@@ -16,8 +16,10 @@ export const DRUM_PATTERNS = {
   house: { kick: [0, 4, 8, 12], snare: [4, 12], openhat: [2, 6, 10, 14] },
 };
 
-// Sustained sounds get a longer fade when a key is released.
-const LONG_RELEASE = new Set(['pad', 'vp330-strings', 'farfisa']);
+// Sustained sounds get a longer fade when a key is released (seconds).
+const RELEASE = { pad: 1.2, 'vp330-strings': 1.2, farfisa: 1.2, swell: 4, saw: 0.3 };
+// Sounds built here, with no recordings needed.
+const BUILT_IN = ['guitar', 'nylon', 'epiano', 'pad', 'swell', 'saw'];
 
 const midiToFreq = (n) => 440 * Math.pow(2, (n - 69) / 12);
 
@@ -27,7 +29,8 @@ export class Engine {
     this.sound = 'guitar';
     this.brightness = 1;
     this.bpm = 100;
-    this.fx = { fuzz: false, chorus: true, echo: true, reverb: true, reverse: false };
+    this.fx = { fuzz: false, chorus: true, echo: true, reverb: true, reverse: false, wobble: false };
+    this.drumFuzz = false;
     this.voices = new Map(); // note -> {gain, stop(time)}
     this.guitarCache = new Map();
     this.sampleSets = {}; // instrument id -> [{note, buffer}] recorded notes
@@ -59,12 +62,14 @@ export class Engine {
     const reverb = this.buildReverb();
     const fuzz = this.buildFuzz();
     const reverse = this.buildReverseReverb();
+    const wobble = this.buildWobble();
     // The filter darkens or brightens everything played, before the effects.
     this.filter = ctx.createBiquadFilter();
     this.filter.type = 'lowpass';
     this.filter.Q.value = 2;
     this.setBrightness(1);
-    this.instrumentBus.connect(this.filter).connect(fuzz.input);
+    this.instrumentBus.connect(this.filter).connect(wobble.input);
+    wobble.output.connect(fuzz.input);
     // One channel per part, so the mixer can set each part's volume and pan.
     this.channels = {};
     for (const part of ['instrument', 'bass', 'drone']) {
@@ -78,12 +83,15 @@ export class Engine {
     echo.output.connect(reverb.input);
     reverb.output.connect(reverse.input);
     reverse.output.connect(this.master);
-    this.fxNodes = { fuzz, chorus, echo, reverb, reverse };
+    this.fxNodes = { fuzz, chorus, echo, reverb, reverse, wobble };
 
     this.drumBus = ctx.createGain();
     this.drumBus.gain.value = 0.7;
     const drumPan = ctx.createStereoPanner();
-    this.drumBus.connect(drumPan).connect(this.master);
+    // Fuzz on drums: the same fuzz, on its own copy, between the drums and their pan.
+    this.drumFuzzNode = this.buildFuzz();
+    this.drumBus.connect(this.drumFuzzNode.input);
+    this.drumFuzzNode.output.connect(drumPan).connect(this.master);
     this.channels.drums = { input: this.drumBus, pan: drumPan, base: 0.7 };
     // The key finder's held notes: quiet, so they sit under a song playing in another app.
     const finder = ctx.createGain();
@@ -97,6 +105,7 @@ export class Engine {
     this.noise = this.makeNoise(1);
     this.setBpm(this.bpm);
     for (const k of Object.keys(this.fx)) this.setFx(k, this.fx[k]);
+    this.setDrumFuzz(this.drumFuzz);
     this.startClock();
     // Build everything before waiting on the browser, so a click that arrives while
     // audio is still being allowed never finds a half-built engine.
@@ -154,7 +163,19 @@ export class Engine {
     input.connect(delay);
     delay.connect(tone).connect(feedback).connect(delay);
     this.echoDelay = delay;
+    this.echoFeedback = feedback;
     return { input, ...this.wetDry(input, tone, 0.42) };
+  }
+
+  // Dub throw: while held, the echo is turned right up and its repeats pile up;
+  // on release both go back to where they were.
+  setThrow(on) {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const echo = this.fxNodes.echo;
+    const send = on ? 1 : this.fx.echo ? echo.level : 0;
+    echo.wet.gain.setTargetAtTime(send, now, on ? 0.01 : 0.08);
+    this.echoFeedback.gain.setTargetAtTime(on ? 0.78 : 0.48, now, on ? 0.01 : 0.3);
   }
 
   buildReverb() {
@@ -221,10 +242,44 @@ export class Engine {
     return { input, ...this.wetDry(input, conv, 0.7) };
   }
 
+  // Tape wobble: the sound through a short delay whose length drifts slowly, so
+  // the pitch sags and rises like a worn cassette. All wet when on: any dry
+  // signal left in would turn the drift into a chorus.
+  buildWobble() {
+    const ctx = this.ctx;
+    const input = ctx.createGain();
+    const output = ctx.createGain();
+    const dry = ctx.createGain();
+    const wet = ctx.createGain();
+    wet.gain.value = 0;
+    const d = ctx.createDelay(0.1);
+    d.delayTime.value = 0.02;
+    // A slow drift plus a slower one, so the wobble never repeats exactly.
+    [[0.55, 0.0024], [0.13, 0.004]].forEach(([rate, amount]) => {
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = rate;
+      const depth = ctx.createGain();
+      depth.gain.value = amount;
+      lfo.connect(depth).connect(d.delayTime);
+      lfo.start();
+    });
+    input.connect(dry).connect(output);
+    input.connect(d).connect(wet).connect(output);
+    return { input, output, wet, dry, level: 1 };
+  }
+
   setFx(which, enabled) {
     this.fx[which] = enabled;
     if (!this.ctx) return;
     const node = this.fxNodes[which];
+    node.wet.gain.setTargetAtTime(enabled ? node.level : 0, this.ctx.currentTime, 0.03);
+    if (node.dry) node.dry.gain.setTargetAtTime(enabled ? 0 : 1, this.ctx.currentTime, 0.03);
+  }
+
+  setDrumFuzz(enabled) {
+    this.drumFuzz = enabled;
+    if (!this.ctx) return;
+    const node = this.drumFuzzNode;
     node.wet.gain.setTargetAtTime(enabled ? node.level : 0, this.ctx.currentTime, 0.03);
   }
 
@@ -331,28 +386,32 @@ export class Engine {
     return { buf: s.buffer, rate: Math.pow(2, (note - s.note) / 12) };
   }
 
-  guitarBuffer(note) {
-    if (this.guitarCache.has(note)) return this.guitarCache.get(note);
+  // nylon: a softer pluck (flesh, not a pick) that dies away sooner.
+  guitarBuffer(note, nylon = false) {
+    const cacheKey = nylon ? `nylon${note}` : note;
+    if (this.guitarCache.has(cacheKey)) return this.guitarCache.get(cacheKey);
     const sr = this.ctx.sampleRate;
     const freq = midiToFreq(note);
     const period = Math.max(2, Math.round(sr / freq));
-    const seconds = 4.5;
+    const ring = nylon ? 1.6 : 4;
+    const seconds = ring + 0.5;
     const len = Math.floor(sr * seconds);
     const buf = this.ctx.createBuffer(1, len, sr);
     const y = buf.getChannelData(0);
-    // Karplus-Strong plucked string. Decay tuned so every note rings about 4 seconds.
-    const decay = Math.pow(0.001, 1 / (freq * 4));
+    // Karplus-Strong plucked string. Decay tuned so every note rings about `ring` seconds.
+    const decay = Math.pow(0.001, 1 / (freq * ring));
+    const soft = nylon ? 0.75 : 0.45;
     let prev = 0;
     for (let i = 0; i < period; i++) {
       const r = Math.random() * 2 - 1;
-      prev = prev * 0.45 + r * 0.55; // soften the pick
+      prev = prev * soft + r * (1 - soft); // soften the pick
       y[i] = prev;
     }
     for (let i = period; i < len; i++) {
       y[i] = decay * 0.5 * (y[i - period] + y[i - period - 1 >= 0 ? i - period - 1 : 0]);
     }
     const entry = { buf, rate: (freq * period) / sr };
-    this.guitarCache.set(note, entry);
+    this.guitarCache.set(cacheKey, entry);
     return entry;
   }
 
@@ -374,19 +433,21 @@ export class Engine {
     const stops = [];
 
     const recorded = this.sampleSets[sound]?.length > 0;
-    if (!recorded && !['guitar', 'epiano', 'pad'].includes(sound)) sound = 'pad';
+    if (!recorded && !BUILT_IN.includes(sound)) sound = 'pad';
 
-    if (recorded || sound === 'guitar') {
-      const { buf, rate } = recorded ? this.pickSample(sound, note) : this.guitarBuffer(note);
+    if (recorded || sound === 'guitar' || sound === 'nylon') {
+      const nylon = !recorded && sound === 'nylon';
+      const { buf, rate } = recorded ? this.pickSample(sound, note) : this.guitarBuffer(note, nylon);
       const src = ctx.createBufferSource();
       src.buffer = buf;
       src.playbackRate.value = rate;
       const body = ctx.createBiquadFilter();
-      body.type = 'peaking';
-      body.frequency.value = 2400;
+      // Nylon: the top rolled off, darker than the steel string's bright bump.
+      body.type = nylon ? 'lowpass' : 'peaking';
+      body.frequency.value = nylon ? 2000 : 2400;
       body.gain.value = recorded ? 0 : 3;
       src.connect(body).connect(amp);
-      amp.gain.setValueAtTime(level, time);
+      amp.gain.setValueAtTime(nylon ? level * 0.85 : level, time);
       src.start(time);
       stops.push((t) => src.stop(t));
     } else if (sound === 'epiano') {
@@ -413,6 +474,44 @@ export class Engine {
         o.start(time);
         stops.push((t) => o.stop(t));
       });
+    } else if (sound === 'saw') {
+      // Bright sawtooth lead: two saws a hair apart, only the harshest top filtered off.
+      const f = midiToFreq(note);
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 6000;
+      lp.Q.value = 1;
+      [-5, 5].forEach((cents) => {
+        const o = ctx.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.value = f;
+        o.detune.value = cents;
+        o.connect(lp);
+        o.start(time);
+        stops.push((t) => o.stop(t));
+      });
+      lp.connect(amp);
+      amp.gain.setValueAtTime(0, time);
+      amp.gain.linearRampToValueAtTime(level * 0.3, time + 0.01);
+    } else if (sound === 'swell') {
+      // Swell: a soft pad that fades in over several seconds, for ambient drones.
+      const f = midiToFreq(note);
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 900;
+      lp.Q.value = 0.3;
+      [['sawtooth', -9, 1], ['sawtooth', 9, 1], ['sine', 0, 0.5]].forEach(([type, cents, mult]) => {
+        const o = ctx.createOscillator();
+        o.type = type;
+        o.frequency.value = f * mult;
+        o.detune.value = cents;
+        o.connect(lp);
+        o.start(time);
+        stops.push((t) => o.stop(t));
+      });
+      lp.connect(amp);
+      amp.gain.setValueAtTime(0, time);
+      amp.gain.linearRampToValueAtTime(level * 0.35, time + 3.5);
     } else {
       // pad
       const f = midiToFreq(note);
@@ -434,7 +533,7 @@ export class Engine {
       amp.gain.linearRampToValueAtTime(level * 0.35, time + 0.45);
     }
 
-    const release = LONG_RELEASE.has(sound) ? 1.2 : 0.6;
+    const release = RELEASE[sound] ?? 0.6;
     return (t) => {
       const at = Math.max(t, ctx.currentTime);
       amp.gain.cancelAndHoldAtTime(at);

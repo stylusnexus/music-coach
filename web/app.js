@@ -38,6 +38,7 @@ const state = {
   drone: false,
   bass: false, // bass layer
   bassStyle: 'pump', // 'pump' (new wave) or 'melodic' (post-punk)
+  freeTime: false, // "No beat": no click, drums, bass or arpeggiator; held notes just ring
   halfSpeed: false, // sampler plays slices at half speed
   kit: 'synth', // drum kit id
   grid: { kick: [], snare: [], rim: [], hat: [], openhat: [] }, // "my beat": steps per row
@@ -51,6 +52,7 @@ const state = {
   rec: 'idle', // idle | armed | recording | stopped
   recording: null,
   lastTake: null, // measurements of the most recent take, ready to score
+  holdSince: null, // audio time the keys held now were pressed
 };
 
 // plugins: what lessons may name (installed and not removed, plus plugins added by
@@ -1071,6 +1073,7 @@ function noteOn(note, vel) {
     state.chartStartBar = state.bar + 1;
     highlightChart(false);
   }
+  holdChanged();
   held.add(note);
   checkKey(note);
   latch.press(note, state.arp && state.arpPattern === 'eno');
@@ -1088,6 +1091,7 @@ function noteOn(note, vel) {
 
 function noteOff(note) {
   if (!held.has(note)) return;
+  holdChanged();
   held.delete(note);
   latch.release(note);
   if (!state.arp) {
@@ -1099,6 +1103,19 @@ function noteOff(note) {
   if (held.size) emit({ type: 'held', notes: activeNotes() });
   updateChordDisplay();
   paintKeys();
+}
+
+// How long the keys held right now have been held, for "hold a chord for 8
+// seconds". Reported when they change, and on every beat while they ring.
+function reportHold(ongoing) {
+  if (!held.size || state.holdSince === null || !engine.ctx) return;
+  const seconds = Math.round((engine.ctx.currentTime - state.holdSince) * 10) / 10;
+  emit({ type: 'hold', notes: [...held], seconds, ongoing, freeTime: state.freeTime });
+}
+
+function holdChanged() {
+  reportHold(false);
+  state.holdSince = engine.ctx ? engine.ctx.currentTime : null;
 }
 
 // ---------- clock: arp, drums, click, bars ----------
@@ -1121,7 +1138,7 @@ engine.onStep = (step, time) => {
     });
   }
 
-  if (state.drums) {
+  if (state.drums && !state.freeTime) {
     const p = state.drumPattern === 'my beat' ? state.grid : DRUM_PATTERNS[state.drumPattern];
     for (const kind of DRUM_KINDS) {
       if (p[kind]?.includes(s16)) {
@@ -1131,10 +1148,10 @@ engine.onStep = (step, time) => {
       }
     }
   }
-  if (state.click && s16 % 4 === 0) engine.drum('click', time, s16 === 0 ? 1.4 : 0.8);
+  if (state.click && !state.freeTime && s16 % 4 === 0) engine.drum('click', time, s16 === 0 ? 1.4 : 0.8);
 
   const notes = latch.notes(state.latch);
-  if (state.bass && notes.length) {
+  if (state.bass && !state.freeTime && notes.length) {
     const b = bassNote(notes, step, state.bassStyle);
     if (b !== null) {
       const vel = s16 % 4 === 0 ? 100 : 84;
@@ -1144,7 +1161,7 @@ engine.onStep = (step, time) => {
     }
   }
 
-  if (state.arp && notes.length) {
+  if (state.arp && !state.freeTime && notes.length) {
     const chordHit = Boolean(CHORD_PATTERNS[state.arpPattern]);
     const eno = state.arpPattern === 'eno';
     for (const n of arpNotes(state.arpPattern, notes, step)) {
@@ -1160,7 +1177,8 @@ engine.onStep = (step, time) => {
   if (state.drums && state.drumPattern === 'my beat') engine.atTime(time, () => markGridStep(s16));
   if (s16 % 4 === 0) {
     engine.atTime(time, () => {
-      $('bar').textContent = state.chartRunning ? `bar ${Math.max(1, state.bar - state.chartStartBar + 1)} · beat ${s16 / 4 + 1}` : '';
+      reportHold(true);
+      $('bar').textContent = state.chartRunning && !state.freeTime ? `bar ${Math.max(1, state.bar - state.chartStartBar + 1)} · beat ${s16 / 4 + 1}` : '';
       highlightChart(s16 === 12);
     });
   }
@@ -1173,6 +1191,7 @@ function onBarStart(step, time) {
   const drums = state.drums;
   const { arpPattern: pattern, drumPattern, kit, bass, bassStyle } = state;
   const fx = { ...engine.fx };
+  const { drumFuzz } = engine;
   const sound = engine.sound;
   const loopPlaying = ['playing', 'overdubArmed', 'overdubbing'].includes(looper.status);
   const loopLayers = looper.layers.length;
@@ -1195,8 +1214,8 @@ function onBarStart(step, time) {
     state.bar += 1;
     highlightChart(false);
     // The bar that just finished counts toward "hold this chord for N bars".
-    if (arpOn && notes.length) emit({ type: 'arpBar', notes, drums, pattern, drumPattern, drone, bass, bassStyle, sound, fx });
-    emit({ type: 'bar', drums, drumPattern, kit });
+    if (arpOn && notes.length) emit({ type: 'arpBar', notes, drums, pattern, drumPattern, drone, bass, bassStyle, sound, fx, drumFuzz });
+    emit({ type: 'bar', drums, drumPattern, kit, drumFuzz });
     if (loopPlaying) emit({ type: 'loopBar', layers: loopLayers });
   });
 }
@@ -1418,6 +1437,8 @@ function renderStudio() {
   $('arp').classList.toggle('on', state.arp);
   $('latch').classList.toggle('on', state.latch);
   $('drums').classList.toggle('on', state.drums);
+  $('drum-fuzz').classList.toggle('on', engine.drumFuzz);
+  $('free-time').classList.toggle('on', state.freeTime);
   $('click').classList.toggle('on', state.click);
   $('drone').classList.toggle('on', state.drone);
   $('bass').classList.toggle('on', state.bass);
@@ -1445,15 +1466,33 @@ function applySetup(s) {
   if (s.drone === undefined) state.drone = false;
   if (s.bass === undefined) state.bass = false;
   if (state.bass) loadSound(BASS_SOUND);
+  setFreeTime(Boolean(s.freeTime));
+  engine.setDrumFuzz(Boolean(s.drumFuzz));
   // Never start drums just because a lesson opened: wait for the first note.
   state.drumsWaiting = state.drums;
   state.drums = false;
   if (s.kit) setKit(s.kit);
   // The Durutti chain is on by default; fuzz and reverse reverb only when a lesson asks.
-  const fx = { fuzz: false, chorus: true, echo: true, reverb: true, reverse: false, ...(s.fx || {}) };
+  const fx = { fuzz: false, chorus: true, echo: true, reverb: true, reverse: false, wobble: false, ...(s.fx || {}) };
   for (const [name, on] of Object.entries(fx)) engine.setFx(name, on);
   engine.allOff();
   renderStudio();
+}
+
+// True while anything is sounding: a chord, the drums, or a playing loop.
+function somethingPlaying() {
+  return activeNotes().length > 0 || state.drums || ['playing', 'overdubArmed', 'overdubbing'].includes(looper.status);
+}
+
+// "No beat": the clock keeps running for the chart, but nothing plays on it.
+// The arpeggiator goes off too, so the keys play straight through and ring.
+function setFreeTime(on) {
+  state.freeTime = on;
+  if (!on) return;
+  state.arp = false;
+  state.drums = false;
+  state.click = false;
+  latch.clear();
 }
 
 // Silence everything: held notes, the latched arpeggio chord, and the drums.
@@ -1540,6 +1579,7 @@ function wireStudio() {
   }
   $('arp').onclick = () => {
     state.arp = !state.arp;
+    if (state.arp) state.freeTime = false;
     engine.allOff();
     latch.clear();
     for (const n of held) latch.press(n);
@@ -1561,12 +1601,54 @@ function wireStudio() {
   $('drums').onclick = () => {
     state.drumsWaiting = false;
     state.drums = !state.drums;
+    if (state.drums) state.freeTime = false;
     renderStudio();
   };
   $('click').onclick = () => {
     state.click = !state.click;
+    if (state.click) state.freeTime = false;
     renderStudio();
   };
+  $('drum-fuzz').onclick = () => {
+    engine.setDrumFuzz(!engine.drumFuzz);
+    renderStudio();
+    emit({ type: 'drumFuzz', enabled: engine.drumFuzz });
+  };
+  $('free-time').onclick = () => {
+    setFreeTime(!state.freeTime);
+    state.drumsWaiting = false;
+    engine.allOff();
+    renderStudio();
+    updateChordDisplay();
+    paintKeys();
+    emit({ type: 'freeTime', enabled: state.freeTime });
+  };
+  // Throw: hold for a burst of dub echo; let go and it settles back.
+  const throwBtn = $('throw');
+  const throwOn = () => {
+    if (!engine.ctx || throwBtn.classList.contains('on')) return;
+    throwBtn.classList.add('on');
+    engine.setThrow(true);
+    emit({ type: 'throw', playing: somethingPlaying() });
+  };
+  const throwOff = () => {
+    if (!throwBtn.classList.contains('on')) return;
+    throwBtn.classList.remove('on');
+    engine.setThrow(false);
+  };
+  throwBtn.addEventListener('pointerdown', (e) => {
+    throwBtn.setPointerCapture(e.pointerId);
+    throwOn();
+  });
+  throwBtn.addEventListener('pointerup', throwOff);
+  throwBtn.addEventListener('pointercancel', throwOff);
+  throwBtn.addEventListener('keydown', (e) => {
+    if (e.key !== ' ' && e.key !== 'Enter') return;
+    e.preventDefault();
+    throwOn();
+  });
+  throwBtn.addEventListener('keyup', throwOff);
+  throwBtn.addEventListener('blur', throwOff);
   $('stop').onclick = stopAll;
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') stopAll();
@@ -1630,6 +1712,7 @@ function mixChanged() {
     volumes: { ...mix.volumes },
     pans: { ...mix.pans },
     soloed: MIX_PARTS.filter(([p]) => mix.solo[p]).map(([p]) => p),
+    muted: MIX_PARTS.filter(([p]) => mix.mute[p]).map(([p]) => p),
   });
 }
 
@@ -1651,7 +1734,12 @@ function renderMixer() {
     vol.onchange = () => { mix.volumes[part] = Number(vol.value); mixChanged(); };
     panInput.onchange = () => { mix.pans[part] = Number(panInput.value); mixChanged(); };
     const [m, sBtn] = strip.querySelectorAll('.ms button');
-    m.onclick = () => { mix.mute[part] = !mix.mute[part]; mixChanged(); };
+    m.onclick = () => {
+      mix.mute[part] = !mix.mute[part];
+      mixChanged();
+      // Dropping a part out and back in while the music plays, as dub does.
+      emit({ type: 'mute', part, muted: mix.mute[part], playing: somethingPlaying() });
+    };
     sBtn.onclick = () => { mix.solo[part] = !mix.solo[part]; mixChanged(); };
     box.append(strip);
   }
