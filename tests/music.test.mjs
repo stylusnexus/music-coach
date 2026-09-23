@@ -354,6 +354,22 @@ test('on a bare Mac, sampler lessons open by recording a sound', () => {
   assert.doesNotMatch(tape, /Pick a loop/);
 });
 
+test('optional plugins link to their makers, and no lesson needs them', () => {
+  const makers = ['surge-synthesizer.github.io', 'valhalladsp.com', 'www.ikmultimedia.com', 'github.com'];
+  const withFurther = LESSONS.filter((l) => l.goFurther);
+  assert.ok(withFurther.length >= 4);
+  for (const l of withFurther) {
+    assert.ok(l.goFurther.text && l.goFurther.links.length, l.id);
+    for (const link of l.goFurther.links) {
+      const url = new URL(link.url);
+      assert.equal(url.protocol, 'https:', link.url);
+      assert.ok(makers.includes(url.host), link.url);
+    }
+    // The plugin is extra: every check can be ticked with the app alone.
+    assert.ok(!JSON.stringify(l.checks).match(/plugin/i), l.id);
+  }
+});
+
 test('new-wave bass pumps the root on eighths, jumping an octave on the offbeat', async () => {
   const { bassNote } = await import('../web/music.js');
   const am = [57, 60, 64];
@@ -552,9 +568,9 @@ test('reverse reverb names the IK plugin when installed', () => {
 });
 
 test('lesson order: basics, then quick wins, then styles; every lesson placed once', () => {
-  assert.equal(LESSONS.length, 44);
+  assert.equal(LESSONS.length, 49);
   assert.ok(LESSONS.every(Boolean));
-  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 44);
+  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 49);
   assert.equal(lockReason('looping', {}), null); // a quick win: always open
   assert.deepEqual(SECTIONS.map((s) => s.title), ['Basics', 'Quick wins', 'GarageBand skills', 'Styles', 'Optional']);
   assert.equal(LESSONS[3].id, 'major-minor'); // right after the four chords

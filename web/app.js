@@ -523,7 +523,17 @@ function openLesson(id) {
   saveProgress();
 }
 
+// "Go further": optional free plugins, each linked to its maker's own download page.
+function renderFurther() {
+  const g = lesson.goFurther;
+  const p = $('lesson-further');
+  p.hidden = !g;
+  if (!g) return;
+  p.innerHTML = `<strong>Go further (optional):</strong> ${esc(g.text)} ${g.links.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">Get ${esc(l.name)}</a>`).join(' · ')}`;
+}
+
 function renderSteps() {
+  renderFurther();
   const steps = $('lesson-steps');
   steps.innerHTML = '';
   steps.classList.toggle('guided-steps', Boolean(lesson.guided));

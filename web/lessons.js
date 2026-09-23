@@ -831,6 +831,122 @@ const ALL_LESSONS = [
     ],
   },
   {
+    id: 'synthwave',
+    title: 'Synthwave: neon arpeggios and a gated snare',
+    minutes: 15,
+    why: 'Carpenter Brut, Perturbator and Kavinsky rebuilt the sound of 1980s film scores and arcade games: a bright saw-wave arpeggio racing up the chord, a bass that pumps between low and high notes on every sixteenth, and a huge snare cut off short by a noise gate. Minor chords that move down in steps give it the night-drive feel.',
+    steps: [
+      'Saw lead, pattern "up", Arp and Latch on, drums on "synthwave", Bass on with the style "octave pump", 100 BPM. Tap A minor (A C E).',
+      'Listen to the snare: a big hit that stops dead. That is the gated snare every 80s record had.',
+      'Follow the chart: Am, F (F A C), C (C E G), G (G B D). It walks down, then climbs back.',
+      'Pull the Filter down for the first 4 bars, then open it all the way when the chart comes round again.',
+      'In GarageBand: put the arpeggio on a bright synth lead from the Library, the bass on an analog synth bass, and add a big reverb to the drums.',
+    ],
+    // Optional plugins, linked to each maker's own page. The lesson never needs them.
+    goFurther: { text: 'Surge XT, a free synth, and Valhalla Supermassive, a free reverb, get closer to the records. Install them, then add them in a GarageBand track\'s plug-in slot.', links: [{ name: 'Surge XT', url: 'https://surge-synthesizer.github.io/' }, { name: 'Valhalla Supermassive', url: 'https://valhalladsp.com/shop/reverb/valhalla-supermassive/' }] },
+    setup: { sound: 'saw', arp: true, latch: true, arpPattern: 'up', drums: true, drumPattern: 'synthwave', bass: true, bassStyle: 'octave16', bpm: 100, fx: { chorus: true, echo: true, reverb: true } },
+    chart: ['Am', 'Am', 'F', 'F', 'C', 'C', 'G', 'G'],
+    checks: [
+      { type: 'drumBars', drumPattern: 'synthwave', bars: 4, label: '4 bars over the gated snare' },
+      { type: 'bassBars', bassStyle: 'octave16', bars: 4, label: '4 bars of the octave pump bass' },
+      { type: 'arpBars', chord: 'Am', pattern: 'up', bars: 2, label: '2 bars of A minor racing up' },
+      { type: 'arpBars', chord: 'F', bars: 2, label: '2 bars of F' },
+      { type: 'arpBars', chord: 'G', bars: 2, label: '2 bars of G' },
+    ],
+  },
+  {
+    id: 'metal',
+    title: 'Metal: slow, heavy power chords',
+    minutes: 15,
+    why: 'Black Sabbath invented heavy metal by playing punk\'s two-note power chords slowly, through a loud fuzz, and leaning on the tritone: two notes six half steps apart, so unsettled that medieval musicians called it the devil\'s interval. Doom bands like Sleep and Electric Wizard slowed it down even further. The weight comes from space between the hits.',
+    steps: [
+      'Guitar, pattern "eighths", Arp and Latch on, Fuzz on, drums on "simple", 66 BPM. Play the power chord E5: E and B together.',
+      'Now A#5: the black key just above A with the F above it. E to A# is the tritone. Hear how it refuses to settle.',
+      'Follow the chart: E5, E5, G5 (G and D), A#5. Let each chord ring and let the drums crawl.',
+      'Try Fuzz on drums too: the whole band goes through the same dirt.',
+      'In GarageBand: put the sketch on a distorted electric guitar from the Library, or add {amp} to a guitar track, and turn the gain up.',
+    ],
+    // Optional plugins, linked to each maker's own page. The lesson never needs them.
+    goFurther: { text: 'AmpliTube 5 CS, free from IK Multimedia, adds more amps and speaker cabinets for a heavier tone.', links: [{ name: 'AmpliTube 5 CS', url: 'https://www.ikmultimedia.com/products/amplitube5cs/' }] },
+    setup: { sound: 'guitar', arp: true, latch: true, arpPattern: 'eighths', drums: true, drumPattern: 'simple', bpm: 66, fx: { fuzz: true, chorus: false, echo: false, reverb: true } },
+    chart: ['E5', 'E5', 'E5', 'E5', 'G5', 'G5', 'A#5', 'A#5'],
+    checks: [
+      { type: 'arpBars', chord: 'E5', fx: ['fuzz'], bars: 2, label: '2 bars of E5 with fuzz' },
+      { type: 'arpBars', chord: 'A#5', bars: 2, label: '2 bars on the tritone, A#5' },
+      { type: 'arpBars', chord: 'G5', bars: 2, label: '2 bars of G5' },
+      { type: 'drumBars', drumPattern: 'simple', bars: 4, label: '4 slow bars with the drums' },
+    ],
+  },
+  {
+    id: 'techno',
+    title: 'Techno: a machine that never stops',
+    minutes: 15,
+    why: 'Detroit techno, from Underground Resistance and Jeff Mills, and Berlin after it, is music made by machines and meant to run for hours: a kick on every beat, one short synth pattern on a single minor chord, and change that comes only from slowly opening and closing a filter. Less is more; repetition is the point.',
+    steps: [
+      'Saw lead, pattern "sequence", Arp and Latch on, drums on "house", Bass on with the style "octave pump", 130 BPM. Tap A minor (A C E) and leave it latched.',
+      'Pull the Filter nearly closed. The pattern turns into a dark pulse.',
+      'Open the Filter slowly over 8 bars, then close it again over 8 more. That rise and fall is the whole arrangement.',
+      'Switch Bass off for 4 bars, then back on. When it returns, it hits like a drop.',
+      'In GarageBand: put the pattern on a synth from the Library, the drums on an electronic kit, and automate the filter on the synth\'s Smart Controls.',
+    ],
+    // Optional plugins, linked to each maker's own page. The lesson never needs them.
+    goFurther: { text: 'The squelchy acid sound of Chicago acid house comes from Roland\'s TB-303 bass machine. JC303 is a free copy of it; its page explains the extra step macOS needs before it opens.', links: [{ name: 'JC303', url: 'https://github.com/midilab/jc303' }] },
+    setup: { sound: 'saw', arp: true, latch: true, arpPattern: 'sequence', drums: true, drumPattern: 'house', bass: true, bassStyle: 'octave16', bpm: 130, brightness: 0.35, fx: { chorus: false, echo: true, reverb: true } },
+    chart: ['Am', 'Am', 'Am', 'Am', 'Am', 'Am', 'Am', 'Am'],
+    checks: [
+      { type: 'drumBars', drumPattern: 'house', bars: 8, label: '8 bars of the kick on every beat' },
+      { type: 'arpBars', chord: 'Am', pattern: 'sequence', bars: 4, label: '4 bars of the A minor pattern' },
+      { type: 'filterSweep', label: 'Filter: close it, then open it slowly' },
+      { type: 'bassBars', bassStyle: 'octave16', bars: 4, label: '4 bars with the rolling bass' },
+    ],
+  },
+  {
+    id: 'downtempo',
+    title: 'Downtempo: slow beats, dub echoes, jazzy chords',
+    minutes: 15,
+    why: 'Kruder & Dorfmeister slowed hip-hop beats right down and mixed in dub\'s echoes and jazz\'s soft 7th chords, and Massive Attack and Portishead made the darker version, trip-hop. It is music for late at night: a broken beat that drags a little, a deep bass, and chords that never quite resolve.',
+    steps: [
+      'E-Piano, pattern "ripple", Arp and Latch on, drums on "breakbeat", Bass on with the style "sub", 88 BPM, a little Swing. Tap Dm7 (D F A C).',
+      'Hear the beat: a sped-up breakbeat slowed right down becomes a heavy, lazy groove.',
+      'Follow the chart: Dm7, then Gm7 (G A# D F). Two soft chords are enough for a whole track.',
+      'Hold Throw (in Effects) on a few single notes, the dub way, and let them echo away.',
+      'Optional: switch the sound to Sampler, press ● Record a sound and hum a low note or tap a table, then play slices over the beat.',
+      'In GarageBand: put the chords on an electric piano, the drums on a vintage kit, and add a long echo to the chords.',
+    ],
+    // Optional plugins, linked to each maker's own page. The lesson never needs them.
+    goFurther: { text: 'Valhalla Supermassive, a free reverb and echo, makes the wide, washed-out space these records live in.', links: [{ name: 'Valhalla Supermassive', url: 'https://valhalladsp.com/shop/reverb/valhalla-supermassive/' }] },
+    setup: { sound: 'epiano', arp: true, latch: true, arpPattern: 'ripple', drums: true, drumPattern: 'breakbeat', bass: true, bassStyle: 'sub', swing: 0.3, bpm: 88, brightness: 0.6, fx: { chorus: false, echo: true, reverb: true } },
+    chart: ['Dm7', 'Dm7', 'Dm7', 'Dm7', 'Gm7', 'Gm7', 'Gm7', 'Gm7'],
+    checks: [
+      { type: 'drumBars', drumPattern: 'breakbeat', bars: 4, label: '4 bars of the slow breakbeat' },
+      { type: 'arpBars', chord: 'Dm7', bars: 2, label: '2 bars of Dm7' },
+      { type: 'arpBars', chord: 'Gm7', bars: 2, label: '2 bars of Gm7' },
+      { type: 'throws', count: 2, label: 'Throw the echo twice' },
+    ],
+  },
+  {
+    id: 'reggae',
+    title: 'Reggae: the skank and the one drop',
+    minutes: 15,
+    why: 'Bob Marley, Toots and the Maytals and Burning Spear built reggae on three things: a short, choppy guitar chord on beats 2 and 4 called the skank, a bass that sings its own melody, and the one-drop beat, with nothing on beat 1 and the kick landing on beat 3. Dub later took this exact groove apart; this is the groove whole.',
+    steps: [
+      'Guitar, pattern "skank", Arp and Latch on, drums on "one drop", Bass on with the style "melodic", 76 BPM. Tap C major (C E G).',
+      'Count 1, 2, 3, 4: the guitar chops on 2 and 4, and the kick waits for 3. Everything leans back.',
+      'Follow the chart: C, F (F A C), G (G B D), F. Three happy major chords, the Toots way.',
+      'Listen to the bass: it plays a tune under the chords, not just the root.',
+      'In GarageBand: put the chops on a clean electric guitar, the bass on a round electric bass, and the drums on a vintage kit.',
+    ],
+    setup: { sound: 'guitar', arp: true, latch: true, arpPattern: 'skank', drums: true, drumPattern: 'one drop', bass: true, bassStyle: 'melodic', bpm: 76, fx: { chorus: false, echo: false, reverb: true } },
+    chart: ['C', 'C', 'F', 'F', 'G', 'G', 'F', 'F'],
+    checks: [
+      { type: 'arpBars', chord: 'C', pattern: 'skank', bars: 2, label: '2 bars of the C major skank' },
+      { type: 'drumBars', drumPattern: 'one drop', bars: 4, label: '4 bars of the one drop' },
+      { type: 'arpBars', chord: 'F', bars: 2, label: '2 bars of F' },
+      { type: 'arpBars', chord: 'G', bars: 2, label: '2 bars of G' },
+      { type: 'bassBars', bassStyle: 'melodic', bars: 4, label: '4 bars with the singing bass' },
+    ],
+  },
+  {
     id: 'gb-map',
     title: 'GarageBand: the map',
     minutes: 10,
@@ -1056,7 +1172,7 @@ export const SECTIONS = [
   {
     title: 'Styles',
     note: 'Locked until you finish the Basics: these assume you can tap chords and follow a chart. Suggested path: Kosmische, then Ambient, then Dark ambient. The rest in any order.',
-    ids: ['kosmische', 'ambient-eno', 'dark-ambient', 'stereolab', 'new-wave', 'post-punk', 'shoegaze', 'folk', 'bossa-nova', 'minimal-wave', 'classical-minimalism', 'punk', 'house', 'ambient-techno', 'gothic-rock', 'lofi-hip-hop', 'dub', 'ambient-drone', 'afrobeat'],
+    ids: ['kosmische', 'ambient-eno', 'dark-ambient', 'stereolab', 'new-wave', 'synthwave', 'post-punk', 'shoegaze', 'folk', 'bossa-nova', 'minimal-wave', 'classical-minimalism', 'punk', 'metal', 'house', 'techno', 'ambient-techno', 'gothic-rock', 'lofi-hip-hop', 'downtempo', 'reggae', 'dub', 'ambient-drone', 'afrobeat'],
     requiresSection: 'Basics',
   },
   {
@@ -1110,6 +1226,17 @@ export const STYLE_INFO = {
     betterWith: [{ any: ['tag:synth', 'sound:moog-bass'], label: 'a simple synth plugin' }] },
   'classical-minimalism': { name: 'Classical minimalism', artists: 'Arvo Pärt, Philip Glass', sound: 'A small piano pattern repeating over one long low note.', texture: 'drone',
     betterWith: [{ any: ['gear:reverb'], label: 'a reverb plugin' }] },
+  synthwave: { name: 'Synthwave', artists: 'Carpenter Brut, Kavinsky', sound: 'A neon arpeggio, a pumping octave bass and a big gated snare.', texture: 'synth',
+    betterWith: [{ any: ['tag:synth'], label: 'a synth plugin' }, { any: ['gear:reverb'], label: 'a big reverb plugin' }] },
+  metal: { name: 'Metal', artists: 'Black Sabbath, Sleep', sound: 'Slow, fuzzed power chords and the unsettling tritone.', texture: 'chord',
+    betterWith: [{ any: ['gear:amp', 'gear:fuzz'], label: 'an amp plugin' }] },
+  techno: { name: 'Techno', artists: 'Underground Resistance, Jeff Mills', sound: 'A kick on every beat and one synth pattern shaped by a filter.', texture: 'groove',
+    betterWith: [{ any: ['tag:synth', 'sound:moog-bass'], label: 'a synth plugin' }, { any: ['tag:drums'], label: 'a drum machine plugin' }] },
+  downtempo: { name: 'Downtempo', artists: 'Kruder & Dorfmeister, Massive Attack', sound: 'A slow broken beat, deep bass, soft 7th chords and dub echoes.', texture: 'groove',
+    betterWith: [{ any: ['gear:echo'], label: 'an echo plugin' }, { any: ['gear:reverb'], label: 'a reverb plugin' }],
+    matches: ['folder', 'tag:microphone'] },
+  reggae: { name: 'Reggae', artists: 'Bob Marley, Toots and the Maytals', sound: 'A choppy guitar on 2 and 4, a singing bass and the one-drop beat.', texture: 'groove',
+    betterWith: [{ any: ['tag:bass'], label: 'a bass plugin' }] },
   shoegaze: { name: 'Shoegaze', artists: 'My Bloody Valentine, Slowdive', sound: 'A wall of fuzz, and reverb that swells up backwards into each note.', texture: 'chord',
     betterWith: [{ any: ['gear:reverse'], label: 'a reverse reverb plugin' }, { any: ['gear:amp', 'gear:fuzz'], label: 'an amp plugin' }] },
 };
@@ -1120,6 +1247,17 @@ export const STYLE_INFO = {
 // Checked by hand: each is the artist's or label's official Bandcamp page. Where the
 // artists on a card aren't on Bandcamp, it is the closest honest match that is.
 export const LISTEN = {
+  synthwave: [{ artist: 'Carpenter Brut', title: 'TRILOGY', url: 'https://carpenterbrut.bandcamp.com/album/trilogy', kind: 'album', id: 2411281348 }],
+  metal: [{ artist: 'Saint Vitus', title: 'Saint Vitus', url: 'https://saintvitus.bandcamp.com/album/saint-vitus', kind: 'album', id: 2138836463 }],
+  techno: [{ artist: 'Robert Hood', title: 'Internal Empire', url: 'https://roberthood.bandcamp.com/album/internal-empire', kind: 'album', id: 213323772 }],
+  downtempo: [
+    { artist: 'Kruder & Dorfmeister', title: 'The K&D Sessions', url: 'https://kruderanddorfmeister.bandcamp.com/album/kruder-dorfmeister-the-k-d-sessions-tm-25th-anniversary-boxset-edition', kind: 'album', id: 462164280 },
+    { artist: 'Thievery Corporation', title: 'Symphonik', url: 'https://thieverycorporation.bandcamp.com/album/symphonik-2', kind: 'album', id: 2064461360 },
+  ],
+  reggae: [
+    { artist: 'The Congos', title: 'Reggae Revival', url: 'https://thecongos.bandcamp.com/album/reggae-revival', kind: 'album', id: 1629080321 },
+    { artist: 'Culture', title: 'Africa Stand Alone', url: 'https://culturereggae.bandcamp.com/album/africa-stand-alone', kind: 'album', id: 932890210 },
+  ],
   folk: [{ artist: 'Vashti Bunyan', title: 'Lookaftering', url: 'https://fatcatrecords.bandcamp.com/album/lookaftering', kind: 'album', id: 3414026607 }],
   punk: [{ artist: 'Amyl and the Sniffers', title: 'Amyl and the Sniffers', url: 'https://amylandthesniffers.bandcamp.com/album/amyl-and-the-sniffers', kind: 'album', id: 513673940 }],
   house: [{ artist: 'Mr. Fingers', title: 'Cerebral Hemispheres', url: 'https://alleviatedrecords.bandcamp.com/album/mr-fingers-cerebral-hemispheres', kind: 'album', id: 1094426324 }],
@@ -1164,9 +1302,9 @@ export function bandcampEmbed(listen, slim = false) {
 // then the other starters, then styles that suit more gear or come later in skill.
 export const PICKER_ORDER = [
   'folk', 'punk', 'house', 'lofi-hip-hop', 'ambient-drone', 'dub',
-  'kosmische', 'shoegaze', 'ambient-techno', 'afrobeat',
+  'kosmische', 'shoegaze', 'ambient-techno', 'afrobeat', 'synthwave', 'downtempo',
   'bossa-nova', 'stereolab', 'post-punk', 'gothic-rock', 'minimal-wave', 'classical-minimalism',
-  'ambient-eno', 'new-wave', 'dark-ambient',
+  'reggae', 'metal', 'techno', 'ambient-eno', 'new-wave', 'dark-ambient',
 ];
 
 // True when this Mac has gear that changes what a style's lesson can do (its `matches`).

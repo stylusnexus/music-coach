@@ -394,6 +394,9 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 .diff h3 { margin: 4px 0 6px; font-size: 14px; }
 .diff ul { margin: 0 0 4px; padding-left: 18px; }
 .better { font-size: 13px; color: var(--muted); margin: 4px 0 10px; }
+.further { font-size: 14px; color: var(--muted); margin: 10px 0; }
+.further strong { color: var(--text); }
+.further[hidden] { display: none; }
 .lessons .unlock-row { padding: 0 0 6px 34px; font-size: 12px; }
 .lessons .styles-toggle { padding: 4px 0 8px; font-size: 13px; }
 .section-head .link { font-size: 12px; margin-left: 6px; }
