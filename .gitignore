@@ -1,0 +1,6 @@
+data/
+sketches/
+.DS_Store
+__pycache__/
+dist/
+PLAN.md

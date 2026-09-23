@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Music Coach</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="start" class="start">
+    <div class="start-card">
+      <h1>Music Coach</h1>
+      <p>Browsers only play sound after a click.</p>
+      <button id="start-btn" class="primary big">Start</button>
+    </div>
+  </div>
+
+  <header class="top">
+    <h1>Music Coach</h1>
+    <span id="midi-status" class="pill">Looking for keyboard…</span>
+    <button id="ear-btn" class="ghost">Ear lab</button>
+    <button id="chords-btn" class="ghost">Chords</button>
+    <button id="gear-btn" class="ghost">Your gear</button>
+    <button id="coach-top" class="ghost" title="Which model answers your questions: a model on this Mac, or your own API key">Coach model<span id="coach-top-state" class="coach-state" hidden> · not set up</span></button>
+  </header>
+
+  <div class="layout">
+    <nav class="lessons" aria-label="Lessons">
+      <h2>Lessons</h2>
+      <ol id="lesson-list"></ol>
+    </nav>
+
+    <main>
+      <section class="lesson" aria-live="polite">
+        <div class="lesson-head">
+          <h2 id="lesson-title"></h2>
+          <span id="lesson-minutes" class="muted"></span>
+          <button id="popout" class="ghost popout" hidden title="Keep the steps in a small window on top of GarageBand">⧉ Pop out steps</button>
+        </div>
+        <p id="lesson-why" class="why"></p>
+        <ol id="lesson-steps" class="steps"></ol>
+        <ul id="lesson-checks" class="checks"></ul>
+        <div id="lesson-done" class="done" hidden>
+          <strong>Lesson complete.</strong>
+          <button id="next-lesson" class="primary">Next lesson →</button>
+        </div>
+      </section>
+
+      <section class="now">
+        <div class="chord-display">
+          <div id="chord-name" class="chord-name">—</div>
+          <div id="chord-notes" class="muted">Play something</div>
+        </div>
+        <div id="chart" class="chart" hidden></div>
+        <div id="lesson-wheel" class="lesson-wheel" hidden></div>
+      </section>
+
+      <section class="keyboard-wrap">
+        <div class="key-bar">
+          <label for="key-select">Key</label>
+          <select id="key-select"><option value="">Off</option></select>
+          <span id="key-notes" class="muted"></span>
+          <span id="key-warning" class="key-warning" aria-live="polite"></span>
+          <button id="find-key" class="ghost">Find a song's key by ear</button>
+          <button id="prog-open" class="ghost">Build a progression</button>
+        </div>
+        <div id="finder" class="finder" hidden>
+          <p class="muted">Play a song in your music player and listen to the <strong>chorus</strong>, the steadiest part. Click notes below: each holds quietly under the song. The one that feels like home, settled and at rest, is the key. A heavy bass line can pull you to the wrong note, so trust the note that feels finished.</p>
+          <div id="finder-notes" class="finder-notes"></div>
+          <div class="finder-row">
+            <span class="muted">Then its mood:</span>
+            <button id="finder-major">Major</button>
+            <button id="finder-minor">Minor</button>
+            <button id="finder-use" class="primary" disabled>Use this key</button>
+            <button id="finder-stop" class="ghost">Stop the note</button>
+          </div>
+          <p class="muted small">If neither major nor minor fits, some songs don't want to pick one. That's real, not you failing. (Devo's "Whip It" is one; we'll come back to it.)</p>
+        </div>
+        <div id="key-chords" class="key-chords" hidden></div>
+        <div id="keyboard" class="keyboard" aria-label="Keyboard"></div>
+        <p class="hint muted">No keyboard? Computer keys <kbd>A</kbd>–<kbd>K</kbd> play white notes from middle C, <kbd>W E T Y U</kbd> black; the bottom row <kbd>Z</kbd>–<kbd>,</kbd> plays the octave below. <kbd>−</kbd>/<kbd>=</kbd> change octave.</p>
+      </section>
+
+      <section class="studio" aria-label="Studio controls">
+        <div class="group">
+          <label>Sound</label>
+          <div class="seg" id="sound">
+            <button data-v="guitar">Guitar</button><button data-v="epiano">E-Piano</button><button data-v="pad">Pad</button>
+          </div>
+        </div>
+        <div class="group">
+          <label for="bpm">Tempo <span id="bpm-val"></span></label>
+          <input id="bpm" type="range" min="60" max="140" step="1">
+        </div>
+        <div class="group">
+          <label>Effects</label>
+          <div class="toggles">
+            <button class="toggle" data-fx="fuzz">Fuzz</button>
+            <button class="toggle" data-fx="chorus">Chorus</button>
+            <button class="toggle" data-fx="echo">Echo</button>
+            <button class="toggle" data-fx="reverb">Reverb</button>
+            <button class="toggle" data-fx="reverse">Reverse reverb</button>
+          </div>
+          <p id="fx-note" class="fx-note muted"></p>
+        </div>
+        <div class="group">
+          <label>Arpeggiator</label>
+          <div class="toggles">
+            <button class="toggle" id="arp">Arp</button>
+            <button class="toggle" id="latch">Latch</button>
+            <button id="stop" title="Stop all sound (Esc)">■ Stop</button>
+            <select id="arp-pattern"></select>
+          </div>
+        </div>
+        <div class="group">
+          <label for="filter">Layers and filter</label>
+          <div class="toggles">
+            <button class="toggle" id="drone" title="A long low string note under your chord">Drone</button>
+            <button class="toggle" id="bass" title="A bass line that follows your chord">Bass</button>
+            <select id="bass-style" aria-label="Bass style">
+              <option value="pump">pump (new wave)</option>
+              <option value="melodic">melodic (post-punk)</option>
+            </select>
+            <input id="filter" type="range" min="0" max="100" step="1" aria-label="Filter: dark to bright">
+          </div>
+        </div>
+        <div class="group looper-group">
+          <label>Loop <span id="looper-info" class="muted"></span></label>
+          <div class="toggles">
+            <button id="looper-btn" class="looper-btn">↻ Record loop</button>
+            <select id="looper-bars" aria-label="Loop length">
+              <option value="2">2 bars</option>
+              <option value="4">4 bars</option>
+            </select>
+            <button id="looper-undo" disabled>Undo layer</button>
+            <button id="looper-clear" class="ghost" disabled>Clear loop</button>
+          </div>
+        </div>
+        <div class="group">
+          <label>Drums</label>
+          <div class="toggles">
+            <button class="toggle" id="drums">Drums</button>
+            <select id="drum-pattern" aria-label="Drum pattern"></select>
+            <select id="drum-kit" aria-label="Drum kit"><option value="synth">Built-in kit</option></select>
+            <button class="toggle" id="click">Click</button>
+          </div>
+        </div>
+        <div class="group">
+          <label>Record <span id="bar" class="muted"></span></label>
+          <div class="toggles">
+            <button id="record" class="rec">● Record</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="prog" class="prog" hidden aria-label="Build a progression">
+        <div class="beat-head">
+          <h2>Build a progression</h2>
+          <span class="muted">Four chords, one bar each, looping with your sound, arpeggiator and drums. Any chord is allowed; the key's friendly ones are listed below.</span>
+        </div>
+        <div id="prog-slots" class="prog-slots"></div>
+        <div id="prog-chords" class="buttons prog-chords"></div>
+        <div class="buttons">
+          <button id="prog-play" class="primary">▶ Play the loop</button>
+          <button id="prog-save">Save as a sketch</button>
+          <span id="prog-note" class="muted"></span>
+        </div>
+      </section>
+
+      <section id="mixer" class="mixer" hidden aria-label="Mixer">
+        <div class="beat-head">
+          <h2>Mixer</h2>
+          <span class="muted">Each part's volume and left-right position. M = mute, S = solo (hear only this).</span>
+        </div>
+        <div id="mixer-strips" class="mixer-strips"></div>
+      </section>
+
+      <section id="beat" class="beat" hidden aria-label="Beat grid">
+        <div class="beat-head">
+          <h2>My beat</h2>
+          <span class="muted">Click a box to add or remove a hit. Boxes 1, 5, 9, 13 are the beats you count.</span>
+          <button id="grid-clear" class="ghost">Clear</button>
+        </div>
+        <div id="grid" class="grid"></div>
+      </section>
+
+      <section id="sampler" class="sampler" hidden aria-label="Sampler">
+        <div class="beat-head">
+          <h2>Sampler</h2>
+          <select id="loop" aria-label="Loop to cut up"><option value="">Pick a loop…</option></select>
+          <button class="toggle" id="reverse">Reverse</button>
+          <button class="toggle" id="half-speed" title="Slower and an octave lower">Half speed</button>
+          <button id="mic-rec" class="rec" title="Record up to 8 seconds from your microphone and cut it up">● Record a sound</button>
+        </div>
+        <canvas id="wave" class="wave" width="1200" height="140" aria-label="The loop, cut into 8 slices"></canvas>
+        <div id="slice-keys" class="slice-keys"></div>
+        <p id="loop-info" class="muted"></p>
+      </section>
+
+      <section id="take" class="take" hidden aria-live="polite">
+        <div class="beat-head">
+          <h2>Take coach</h2>
+          <span id="take-info" class="muted"></span>
+          <button id="score" class="primary">Score this take</button>
+        </div>
+        <div id="report" class="report"></div>
+      </section>
+
+      <section id="save-row" class="save-row" hidden>
+        <span id="save-info"></span>
+        <input id="sketch-name" placeholder="Name this sketch" maxlength="60">
+        <button id="save" class="primary">Save sketch</button>
+        <button id="discard" class="ghost">Discard</button>
+      </section>
+    </main>
+
+    <aside class="side">
+      <section class="ask">
+        <h2>Ask the coach <button id="coach-btn" class="info-btn" title="Coach settings: which model answers">⚙</button></h2>
+        <textarea id="question" rows="3" placeholder="e.g. Why does my chord sound muddy?"></textarea>
+        <div class="toggles">
+          <button id="ask" class="primary">Ask</button>
+          <button id="next-step">What should I do next?</button>
+        </div>
+        <div id="answer" class="answer" hidden></div>
+      </section>
+      <section class="scores">
+        <h2>Recent scores</h2>
+        <ul id="score-list"><li class="muted">Record a take, then press Score.</li></ul>
+      </section>
+      <section class="sketches">
+        <h2>Sketches <button id="sketches-info" class="info-btn" aria-expanded="false" aria-controls="sketches-help" title="What are sketches?">ⓘ</button></h2>
+        <p id="sketches-help" class="info-text" hidden>A sketch is a short recording of what you played, saved as a MIDI file: the notes, not the sound. Make one with ● Record (or Save as a sketch in Build a progression). Press Show in Finder, then drag the file into GarageBand: it becomes tracks you can give any sound, fix in the Piano Roll, and build into a song. Show in Finder also shows you the folder where sketches are kept.</p>
+        <ul id="sketch-list"><li class="muted">None yet. The recording lesson makes your first.</li></ul>
+      </section>
+    </aside>
+  </div>
+
+  <dialog id="ear-dialog" class="ear-dialog">
+    <h2>Ear lab</h2>
+    <div id="ear-tabs" class="ear-tabs"></div>
+    <p id="ear-intro" class="muted"></p>
+    <div class="ear-play"><button id="ear-play" class="big">▶ Play it again</button><span id="ear-dots" class="ear-dots" title="Your last answers"></span></div>
+    <div id="ear-choices" class="ear-choices"></div>
+    <p id="ear-feedback" class="ear-feedback" aria-live="polite"></p>
+    <form method="dialog"><button class="ghost">Close</button></form>
+  </dialog>
+
+  <dialog id="chord-dialog" class="chord-dialog">
+    <h2>Chords</h2>
+    <p id="chord-dialog-note" class="muted">Click any chord or pair to hear it.</p>
+    <div id="chord-body"></div>
+    <form method="dialog"><button class="primary">Close</button></form>
+  </dialog>
+
+  <dialog id="shot-dialog" class="shot-dialog">
+    <div id="shot-body"></div>
+    <form method="dialog"><button class="primary">Close</button></form>
+  </dialog>
+
+  <dialog id="gear-dialog" class="gear-dialog">
+    <h2>Your gear</h2>
+    <div id="gear-welcome" class="gear-welcome" hidden>
+      <p><strong>Welcome.</strong> Tell the coach what you have, so lessons can name your own gear. All of it is optional: the app works with none of it, and you can change it any time under Your gear.</p>
+      <button id="welcome-coach" type="button">Set up the coach model</button>
+    </div>
+    <section class="gear-add" aria-label="Add gear">
+      <div id="gear-drop" class="gear-drop">Drag a plugin here, or <button id="gear-folder" type="button">Choose a folder of samples…</button></div>
+      <form id="gear-hand" class="gear-hand">
+        <label for="gear-name">Add by hand</label>
+        <input id="gear-name" placeholder="e.g. Akai MPK Mini, studio headphones, a microphone" maxlength="80" autocomplete="off">
+        <select id="gear-tag" aria-label="What it is for"></select>
+        <button class="primary">Add</button>
+      </form>
+      <p id="gear-drop-note" class="muted small" aria-live="polite"></p>
+    </section>
+    <input id="gear-search" type="search" placeholder="Search: reverb, bass, IK, chord…" aria-label="Search your gear">
+    <div id="gear-body"></div>
+    <div id="gear-toast" class="toast" role="status" hidden><span></span><button type="button">Undo</button></div>
+    <form method="dialog"><button class="primary">Close</button></form>
+  </dialog>
+
+  <dialog id="coach-dialog" class="coach-dialog">
+    <h2>Coach settings</h2>
+    <p class="muted">The coach model answers questions and writes the summary under a take's scores. The scores, lessons and everything else work without it.</p>
+    <fieldset class="coach-providers">
+      <legend>Which model answers</legend>
+      <label><input type="radio" name="coach-provider" value="local"> A model on this Mac, in LM Studio</label>
+      <label><input type="radio" name="coach-provider" value="openai"> OpenAI, with your API key</label>
+      <label><input type="radio" name="coach-provider" value="anthropic"> Anthropic, with your API key</label>
+      <label><input type="radio" name="coach-provider" value="other"> Another service that works like OpenAI's (Ollama, OpenRouter…)</label>
+    </fieldset>
+    <div id="coach-url-row" class="coach-row"><label for="coach-url">Address</label><input id="coach-url" placeholder="http://localhost:11434/v1" autocomplete="off"></div>
+    <div id="coach-key-row" class="coach-row"><label for="coach-key">API key</label><input id="coach-key" type="password" placeholder="Paste your key" autocomplete="off"><span id="coach-key-state" class="muted small"></span><button id="coach-forget" type="button" class="ghost">Forget key</button></div>
+    <div id="coach-model-row" class="coach-row"><label for="coach-model">Model</label><input id="coach-model" autocomplete="off"><span id="coach-model-hint" class="muted small"></span></div>
+    <p class="muted small">Your key is saved only on this Mac, in the app's data folder, readable by your account only. It is sent only to the service you picked.</p>
+    <div class="buttons"><button id="coach-save" class="primary">Save</button><button id="coach-test">Save and test</button><span id="coach-status" aria-live="polite"></span></div>
+    <form method="dialog"><button class="ghost">Close</button></form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

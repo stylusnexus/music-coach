@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Start Music Coach and open it in Chrome (Safari has no MIDI keyboard support).
+cd "$(dirname "$0")"
+PORT="${COACH_PORT:-8765}"
+if ! curl -s -o /dev/null "http://localhost:$PORT/"; then
+  python3 server.py &
+  sleep 1
+fi
+open -a "Google Chrome" "http://localhost:$PORT/"
+wait
