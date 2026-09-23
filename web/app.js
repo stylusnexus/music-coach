@@ -2436,7 +2436,9 @@ async function openCompare(t) {
   const box = $('compare');
   box.innerHTML = '<p class="muted">Loading your takes…</p>';
   const takes = await loadJson(`/api/takes?lesson=${encodeURIComponent(t.lesson)}`, []);
-  const pairs = comparePairs(takes, progress.completed[lesson.id]);
+  // The take's own lesson, not whichever lesson is open now.
+  const own = LESSONS.find((l) => l.title === t.lesson);
+  const pairs = comparePairs(takes, own && progress.completed[own.id]);
   if (!pairs) {
     box.innerHTML = '<p class="muted">Record another take of this lesson to compare.</p>';
     return;
@@ -2451,7 +2453,9 @@ async function openCompare(t) {
   show();
 }
 
+let compareSeq = 0;
 async function renderComparison(lessonTitle, takes, older, latest) {
+  const seq = ++compareSeq; // a slow answer for an earlier pair must not land under a newer one
   const a = takes.find((x) => x.take === older);
   const b = takes.find((x) => x.take === latest);
   const rows = compareCards(a.report.scorecard, b.report.scorecard)
@@ -2466,7 +2470,7 @@ async function renderComparison(lessonTitle, takes, older, latest) {
       body: JSON.stringify({ lesson: lessonTitle, a: older, b: latest }),
     });
     const body = await res.json();
-    if (!$('compare-words')) return;
+    if (seq !== compareSeq || !$('compare-words')) return;
     if (!res.ok) {
       $('compare-words').textContent = body.noModel
         ? "These scores come from the app's own rules. For a written comparison, set up a coach model: press Coach model at the top."
@@ -2503,7 +2507,7 @@ function tutorContext() {
   const remaining = checker.progress().filter((p) => !p.done).map((p) => p.label);
   const notStarted = LESSONS.filter((l) => !progress.completed[l.id] && l.id !== lesson.id && !lockReason(l.id, progress.completed, progress.unlocked)).slice(0, 4).map((l) => l.title);
   const sketches = [...$('sketch-list').querySelectorAll('li span')].map((s) => s.textContent);
-  const scores = recentTakes.slice(-3).map((t) => `${t.lesson}: ${t.report.overall}/10 (next: ${t.report.one_change})`);
+  const scores = recentTakes.slice(-3).map((t) => `${t.report.overall == null ? `${t.lesson}: scored by the app's rules only` : `${t.lesson}: ${t.report.overall}/10 (next: ${t.report.one_change})`}`);
   return [
     `Finished lessons: ${done.join('; ') || 'none yet'}.`,
     `Current lesson: ${lesson.title}. Steps still to do: ${remaining.join('; ') || 'none, it is complete'}.`,

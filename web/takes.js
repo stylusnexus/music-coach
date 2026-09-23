@@ -167,7 +167,10 @@ export function compareCards(a, b) {
 export function comparePairs(takes, completedAt) {
   if (takes.length < 2) return null;
   const latest = takes[takes.length - 1];
-  const firstPass = completedAt ? takes.find((t) => t.at >= completedAt.slice(0, 19)) : null;
+  // Compare instants, not strings: take times carry the Mac's offset (older ones are
+  // local time with none), lesson times are UTC.
+  const done = completedAt ? new Date(completedAt) : null;
+  const firstPass = done ? takes.find((t) => new Date(t.at) >= done) : null;
   return {
     latest: latest.take,
     defaultOlder: takes[0].take,

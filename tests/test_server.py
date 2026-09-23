@@ -372,6 +372,8 @@ class ServerTest(unittest.TestCase):
         status, body = self.call("/api/takes/compare", {"lesson": "x", "a": 1, "b": 2})
         self.assertEqual((status, body.get("noModel")), (503, True))
         self.assertEqual(self.call("/api/takes/compare", {"lesson": "x", "a": 1, "b": 9})[0], 404)
+        self.assertEqual(self.call("/api/takes/compare", [1, 2])[0], 400)
+        self.assertRegex(takes[0]["at"], r"[+-]\d\d:\d\d$")  # carries its UTC offset
         self.assertEqual(self.call("/api/takes/score", {"lesson": "x"})[0], 400)
 
     def test_ask_explains_when_lm_studio_is_off(self):

@@ -1064,7 +1064,8 @@ class Handler(SimpleHTTPRequestHandler):
                 with FILE_LOCK:
                     take = len(lesson_takes(lesson)) + 1
                     save_take({
-                        "at": datetime.now().isoformat(timespec="seconds"),
+                        # With its UTC offset, so the page can compare it with lesson times.
+                        "at": datetime.now().astimezone().isoformat(timespec="seconds"),
                         "lesson": lesson,
                         "take": take,
                         "sketch": body.get("sketch"),
@@ -1077,7 +1078,9 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(status, result)
 
         if self.path == "/api/takes/compare":
-            lesson = str((body or {}).get("lesson", ""))
+            if not isinstance(body, dict):
+                return self.send_json(400, {"error": "Missing takes to compare."})
+            lesson = str(body.get("lesson", ""))
             takes = {t["take"]: t for t in lesson_takes(lesson)}
             try:
                 a, b = takes[int(body.get("a"))], takes[int(body.get("b"))]

@@ -990,8 +990,11 @@ test('the last four starters check their own techniques', () => {
 test('comparing takes marks each area in words and opens first vs latest', () => {
   const rows = compareCards({ chords: { score: 5 }, timing: { score: 8 }, feel: { score: null } }, { chords: { score: 7 }, timing: { score: 6 }, feel: { score: 4 } });
   assert.deepEqual(rows.slice(0, 3).map((r) => r.words), ['↑ better', '↓ slipped', 'not measured in both']);
-  const takes = [1, 2, 3, 4].map((n) => ({ take: n, at: `2026-09-2${n}T10:00:00` }));
+  // Takes at 10:00 in UTC-7 (17:00 UTC); the lesson was completed on the 22nd at 16:30 UTC.
+  const takes = [1, 2, 3, 4].map((n) => ({ take: n, at: `2026-09-2${n}T10:00:00-07:00` }));
   assert.equal(comparePairs(takes.slice(0, 1)), null);
-  const pairs = comparePairs(takes, '2026-09-22T12:00:00.000Z');
-  assert.deepEqual({ latest: pairs.latest, older: pairs.defaultOlder, firstPass: pairs.firstPass }, { latest: 4, older: 1, firstPass: 3 });
+  const pairs = comparePairs(takes, '2026-09-22T16:30:00.000Z');
+  assert.deepEqual({ latest: pairs.latest, older: pairs.defaultOlder, firstPass: pairs.firstPass }, { latest: 4, older: 1, firstPass: 2 });
+  // Compared as strings, 10:00 would look earlier than 16:30 and take 2 would be missed.
+  assert.equal(comparePairs(takes, '2026-09-22T18:00:00.000Z').firstPass, 3);
 });
