@@ -504,6 +504,89 @@ const ALL_LESSONS = [
     ],
   },
   {
+    id: 'lofi-hip-hop',
+    title: 'Lo-fi hip-hop: lazy drums and warm chords',
+    minutes: 15,
+    why: 'J Dilla and Nujabes made beats that feel relaxed and a little off the grid: the drums drag behind the beat, the chords are soft 7ths on a worn electric piano, and everything sounds like old tape. That laid-back push is called swing, and it is the whole feel.',
+    steps: [
+      'E-Piano, pattern "ripple", Arp and Latch on, drums on "simple", 80 BPM. Swing is already up and Wobble is on. Tap Fmaj7 (F A C E).',
+      'Listen to the drums: the in-between hits land late. Turn Swing down to 0 and back up to hear the difference.',
+      'Follow the chart: Fmaj7, Em7 (E G B D), Dm7 (D F A C), Cmaj7 (C E G B). Each chord is one white key lower.',
+      'Optional: switch the sound to Sampler, press ● Record a sound and hum or tap for a few seconds, then play the slices over the beat. Lo-fi loves a found sound.',
+      'In GarageBand: put the chords on an electric piano, add a vintage drum kit, and turn the kit\'s Swing up in the Drummer or Piano Roll settings.',
+    ],
+    setup: { sound: 'epiano', arp: true, latch: true, arpPattern: 'ripple', drums: true, drumPattern: 'simple', swing: 0.6, bpm: 80, brightness: 0.55, fx: { wobble: true, chorus: false, echo: false, reverb: true } },
+    chart: ['Fmaj7', 'Fmaj7', 'Em7', 'Em7', 'Dm7', 'Dm7', 'Cmaj7', 'Cmaj7'],
+    checks: [
+      { type: 'arpBars', chord: 'Fmaj7', swing: 0.4, bars: 2, label: '2 bars of Fmaj7 with swing' },
+      { type: 'drumBars', swing: 0.4, bars: 4, label: '4 bars of lazy, swung drums' },
+      { type: 'arpBars', chord: 'Em7', bars: 2, label: '2 bars of Em7' },
+      { type: 'arpBars', chord: 'Dm7', bars: 2, label: '2 bars of Dm7' },
+    ],
+  },
+  {
+    id: 'dub',
+    title: 'Dub: throw the echo, drop the bass',
+    minutes: 15,
+    why: 'King Tubby and Lee "Scratch" Perry took reggae tracks and remixed them live at the mixing desk: an organ skank on the off-beat, a one-drop beat with the kick on beat 3, and then the magic, throwing single hits into a huge echo and dropping whole parts out so they crash back in. The mixer is the instrument.',
+    mixer: true,
+    steps: [
+      'The sound is {Organ}, pattern "skank", Arp and Latch on, drums on "one drop", Bass on, 74 BPM. Tap A minor (A C E): the organ chops on beats 2 and 4.',
+      'Hear the one drop: nothing on beat 1, kick and rim together on beat 3. It feels like the beat is leaning back.',
+      'Hold the Throw button (in Effects) for a moment, then let go: one hit flies off into the echo. Do it three times, sparingly.',
+      'In the mixer below, press M on Bass for a bar, then press it again: the bass drops out and crashes back in. That is dub.',
+      'Follow the chart: Am, then Dm (D F A). In GarageBand: add {echo} as a send and automate it up on single hits.',
+    ],
+    setup: { sound: 'farfisa', arp: true, latch: true, arpPattern: 'skank', drums: true, drumPattern: 'one drop', bass: true, bassStyle: 'melodic', bpm: 74, fx: { chorus: false, echo: true, reverb: true } },
+    chart: ['Am', 'Am', 'Am', 'Am', 'Dm', 'Dm', 'Dm', 'Dm'],
+    checks: [
+      { type: 'arpBars', chord: 'Am', pattern: 'skank', bars: 2, label: '2 bars of the A minor skank' },
+      { type: 'drumBars', drumPattern: 'one drop', bars: 4, label: '4 bars of the one drop' },
+      { type: 'throws', count: 3, label: 'Throw the echo 3 times' },
+      { type: 'dropOut', part: 'bass', count: 1, label: 'Drop the bass out and bring it back' },
+    ],
+  },
+  {
+    id: 'ambient-drone',
+    title: 'Ambient drone: chords that swell and hang',
+    minutes: 15,
+    why: 'Stars of the Lid and William Basinski make music from long, swelling chords with no beat at all. Nothing is played quickly: a chord fades in over several seconds, hangs in the air, and fades away. It is the gentlest lesson here: there is no chart to follow and no timing to hit.',
+    steps: [
+      'The sound is Swell and "No beat" is on: no drums, no click, no arpeggio. Hold D major (D F# A) and keep holding for 8 seconds: it fades in slowly.',
+      'Let go and listen: the chord hangs and fades for a long time.',
+      'Now G major (G B D), held for 8 seconds. D and G share the note D, so the change is soft.',
+      'Switch Reverse reverb on and hold B minor (B D F#) for 8 seconds: the swell now swells twice.',
+      'In GarageBand: put the sketch on a pad or string sound with a slow attack, and add {reverb} with a long decay.',
+    ],
+    setup: { sound: 'swell', freeTime: true, arp: false, drums: false, bpm: 60, brightness: 0.7, fx: { chorus: true, echo: true, reverb: true, reverse: false } },
+    checks: [
+      { type: 'holdSeconds', chord: 'D', seconds: 8, label: 'Hold D major for 8 seconds' },
+      { type: 'holdSeconds', chord: 'G', seconds: 8, label: 'Hold G major for 8 seconds' },
+      { type: 'holdSeconds', chord: 'Bm', seconds: 8, label: 'Hold B minor for 8 seconds' },
+    ],
+  },
+  {
+    id: 'afrobeat',
+    title: 'Afrobeat: one chord, many parts',
+    minutes: 15,
+    why: 'Fela Kuti and his drummer Tony Allen built Afrobeat from interlocking parts over one or two chords: a busy, rolling drum pattern, a picked guitar riff, a bass line, and short horn stabs, each simple on its own and hypnotic together. You build it the same way, one layer at a time, with the looper.',
+    steps: [
+      'Drums on "afrobeat", 112 BPM, Guitar, pattern "up", Arp and Latch on. Tap Dm7 (D F A C): a picked riff over Tony Allen\'s groove.',
+      'Press ↻ Record loop: 2 bars of that riff become your first layer.',
+      'Switch the sound to {Organ} and the pattern to "stab", and record a second layer: short horn-like stabs.',
+      'Switch Bass on (style "melodic") for the bass line under it all. One chord can carry ten minutes.',
+      'In GarageBand: put each part on its own track (guitar, organ or horns, bass) and keep them all on Dm7.',
+    ],
+    setup: { sound: 'guitar', arp: true, latch: true, arpPattern: 'up', drums: true, drumPattern: 'afrobeat', bass: false, bassStyle: 'melodic', bpm: 112, fx: { chorus: false, echo: false } },
+    chart: ['Dm7', 'Dm7', 'Dm7', 'Dm7', 'Dm7', 'Dm7', 'Dm7', 'Dm7'],
+    checks: [
+      { type: 'drumBars', drumPattern: 'afrobeat', bars: 4, label: '4 bars over the Afrobeat groove' },
+      { type: 'arpBars', chord: 'Dm7', bars: 2, label: '2 bars of the Dm7 riff' },
+      { type: 'loopLayers', count: 2, label: 'Loop 2 layers' },
+      { type: 'arpBars', pattern: 'stab', bars: 2, label: '2 bars of stabs' },
+    ],
+  },
+  {
     id: 'gothic-rock',
     title: 'Gothic rock: echo, shadows and the half-step',
     minutes: 15,
@@ -927,7 +1010,7 @@ export const SECTIONS = [
   {
     title: 'Styles',
     note: 'Locked until you finish the Basics: these assume you can tap chords and follow a chart. Suggested path: Kosmische, then Ambient, then Dark ambient. The rest in any order.',
-    ids: ['kosmische', 'ambient-eno', 'dark-ambient', 'stereolab', 'new-wave', 'post-punk', 'shoegaze', 'folk', 'bossa-nova', 'minimal-wave', 'classical-minimalism', 'punk', 'house', 'ambient-techno', 'gothic-rock'],
+    ids: ['kosmische', 'ambient-eno', 'dark-ambient', 'stereolab', 'new-wave', 'post-punk', 'shoegaze', 'folk', 'bossa-nova', 'minimal-wave', 'classical-minimalism', 'punk', 'house', 'ambient-techno', 'gothic-rock', 'lofi-hip-hop', 'dub', 'ambient-drone', 'afrobeat'],
     requiresSection: 'Basics',
   },
 ];
@@ -954,6 +1037,15 @@ export const STYLE_INFO = {
     betterWith: [{ any: ['tag:drums'], label: 'a drum machine plugin' }] },
   'ambient-techno': { name: 'Ambient techno', artists: 'Aphex Twin, Boards of Canada', sound: 'Warm, drifting chords over a soft, steady dance beat.', texture: 'groove',
     betterWith: [{ any: ['tag:synth'], label: 'a synth plugin' }, { any: ['gear:reverb'], label: 'a reverb plugin' }] },
+  'lofi-hip-hop': { name: 'Lo-fi hip-hop', artists: 'J Dilla, Nujabes', sound: 'Lazy, swung drums under warm 7th chords on a worn electric piano.', texture: 'sample',
+    betterWith: [{ any: ['gear:tape'], label: 'a tape plugin' }],
+    matches: ['folder', 'tag:microphone'] },
+  dub: { name: 'Dub', artists: 'King Tubby, Lee "Scratch" Perry', sound: 'An off-beat skank and a one-drop beat, remixed live with echo throws.', texture: 'mix',
+    betterWith: [{ any: ['gear:echo'], label: 'a tape echo plugin' }] },
+  'ambient-drone': { name: 'Ambient drone', artists: 'Stars of the Lid, William Basinski', sound: 'Long chords that swell in slowly and hang, with no beat at all.', texture: 'drone',
+    betterWith: [{ any: ['gear:reverb'], label: 'a long reverb plugin' }] },
+  afrobeat: { name: 'Afrobeat', artists: 'Fela Kuti, Tony Allen', sound: 'Interlocking riffs, stabs and bass over a rolling groove on one chord.', texture: 'groove',
+    betterWith: [{ any: ['tag:drums'], label: 'a drum plugin' }] },
   'gothic-rock': { name: 'Gothic rock', artists: 'Bauhaus, Christian Death', sound: 'Echoing guitar, a bass that carries the tune, and a dark half-step move.', texture: 'chord',
     betterWith: [{ any: ['gear:echo'], label: 'an echo plugin' }, { any: ['gear:chorus'], label: 'a chorus plugin' }] },
   punk: { name: 'Punk', artists: 'Ramones, Buzzcocks', sound: 'Two-note power chords, fuzz and fast, straight drums.', texture: 'chord',
@@ -988,6 +1080,13 @@ export const LISTEN = {
     { artist: 'Boy Harsher', title: 'Careful', url: 'https://boyharsher.bandcamp.com/album/careful', kind: 'album', id: 711789267 },
     { artist: 'Molchat Doma', title: 'Etazhi', url: 'https://domamolchat.bandcamp.com/album/etazhi-2018', kind: 'album', id: 3397703812 },
   ],
+  'lofi-hip-hop': [{ artist: 'J Dilla', title: 'Donuts', url: 'https://dilla.bandcamp.com/album/donuts', kind: 'album', id: 3103314719 }],
+  dub: [{ artist: 'King Tubby & The Aggrovators', title: 'Dubbing in the Backyard', url: 'https://pressuresounds.bandcamp.com/album/dubbing-in-the-backyard', kind: 'album', id: 2626304650 }],
+  'ambient-drone': [
+    { artist: 'Stars of the Lid', title: 'And Their Refinement of the Decline', url: 'https://starsofthelid.bandcamp.com/album/and-their-refinement-of-the-decline', kind: 'album', id: 605498052 },
+    { artist: 'William Basinski', title: 'The Disintegration Loops', url: 'https://williambasinski.bandcamp.com/album/the-disintegration-loops', kind: 'album', id: 1686158765 },
+  ],
+  afrobeat: [{ artist: 'Tony Allen with Afrika 70', title: 'Jealousy', url: 'https://tonyallen.bandcamp.com/album/jealousy', kind: 'album', id: 450597284 }],
   'gothic-rock': [
     { artist: 'Bauhaus', title: 'In the Flat Field', url: 'https://beggarsbanquet.bandcamp.com/album/in-the-flat-field', kind: 'album', id: 2976272377 },
     { artist: 'Christian Death', title: 'Only Theatre of Pain', url: 'https://frontierrecords-christiandeath.bandcamp.com/album/only-theatre-of-pain', kind: 'album', id: 2830794502 },
@@ -1012,7 +1111,8 @@ export function bandcampEmbed(listen, slim = false) {
 // The order the picker shows styles in: the first six cover different kinds of sound,
 // then the other starters, then styles that suit more gear or come later in skill.
 export const PICKER_ORDER = [
-  'folk', 'punk', 'house', 'kosmische', 'shoegaze', 'ambient-techno',
+  'folk', 'punk', 'house', 'lofi-hip-hop', 'ambient-drone', 'dub',
+  'kosmische', 'shoegaze', 'ambient-techno', 'afrobeat',
   'bossa-nova', 'stereolab', 'post-punk', 'gothic-rock', 'minimal-wave', 'classical-minimalism',
   'ambient-eno', 'new-wave', 'dark-ambient',
 ];
@@ -1055,7 +1155,7 @@ export function varietyNudge(picks) {
   const crowded = Object.keys(counts).find((t) => counts[t] >= 3);
   if (!crowded) return null;
   const others = [...new Set(Object.values(STYLE_INFO).map((s) => s.texture))].filter((t) => t !== crowded);
-  const words = { drone: 'drone and ambient', chord: 'chord-based', groove: 'groove-based', sample: 'sample-based', synth: 'synth-based' };
+  const words = { drone: 'drone and ambient', chord: 'chord-based', groove: 'groove-based', sample: 'sample-based', synth: 'synth-based', mix: 'mixing-based' };
   if (!others.length) return null;
   return `These are all ${words[crowded] || crowded} styles. Want to add something ${others.map((t) => words[t] || t).join(' or ')}?`;
 }
