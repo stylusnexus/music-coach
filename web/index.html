@@ -136,6 +136,9 @@
             <select id="bass-style" aria-label="Bass style">
               <option value="pump">pump (new wave)</option>
               <option value="melodic">melodic (post-punk)</option>
+              <option value="octave16">octave pump (synthwave)</option>
+              <option value="boom-chick">boom-chick (country)</option>
+              <option value="sub">sub (drum and bass)</option>
             </select>
             <input id="filter" type="range" min="0" max="100" step="1" aria-label="Filter: dark to bright">
           </div>
@@ -160,6 +163,7 @@
             <select id="drum-kit" aria-label="Drum kit"><option value="synth">Built-in kit</option></select>
             <button class="toggle" id="click">Click</button>
             <button class="toggle" id="drum-fuzz" title="Put the drums through the fuzz too">Fuzz on drums</button>
+            <label class="swing" title="Push every other sixteenth late, for a shuffle or groove. Far left is straight.">Swing <input id="swing" type="range" min="0" max="100" step="1" aria-label="Swing: straight to shuffled"></label>
           </div>
         </div>
         <div class="group">

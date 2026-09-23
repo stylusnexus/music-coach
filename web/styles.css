@@ -180,6 +180,8 @@ section { background: var(--panel); border: 1px solid var(--line); border-radius
 .rec.on { background: var(--rec); border-color: var(--rec); color: #fff; }
 .rec.armed { border-color: var(--rec); color: var(--rec); }
 input[type=range] { accent-color: var(--accent); padding: 0; width: 160px; }
+.toggles .swing { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.toggles .swing input { width: 90px; }
 
 .beat-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
 .beat-head .muted { font-size: 13px; flex: 1; }
