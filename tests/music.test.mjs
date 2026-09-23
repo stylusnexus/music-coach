@@ -109,7 +109,7 @@ test('on a bare Mac, lessons claim no sound, folder or plugin it lacks', () => {
   for (const claim of ['Durutti', 'Vini Reilly', 'real Minimoog', 'VP-330', 'CR-78', 'Farfisa organ,', 'Minipops', 'IK Multimedia', '~/Music/Samples', 'VG-SPARKLE2', '{']) {
     assert.ok(!text.includes(claim), claim);
   }
-  assert.ok(text.includes('Record your own'), 'no loops: the mic step shows');
+  assert.ok(text.includes('Press ● Record a sound'), 'no loops: sampling opens by recording');
 });
 
 test('gear added by hand names the job, and a missing kit is not required', () => {
@@ -331,6 +331,27 @@ test('gear: what you say a plugin is beats the name rules and the coach model', 
   assert.equal(item('Zorbo').slottable, true);
   assert.deepEqual(gearTags([], plugins, labels, [], slots), { echo: 'Room Maker', bass: 'Zorbo' });
   assert.deepEqual(unlabelled(plugins, {}, slots).map((p) => p.name), []);
+});
+
+test('on a bare Mac, sampler lessons open by recording a sound', () => {
+  const bare = { installed: [], loopGroups: [], tags: {} };
+  const loops = { installed: [], loopGroups: ['My loops'], tags: {} };
+  const sampling = LESSONS.find((l) => l.id === 'sampling');
+  const first = resolveGear(sampling.steps[0], bare);
+  assert.match(first, /Record a sound/);
+  assert.doesNotMatch(first, /Pick a loop/);
+  assert.equal(resolveGear('{loopCheck}', bare), 'Record a sound');
+  assert.equal(resolveGear('{micStep}', bare), ''); // not said twice
+  assert.match(resolveGear(sampling.steps[0], loops), /Pick a loop from the list/);
+  assert.equal(resolveGear('{micStep}', loops), ''); // loops, no mic added: as before
+  assert.match(resolveGear('{micStep}', { ...loops, tags: { microphone: 'Mic' } }), /Record your own/);
+  assert.equal(resolveGear('{loopCheck}', loops), 'Load a loop');
+  const mic = resolveGear(sampling.steps[0], { ...bare, tags: { microphone: 'Shure SM58' } });
+  assert.match(mic, /with your Shure SM58/);
+  const dark = LESSONS.find((l) => l.id === 'dark-ambient');
+  const tape = dark.steps.map((st) => resolveGear(st, bare)).find((t) => /Half speed/.test(t));
+  assert.match(tape, /press ● Record a sound/);
+  assert.doesNotMatch(tape, /Pick a loop/);
 });
 
 test('new-wave bass pumps the root on eighths, jumping an octave on the offbeat', async () => {

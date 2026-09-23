@@ -79,9 +79,13 @@ const PHRASES = {
     ? 'Switch Kit to Minipops: the same pattern from a different machine and era.'
     : 'Play 2 more bars and change one box while it plays: the beat changes on the next pass.'),
   kitCheck: (e) => (e.kits.has('minipops') ? '2 bars on the Minipops kit' : '2 more bars of your beat'),
+  // With no loops to cut up, recording a sound is the way in: hum, tap or clap into the mic.
   samplerStart: (e) => (e.loopGroups.has('Minipops drum loops')
     ? 'The sound is "Sampler". Pick a loop from the list. "Can Ballad" in the Minipops drum loops is a good start. The tempo changes to match it.'
-    : 'The sound is "Sampler". Pick a loop from the list, or press ● Record a sound to sample your own. A loop with its tempo in the name sets the tempo to match.'),
+    : e.loopGroups.size
+      ? 'The sound is "Sampler". Pick a loop from the list, or press ● Record a sound to sample your own. A loop with its tempo in the name sets the tempo to match.'
+      : `The sound is "Sampler". Press ● Record a sound${e.tags.microphone ? ` with ${yours(e.tags.microphone, e)}` : ''} and hum, tap or clap for 3 to 5 seconds, then press it again to stop. Your recording becomes the loop, cut into 8 slices. Can and Cluster sampled the room around them.`),
+  loopCheck: (e) => (e.loopGroups.size ? 'Load a loop' : 'Record a sound'),
   textureTip: (e) => (e.loopGroups.has('Tape fragments') || e.loopGroups.has('VP-330 string loops')
     ? 'Try a tape fragment or a VP-330 string loop: slices of those make instant textures.'
     : 'Try a very different sound, like a pad or a noise: slices of those make instant textures.'),
@@ -94,8 +98,9 @@ const PHRASES = {
   samplesFolder: (e) => e.folder || 'your samples folder',
   tapeStep: (e) => (e.loopGroups.has('Tape fragments')
     ? 'Switch the sound to Sampler, pick a tape fragment, and turn on Half speed and Reverse. Play one slice every few seconds and let it hang.'
-    : 'Switch the sound to Sampler. Pick a loop, or press ● Record a sound and hum or rumble for a few seconds. Turn on Half speed and Reverse, then play one slice every few seconds and let it hang.'),
-  // Only with a microphone added, or with no loops to cut up (then it is the way in).
+    : e.loopGroups.size
+      ? 'Switch the sound to Sampler. Pick a loop, or press ● Record a sound and hum or rumble for a few seconds. Turn on Half speed and Reverse, then play one slice every few seconds and let it hang.'
+      : 'Switch the sound to Sampler and press ● Record a sound: hum low or rumble for 3 to 5 seconds, then press it again. Turn on Half speed and Reverse, then play one slice every few seconds and let it hang.'),
   // Basics speak technique first; a copy that began with the Durutti examples keeps them.
   hearWhy: (e) => (e.durutti
     ? 'The Durutti Column sound is mostly three effects on a clean, plucked tone: chorus (shimmer), echo (repeats), and reverb (space). Hearing each one on its own is how you learn to reach for it later.'
@@ -112,7 +117,9 @@ const PHRASES = {
   bitterWhy: (e) => (e.durutti ? 'Much of the Durutti feel lives here.' : 'Much of that dreamy, bittersweet feel lives here.'),
   gbWhy: (e) => (e.durutti ? 'the Durutti sound' : 'the sound'),
   susLove: (e) => (e.durutti ? 'shoegaze and Durutti' : 'shoegaze and ambient music'),
-  micStep: (e) => (e.tags.microphone || !e.loopGroups.size
+  // With a microphone added and loops to pick from, recording your own is an extra;
+  // with no loops, samplerStart already opens with it.
+  micStep: (e) => (e.tags.microphone && e.loopGroups.size
     ? `Record your own: press ● Record a sound${e.tags.microphone ? ` with ${yours(e.tags.microphone, e)}` : ''} and make a noise for a few seconds: your voice, a cup, keys, a door. It is cut into 8 slices the same way. Can and Cluster sampled the room around them.`
     : ''),
 };
@@ -391,7 +398,7 @@ const ALL_LESSONS = [
     setup: { sound: 'chop', arp: false, drums: false, bpm: 95 },
     highlight: [60, 62, 64, 65, 67, 69, 71, 72],
     checks: [
-      { type: 'loopLoaded', label: 'Load a loop' },
+      { type: 'loopLoaded', label: '{loopCheck}' },
       { type: 'distinctSlices', count: 6, label: 'Play 6 different slices' },
       { type: 'sliceNotes', count: 24, label: 'Play 24 slices in any order' },
       { type: 'reverseSlice', label: 'Turn Reverse on and play a slice' },
