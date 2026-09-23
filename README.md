@@ -32,7 +32,7 @@ you.
 
 ## What's inside
 
-- **44 short lessons: 43 in four sections, plus one optional.**
+- **49 short lessons: 48 in four sections, plus one optional.**
   - **Basics:** your first chord, four chords that carry a song, major and
     minor, letting an arpeggiator do the picking, a drum machine, 7th chords,
     recording a sketch, and taking it to GarageBand.
@@ -43,12 +43,13 @@ you.
     exporting. Most steps have a screenshot.
   - **Optional:** carry a sketch to GarageBand on iPhone and iPad, with what's
     different from the Mac.
-  - **Styles:** pick up to 5 of 19 (to start): folk, punk, house, lo-fi
-    hip-hop, ambient drone, dub, kosmische, shoegaze, ambient techno, Afrobeat,
-    bossa nova, lounge pop, post-punk and darkwave, gothic rock, minimal wave,
-    classical minimalism, Eno-style ambient, new wave and dark ambient. Each
-    has a 5-second taste played by the app, and a real record to hear in full
-    on Bandcamp. Every starter works on a Mac with nothing extra installed.
+  - **Styles:** pick up to 5 of 24 (to start): folk, punk, house, lo-fi
+    hip-hop, ambient drone, dub, kosmische, synthwave, downtempo, reggae, metal,
+    techno, shoegaze, ambient techno, Afrobeat, bossa nova, lounge pop,
+    post-punk and darkwave, gothic rock, minimal wave, classical minimalism,
+    Eno-style ambient, new wave and dark ambient. Each has a 5-second taste
+    played by the app, and a real record to hear in full on Bandcamp. Every
+    starter works on a Mac with nothing extra installed.
 - **A studio:** sounds, effects, arpeggiator, drum patterns and your own beat
   grid, bass and drone layers, a looper, a sampler (it can record a sound from
   your microphone and chop it up), a mixer, and a progression builder.
@@ -230,10 +231,10 @@ npm test
 
 ## What's next
 
-More styles are planned: synthwave, reggae, downtempo, blues, country, metal,
-drum and bass, Ethio-jazz and more. Also planned: comparing two takes side by
-side, Logic Pro and Ableton Live lessons, phone and tablet layouts, and
-Windows. See [the issues](https://github.com/stylusnexus/music-coach/issues).
+More styles are planned: blues, country, drum and bass, industrial,
+Ethio-jazz and more, plus a few lessons that go beyond GarageBand's own sounds
+with free plugins. Also planned: Logic Pro and Ableton Live lessons, phone and
+tablet layouts, and Windows. See [the issues](https://github.com/stylusnexus/music-coach/issues).
 
 Mac only for now.
 
