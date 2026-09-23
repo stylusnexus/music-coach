@@ -3,11 +3,110 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Music Coach</title>
-  <meta name="description" content="Learn to make music on your Mac, and learn GarageBand while you do it. No instrument needed.">
-  <meta property="og:title" content="Music Coach">
+  <title>Music Coach: Learn GarageBand and Make Music on Your Mac</title>
+  <meta name="description" content="Free Mac app that teaches you to make music and learn GarageBand. No instrument needed: guided lessons take you from your first chord to a finished track.">
+  <link rel="canonical" href="https://stylusnexus.github.io/music-coach/">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="theme-color" content="#15161a">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Music Coach">
+  <meta property="og:url" content="https://stylusnexus.github.io/music-coach/">
+  <meta property="og:title" content="Music Coach: Learn GarageBand and Make Music on Your Mac">
   <meta property="og:description" content="Learn to make music on your Mac, and learn GarageBand while you do it. No instrument needed.">
-  <meta property="og:image" content="img/app.jpg">
+  <meta property="og:image" content="https://stylusnexus.github.io/music-coach/img/app.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="2000">
+  <meta property="og:image:height" content="1250">
+  <meta property="og:image:alt" content="Music Coach: the lesson list, a lesson on four chords, the chord display showing E minor, and a keyboard with the chord's keys lit.">
+  <meta property="og:locale" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Music Coach: Learn GarageBand and Make Music on Your Mac">
+  <meta name="twitter:description" content="Learn to make music on your Mac, and learn GarageBand while you do it. No instrument needed.">
+  <meta name="twitter:image" content="https://stylusnexus.github.io/music-coach/img/app.jpg">
+  <meta name="twitter:image:alt" content="Music Coach: the lesson list, a lesson on four chords, the chord display showing E minor, and a keyboard with the chord's keys lit.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://www.stylusnexus.com/#organization",
+        "name": "Stylus Nexus Holdings LLC",
+        "url": "https://www.stylusnexus.com",
+        "email": "admin@stylusnexus.com"
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://stylusnexus.github.io/music-coach/#website",
+        "url": "https://stylusnexus.github.io/music-coach/",
+        "name": "Music Coach",
+        "inLanguage": "en",
+        "publisher": { "@id": "https://www.stylusnexus.com/#organization" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://stylusnexus.github.io/music-coach/#app",
+        "name": "Music Coach",
+        "description": "A free, open-source Mac app that teaches people who don't play an instrument to make music and learn GarageBand. Guided lessons take you from your first chord to a finished track.",
+        "url": "https://stylusnexus.github.io/music-coach/",
+        "applicationCategory": "MultimediaApplication",
+        "applicationSubCategory": "Music education",
+        "operatingSystem": "macOS 15.6 or later",
+        "softwareRequirements": "GarageBand 10.4.14 or later (macOS 15.6+), Google Chrome, Python 3.9 or newer. A MIDI keyboard is optional.",
+        "downloadUrl": "https://github.com/stylusnexus/music-coach/releases/latest/download/Music.Coach.zip",
+        "installUrl": "https://stylusnexus.github.io/music-coach/#start",
+        "license": "https://opensource.org/licenses/MIT",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "image": "https://stylusnexus.github.io/music-coach/img/app.jpg",
+        "screenshot": [
+          "https://stylusnexus.github.io/music-coach/img/app.jpg",
+          "https://stylusnexus.github.io/music-coach/img/styles-picker.jpg",
+          "https://stylusnexus.github.io/music-coach/img/styles-lesson.jpg"
+        ],
+        "sameAs": "https://github.com/stylusnexus/music-coach",
+        "author": { "@id": "https://www.stylusnexus.com/#organization" },
+        "publisher": { "@id": "https://www.stylusnexus.com/#organization" }
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://stylusnexus.github.io/music-coach/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Do I need to play an instrument to use Music Coach?",
+            "acceptedAnswer": { "@type": "Answer", "text": "No instrument needed. Guided lessons take you from your first chord to a finished track. A small MIDI keyboard helps, and your computer keys work too." }
+          },
+          {
+            "@type": "Question",
+            "name": "Which Macs does Music Coach run on, and what do I need?",
+            "acceptedAnswer": { "@type": "Answer", "text": "A Mac with GarageBand 10.4.14 or later (free; macOS 15.6+), Google Chrome, and Python 3.9 or newer. A MIDI keyboard is optional. Music Coach is Mac only for now; Windows, and lessons for Logic Pro and Ableton Live, are on the way." }
+          },
+          {
+            "@type": "Question",
+            "name": "Is Music Coach free?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Yes. Music Coach is free and open source under the MIT license, and there's no account." }
+          },
+          {
+            "@type": "Question",
+            "name": "Does Music Coach upload my files or recordings?",
+            "acceptedAnswer": { "@type": "Answer", "text": "No. Your progress, gear list, sketches and key stay in local files. The app only goes online to reach the coach model you picked, or when you press Hear it to play a style's track from Bandcamp. The coach model gets your questions, and the names of your gear and of plugins the app doesn't recognise, so it can sort them; never your files or recordings." }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I need an AI model or API key?",
+            "acceptedAnswer": { "@type": "Answer", "text": "No. Lessons, the studio and take scores all work with no model at all. Only the written summaries and questions need one. You can use a model running on your Mac in LM Studio, or bring your own key for OpenAI, Anthropic, or a service like Ollama or OpenRouter." }
+          },
+          {
+            "@type": "Question",
+            "name": "Why doesn't my instrument sound like a real one in GarageBand?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Most of the difference is how the notes are played, not which sound you pick. Write what the real instrument could play, vary how hard each note is hit (velocity in the Piano Roll), loosen the timing by turning off Snap to Grid and nudging notes, vary how long notes last, and give it a room with a little reverb. Drummer, Apple Loops recordings, and GarageBand's full Sound Library also help." }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
   <style>
     :root {
       --bg: #15161a;
@@ -107,6 +206,7 @@
       </nav>
     </header>
 
+    <main>
     <div class="hero">
       <h1>Learn to make music on your Mac,<br>and learn <em>GarageBand</em> while you do it.</h1>
       <p>Guided lessons take you from your first chord to a finished track. No instrument needed: a small MIDI keyboard helps, and your computer keys work too.</p>
@@ -225,6 +325,7 @@ cd music-coach
         </div>
       </div>
     </section>
+    </main>
   </div>
 
   <footer>

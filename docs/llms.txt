@@ -1,0 +1,36 @@
+# Music Coach
+
+> Music Coach is a free, open-source (MIT) Mac app that teaches people who don't play an instrument to make music and learn GarageBand. Guided lessons take you from your first chord to a finished track. It runs on your Mac and opens in Chrome; your files stay on your Mac, and there's no account. Made by Stylus Nexus Holdings LLC.
+
+- Latest release: see https://github.com/stylusnexus/music-coach/releases/latest (about 1 MB)
+- Needs: a Mac with GarageBand 10.4.14 or later (free; macOS 15.6+), Google Chrome, Python 3.9 or newer. A MIDI keyboard is optional; computer keys work too.
+- Mac only for now. Windows, and lessons for Logic Pro and Ableton Live, are planned.
+
+## What you learn
+
+- Make music first: chords, a drum machine, an arpeggiator that does the picking for you, a looper and a sampler. Everything you play already sounds good.
+- Then learn GarageBand: take your sketch into GarageBand and learn its tools step by step, with real screenshots: tracks, the grid, the Piano Roll, mixing, fades, exporting, and making instruments sound real. Optionally, carry it on to GarageBand on iPhone or iPad.
+- Styles: pick up to 5 styles to start, from folk, punk and house to lo-fi hip-hop, dub, shoegaze, bossa nova and ambient. Each has a 5-second taste played by the app and a real record to hear on Bandcamp. Every starter style works on a Mac with nothing extra installed.
+- Lessons that notice: short lessons tick themselves off as you play. A take coach scores chords, timing, feel, sound and ending from what it measured, and names one thing to try next.
+- Your gear, by name: it finds the plugins on your Mac and sorts them by what they do. Lessons name your own gear when you have it, and GarageBand's built-in effects when you don't.
+
+## Coach model and privacy
+
+- The coach model is optional. Lessons, the studio and take scores all work without one; only written summaries and questions need it.
+- Choose a model running on your Mac in LM Studio, or bring your own key for OpenAI, Anthropic, or a service like Ollama or OpenRouter.
+- Progress, gear list, sketches and key stay in local files. The app goes online only to reach the coach model you picked, or when you press Hear it to play a style's track from Bandcamp. The coach model gets your questions and the names of your gear and plugins, never your files or recordings.
+
+## Links
+
+- [Music Coach home page](https://stylusnexus.github.io/music-coach/): what it does, styles, setup and tips
+- [Download for Mac](https://github.com/stylusnexus/music-coach/releases/latest/download/Music.Coach.zip): latest release, zipped app
+- [Get started](https://stylusnexus.github.io/music-coach/#start): what you need and first-run steps
+- [Why doesn't my instrument sound like a real one?](https://stylusnexus.github.io/music-coach/#real-sound): tips for realistic instruments in GarageBand
+- [README](https://github.com/stylusnexus/music-coach/blob/main/README.md): full feature list, privacy, where files live, uninstall
+- [Source code](https://github.com/stylusnexus/music-coach): GitHub repository, MIT license
+- [Releases](https://github.com/stylusnexus/music-coach/releases): all versions
+- [Issues](https://github.com/stylusnexus/music-coach/issues): bugs, questions and planned work
+
+## Optional
+
+- [Stylus Nexus](https://www.stylusnexus.com): the company that makes Music Coach. Contact: admin@stylusnexus.com
