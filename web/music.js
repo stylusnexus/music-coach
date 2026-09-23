@@ -359,16 +359,16 @@ export function spreadChord(held) {
 // Every note the arpeggiator plays on this step: one for a picking pattern,
 // the whole chord (or nothing) for a chord pattern. pos is the sixteenth within
 // the bar: chord patterns and bar-long (16-step) picking patterns start again
-// at each bar line, so they stay on the beat in bars of any length.
+// at each bar line and fit the bar as drum patterns do (patternStep).
 export function arpNotes(patternName, held, step, pos = step % 16) {
   if (patternName === 'eno') {
     const notes = [...new Set(held)].sort((a, b) => a - b);
     return notes.filter((n, i) => (step + i * 7) % ENO_PERIODS[i % ENO_PERIODS.length] === 0);
   }
   const hits = CHORD_PATTERNS[patternName];
-  if (hits) return hits.includes(pos % 16) ? [...new Set(held)].sort((a, b) => a - b) : [];
+  if (hits) return hits.includes(patternStep(pos)) ? [...new Set(held)].sort((a, b) => a - b) : [];
   const barLong = (ARP_PATTERNS[patternName] || ARP_PATTERNS.picking).length === 16;
-  const n = arpNote(patternName, held, barLong ? pos : step);
+  const n = arpNote(patternName, held, barLong ? patternStep(pos) : step);
   return n === null ? [] : [n];
 }
 

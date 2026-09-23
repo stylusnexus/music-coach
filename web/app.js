@@ -1135,6 +1135,7 @@ engine.onStep = (step, time) => {
   // pos: the sixteenth within the bar. How many make a bar follows the time signature.
   const meter = meterOf(state.meter);
   const pos = step % meter.steps;
+  const onBeat = meter.beats.includes(pos); // a counted beat: played a little harder
   if (pos === 0) onBarStart(step, time);
 
   // Swing moves the off-beat sixteenths of the arpeggio, bass, drums and loop.
@@ -1160,7 +1161,7 @@ engine.onStep = (step, time) => {
     const at = own ? pos : patternStep(pos);
     for (const kind of DRUM_KINDS) {
       if (p[kind]?.includes(at)) {
-        const accent = (DRUM_LEVELS[kind] ?? 1) * ((kind === 'hat' || kind === 'brush') && pos % 4 !== 0 ? 0.7 : 1);
+        const accent = (DRUM_LEVELS[kind] ?? 1) * ((kind === 'hat' || kind === 'brush') && !onBeat ? 0.7 : 1);
         engine.drum(kind, swung, accent);
         recordStep('drums', step, DRUM_NOTES[kind], Math.round(100 * accent), 1);
       }
@@ -1170,9 +1171,9 @@ engine.onStep = (step, time) => {
 
   const notes = latch.notes(state.latch);
   if (state.bass && !state.freeTime && notes.length) {
-    const b = bassNote(notes, pos, state.bassStyle);
+    const b = bassNote(notes, patternStep(pos), state.bassStyle);
     if (b !== null) {
-      const vel = pos % 4 === 0 ? 100 : 84;
+      const vel = onBeat ? 100 : 84;
       const len = bassLength(state.bassStyle, meter.steps);
       const steps = len < 1 ? len : Math.round(len);
       const sound = state.bassStyle === 'sub' ? 'sub' : BASS_SOUND;
@@ -1186,7 +1187,7 @@ engine.onStep = (step, time) => {
     const chordHit = Boolean(CHORD_PATTERNS[state.arpPattern]);
     const eno = state.arpPattern === 'eno';
     for (const n of arpNotes(state.arpPattern, notes, step, pos)) {
-      const vel = eno ? 58 + Math.floor(Math.random() * 16) : (pos % 4 === 0 ? 96 : 76) + Math.floor(Math.random() * 12) - (chordHit ? 14 : 0);
+      const vel = eno ? 58 + Math.floor(Math.random() * 16) : (onBeat ? 96 : 76) + Math.floor(Math.random() * 12) - (chordHit ? 14 : 0);
       const steps = eno ? 24 : chordHit ? chordLength(state.arpPattern) : 3.5;
       // Short chord hits (skank, stab) stay short when recorded or looped.
       const kept = steps < 1 ? steps : Math.round(steps);
@@ -1498,7 +1499,9 @@ function applySetup(s) {
   if (s.bass === undefined) state.bass = false;
   if (state.bass) loadSound(BASS_SOUND);
   state.swing = s.swing ?? 0;
-  setMeter(s.meter || '4/4');
+  // The meter never changes under a recording, and a lesson that doesn't name
+  // one leaves a loop (and the meter it was recorded in) alone.
+  if (state.rec !== 'recording' && (s.meter || !looper.active)) setMeter(s.meter || '4/4');
   setFreeTime(Boolean(s.freeTime));
   engine.setDrumFuzz(Boolean(s.drumFuzz));
   // Never start drums just because a lesson opened: wait for the first note.

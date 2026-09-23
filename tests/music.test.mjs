@@ -593,6 +593,12 @@ test('time signatures: chord hits, bass and the looper follow the bar', async ()
   const bar = (start) => Array.from({ length: 14 }, (_, pos) => arpNotes('offbeat', held, start + pos, pos).length > 0);
   assert.deepEqual(bar(0), bar(14));
   assert.equal(bassNote(held, 0, 'boom-chick'), 33);
+  // 5/4: chord hits and bass fit the bar the way drum patterns do (beat 5 = beat 3).
+  const { patternStep } = await import('../web/music.js');
+  const fifth = [16, 17, 18, 19].map((pos) => arpNotes('stab', held, pos, pos).length > 0);
+  assert.deepEqual(fifth, [8, 9, 10, 11].map((p) => arpNotes('stab', held, p, p).length > 0));
+  const sub = Array.from({ length: 20 }, (_, pos) => bassNote(held, patternStep(pos), 'sub')).filter((n) => n !== null);
+  assert.equal(sub.length, 1); // one long note per bar, not a second on beat 5
   assert.equal(bassLength('sub', 12), 11.5); // a 3/4 bar
   const L = new Looper();
   L.stepsPerBar = 12;
