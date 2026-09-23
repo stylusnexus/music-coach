@@ -67,7 +67,10 @@ you.
 
 ## What you need
 
-- A Mac with **GarageBand** (free from Apple).
+- A Mac with **GarageBand 10.4.14 or later** (free from Apple; it needs
+  macOS 15.6 or later). The lessons are checked against this version; older
+  ones may name menus differently. Check yours under GarageBand > About
+  GarageBand.
 - **Google Chrome.** Safari can't read MIDI keyboards.
 - **Python 3.9 or newer.** The app tells you where to get it if it's missing.
 - A small MIDI keyboard is nice but optional: computer keys A–K play white
