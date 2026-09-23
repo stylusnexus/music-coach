@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/music.test.mjs && python3 -m unittest discover -s tests"
+    "test": "for f in web/*.js; do node --check \"$f\" || exit 1; done && node --test tests/music.test.mjs && python3 -m unittest discover -s tests"
   },
   "license": "MIT"
 }
