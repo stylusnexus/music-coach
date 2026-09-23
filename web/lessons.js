@@ -1,5 +1,5 @@
 // Lesson content, the checker that ticks lesson steps off, and gear-name resolution.
-import { chordPitchClasses, hasInterval, keyPitchClasses, lessonKey, matchesChord, NOTE_NAMES, pitchClass, SCALES } from './music.js';
+import { chordPitchClasses, hasInterval, keyPitchClasses, lessonKey, matchesChord, NOTE_NAMES, parseKey, pitchClass, SCALES } from './music.js';
 
 // Gear tokens in lesson text resolve to the first plugin you have installed,
 // falling back to the effect that ships with GarageBand.
@@ -1109,6 +1109,13 @@ function initialValue(check) {
   return 0;
 }
 
+// A scaleNotes check names a scale ("E minor pentatonic") or a key ("A blues").
+function scaleOf(check) {
+  if (!check.key) return SCALES[check.scale];
+  const { root, mode } = parseKey(check.key);
+  return keyPitchClasses(root, mode);
+}
+
 export function createChecker(lesson, saved) {
   const values = lesson.checks.map((c, i) => (saved && saved[i] !== undefined ? saved[i] : initialValue(c)));
 
@@ -1171,7 +1178,7 @@ export function createChecker(lesson, saved) {
           }
           break;
         case 'scaleNotes':
-          if (evt.type === 'noteOn' && SCALES[c.scale].includes(pitchClass(evt.note))) next = v + 1;
+          if (evt.type === 'noteOn' && scaleOf(c).includes(pitchClass(evt.note))) next = v + 1;
           break;
         case 'recorded':
           if (evt.type === 'recorded' && evt.bars >= c.bars) next = evt.bars;

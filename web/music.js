@@ -101,11 +101,15 @@ export const SCALES = {
 export const KEY_MODES = {
   major: [0, 2, 4, 5, 7, 9, 11],
   minor: [0, 2, 3, 5, 7, 8, 10], // natural minor
+  blues: [0, 3, 5, 6, 7, 10], // 1 ♭3 4 ♭5 5 ♭7
+  ambassel: [0, 1, 5, 7, 8], // Ethiopian: 1 ♭2 4 5 ♭6
 };
 const FLAT_NAMES = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
 const SHARP_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
-// Keys written with flats (the rest use sharps, or no black keys at all).
-const FLAT_KEYS = { major: [5, 10, 3, 8, 1, 6], minor: [2, 7, 0, 5, 10, 3] };
+// Keys written with flats (the rest use sharps, or no black keys at all). Blues
+// and ambassel lean on flattened notes, so they use flats unless the root is sharp.
+const FLAT_ALWAYS = [0, 2, 3, 4, 5, 7, 9, 10, 11];
+const FLAT_KEYS = { major: [5, 10, 3, 8, 1, 6], minor: [2, 7, 0, 5, 10, 3], blues: FLAT_ALWAYS, ambassel: FLAT_ALWAYS };
 
 export function usesFlats(root, mode) {
   return FLAT_KEYS[mode].includes(root);
@@ -124,6 +128,14 @@ export function keyPitchClasses(root, mode) {
   return KEY_MODES[mode].map((i) => (root + i) % 12);
 }
 
+// A key written the way a lesson names it: "A blues", "E♭ ambassel", "F# minor".
+export function parseKey(name) {
+  const m = /^([A-G])([#♯b♭]?)\s+(\w+)$/.exec(String(name ?? '').trim());
+  if (!m || !KEY_MODES[m[3]]) return null;
+  const shift = { '#': 1, '♯': 1, b: -1, '♭': -1 }[m[2]] ?? 0;
+  return { root: pitchClass(NOTE_NAMES.indexOf(m[1]) + shift), mode: m[3] };
+}
+
 export function inKey(note, root, mode) {
   return keyPitchClasses(root, mode).includes(pitchClass(note));
 }
@@ -137,16 +149,21 @@ export function snapToKey(note, root, mode) {
   return note;
 }
 
-// The seven chords built only from the key's notes: every other note, from each note of the key.
+// The chords built only from the key's notes. Major and minor: every other note,
+// from each note of the key (seven chords). The shorter blues and ambassel scales:
+// on each note, the simplest three-note chord that stays inside the scale, if any.
 export function keyChords(root, mode) {
   const pcs = keyPitchClasses(root, mode);
+  const inScale = new Set(pcs);
   return pcs.map((pc, i) => {
-    const triad = [pc, pcs[(i + 2) % 7], pcs[(i + 4) % 7]];
-    const ints = triad.map((p) => (p - pc + 12) % 12);
-    const type = CHORD_TYPES.find((t) => t.ints.length === 3 && t.ints.every((x, j) => x === ints[j]));
-    const suffix = type ? type.suffix : '';
-    return { name: NOTE_NAMES[pc] + suffix, label: spell(pc, root, mode) + suffix, notes: triad };
-  });
+    const fits = pcs.length === 7
+      ? (t) => t.ints.every((x, j) => x === (pcs[(i + 2 * j) % 7] - pc + 12) % 12)
+      : (t) => t.ints.every((x) => inScale.has((pc + x) % 12));
+    const type = CHORD_TYPES.find((t) => t.ints.length === 3 && fits(t));
+    if (!type) return null;
+    const notes = type.ints.map((x) => (pc + x) % 12);
+    return { name: NOTE_NAMES[pc] + type.suffix, label: spell(pc, root, mode) + type.suffix, notes };
+  }).filter(Boolean);
 }
 
 // ---- Circle of fifths ----
