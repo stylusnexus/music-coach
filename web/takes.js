@@ -4,6 +4,7 @@ import { matchesChord } from './music.js';
 
 // raw: {
 //   bpm, bars, targetBars,
+//   barBeats                     quarter-note beats in a bar (4 in 4/4, 3 in 3/4 and 6/8)
 //   barLog: [{notes, expected}]  what was sounding at each bar line, and the chart chord due there
 //   changes: [t]                 seconds from the start when a new chord began
 //   presses: [{t, vel}]          every key press
@@ -13,7 +14,8 @@ import { matchesChord } from './music.js';
 // }
 export function measureTake(raw) {
   const beatSec = 60 / raw.bpm;
-  const barSec = beatSec * 4;
+  const barBeats = raw.barBeats ?? 4;
+  const barSec = beatSec * barBeats;
 
   // Chords: bars where a chart chord was due, and whether it was sounding.
   const due = raw.barLog.filter((b) => b.expected);
@@ -51,6 +53,7 @@ export function measureTake(raw) {
   const ending = {
     bars: raw.bars,
     targetBars: raw.targetBars,
+    barBeats,
     stopPastBarBeats,
     secondsWithoutNewNotes: round(raw.stopT - lastPress, 1),
   };
@@ -121,7 +124,7 @@ export function scoreAreas(m) {
 
   // Ending: reaching the target length and pressing Stop close to a bar line.
   const past = m.ending.stopPastBarBeats;
-  const distance = Math.min(past, 4 - past);
+  const distance = Math.min(past, (m.ending.barBeats ?? 4) - past);
   let ending = 10;
   if (m.ending.bars < m.ending.targetBars) ending -= 3;
   if (distance > 1) ending -= 3;

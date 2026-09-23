@@ -1,10 +1,10 @@
-import { Engine, DRUM_PATTERNS } from './audio.js';
+import { Engine, DRUM_PATTERNS, METER_PATTERNS } from './audio.js';
 import { setupInput } from './input.js';
 import {
   ARP_PATTERNS, CHORD_PATTERNS, Latch, TICKS_PER_STEP, arpNotes, bassLength, bassNote, chordLength, detectChord, hasInterval, swingDelay,
   inKey, keyChords, keyName, keyPitchClasses, snapToKey, spell, CIRCLE, compareKeys, friendlyChords, neighbours,
   circleSpot, keyAtSpot, lessonKey, wheelDemo, isBlackKey, noteName, pitchClass,
-  sliceForNote, tempoFromName, voicing, writeMidi,
+  sliceForNote, tempoFromName, voicing, writeMidi, METERS, meterOf, patternStep,
 } from './music.js';
 import { KEY_MODES, parseKey } from './music.js';
 import { groupPlugins, searchGear } from './gear.js';
@@ -43,6 +43,7 @@ const state = {
   bassStyle: 'pump', // 'pump' (new wave) or 'melodic' (post-punk)
   freeTime: false, // "No beat": no click, drums, bass or arpeggiator; held notes just ring
   swing: 0, // 0 straight, 1 hard shuffle: how late the off-beat sixteenths land
+  meter: '4/4', // time signature: sets how many sixteenths make a bar
   halfSpeed: false, // sampler plays slices at half speed
   kit: 'synth', // drum kit id
   grid: { kick: [], snare: [], rim: [], hat: [], openhat: [] }, // "my beat": steps per row
@@ -1131,8 +1132,11 @@ function holdChanged() {
 // ---------- clock: arp, drums, click, bars ----------
 
 engine.onStep = (step, time) => {
-  const s16 = step % 16;
-  if (s16 === 0) onBarStart(step, time);
+  // pos: the sixteenth within the bar. How many make a bar follows the time signature.
+  const meter = meterOf(state.meter);
+  const pos = step % meter.steps;
+  const onBeat = meter.beats.includes(pos); // a counted beat: played a little harder
+  if (pos === 0) onBarStart(step, time);
 
   // Swing moves the off-beat sixteenths of the arpeggio, bass, drums and loop.
   const swung = time + swingDelay(step, state.swing) * engine.secondsPerStep;
@@ -1151,23 +1155,26 @@ engine.onStep = (step, time) => {
   }
 
   if (state.drums && !state.freeTime) {
-    const p = state.drumPattern === 'my beat' ? state.grid : DRUM_PATTERNS[state.drumPattern];
+    // A pattern written for this time signature plays as is; a 4/4 one is fitted to the bar.
+    const own = state.drumPattern !== 'my beat' && METER_PATTERNS[state.meter]?.[state.drumPattern];
+    const p = own || (state.drumPattern === 'my beat' ? state.grid : DRUM_PATTERNS[state.drumPattern]);
+    const at = own ? pos : patternStep(pos);
     for (const kind of DRUM_KINDS) {
-      if (p[kind]?.includes(s16)) {
-        const accent = (DRUM_LEVELS[kind] ?? 1) * ((kind === 'hat' || kind === 'brush') && s16 % 4 !== 0 ? 0.7 : 1);
+      if (p[kind]?.includes(at)) {
+        const accent = (DRUM_LEVELS[kind] ?? 1) * ((kind === 'hat' || kind === 'brush') && !onBeat ? 0.7 : 1);
         engine.drum(kind, swung, accent);
         recordStep('drums', step, DRUM_NOTES[kind], Math.round(100 * accent), 1);
       }
     }
   }
-  if (state.click && !state.freeTime && s16 % 4 === 0) engine.drum('click', time, s16 === 0 ? 1.4 : 0.8);
+  if (state.click && !state.freeTime && meter.beats.includes(pos)) engine.drum('click', time, pos === 0 ? 1.4 : 0.8);
 
   const notes = latch.notes(state.latch);
   if (state.bass && !state.freeTime && notes.length) {
-    const b = bassNote(notes, step, state.bassStyle);
+    const b = bassNote(notes, patternStep(pos), state.bassStyle);
     if (b !== null) {
-      const vel = s16 % 4 === 0 ? 100 : 84;
-      const len = bassLength(state.bassStyle);
+      const vel = onBeat ? 100 : 84;
+      const len = bassLength(state.bassStyle, meter.steps);
       const steps = len < 1 ? len : Math.round(len);
       const sound = state.bassStyle === 'sub' ? 'sub' : BASS_SOUND;
       engine.playNote(b, vel, swung, engine.secondsPerStep * len, sound, 'bass');
@@ -1179,8 +1186,8 @@ engine.onStep = (step, time) => {
   if (state.arp && !state.freeTime && notes.length) {
     const chordHit = Boolean(CHORD_PATTERNS[state.arpPattern]);
     const eno = state.arpPattern === 'eno';
-    for (const n of arpNotes(state.arpPattern, notes, step)) {
-      const vel = eno ? 58 + Math.floor(Math.random() * 16) : (s16 % 4 === 0 ? 96 : 76) + Math.floor(Math.random() * 12) - (chordHit ? 14 : 0);
+    for (const n of arpNotes(state.arpPattern, notes, step, pos)) {
+      const vel = eno ? 58 + Math.floor(Math.random() * 16) : (onBeat ? 96 : 76) + Math.floor(Math.random() * 12) - (chordHit ? 14 : 0);
       const steps = eno ? 24 : chordHit ? chordLength(state.arpPattern) : 3.5;
       // Short chord hits (skank, stab) stay short when recorded or looped.
       const kept = steps < 1 ? steps : Math.round(steps);
@@ -1191,12 +1198,13 @@ engine.onStep = (step, time) => {
     }
   }
 
-  if (state.drums && state.drumPattern === 'my beat') engine.atTime(time, () => markGridStep(s16));
-  if (s16 % 4 === 0) {
+  if (state.drums && state.drumPattern === 'my beat') engine.atTime(time, () => markGridStep(patternStep(pos)));
+  const beat = meter.beats.indexOf(pos);
+  if (beat !== -1) {
     engine.atTime(time, () => {
       reportHold(true);
-      $('bar').textContent = state.chartRunning && !state.freeTime ? `bar ${Math.max(1, state.bar - state.chartStartBar + 1)} · beat ${s16 / 4 + 1}` : '';
-      highlightChart(s16 === 12);
+      $('bar').textContent = state.chartRunning && !state.freeTime ? `bar ${Math.max(1, state.bar - state.chartStartBar + 1)} · beat ${beat + 1}` : '';
+      highlightChart(beat === meter.beats.length - 1);
     });
   }
 };
@@ -1206,7 +1214,7 @@ function onBarStart(step, time) {
   const notes = latch.notes(state.latch);
   const arpOn = state.arp;
   const drums = state.drums;
-  const { arpPattern: pattern, drumPattern, kit, bass, bassStyle, swing } = state;
+  const { arpPattern: pattern, drumPattern, kit, bass, bassStyle, swing, meter } = state;
   const fx = { ...engine.fx };
   const { drumFuzz } = engine;
   const sound = engine.sound;
@@ -1216,7 +1224,7 @@ function onBarStart(step, time) {
   if (state.rec === 'armed') {
     state.rec = 'recording';
     state.recording = {
-      startStep: step, startTime: time, keys: [], bass: [], drums: [], pending: new Map(), bpm: engine.bpm,
+      startStep: step, startTime: time, keys: [], bass: [], drums: [], pending: new Map(), bpm: engine.bpm, meter: state.meter,
       barLog: [], changes: [], presses: [],
     };
     engine.atTime(time, renderRecordButton);
@@ -1231,8 +1239,8 @@ function onBarStart(step, time) {
     state.bar += 1;
     highlightChart(false);
     // The bar that just finished counts toward "hold this chord for N bars".
-    if (arpOn && notes.length) emit({ type: 'arpBar', notes, drums, pattern, drumPattern, drone, bass, bassStyle, sound, fx, drumFuzz, swing });
-    emit({ type: 'bar', drums, drumPattern, kit, drumFuzz, swing });
+    if (arpOn && notes.length) emit({ type: 'arpBar', notes, drums, pattern, drumPattern, drone, bass, bassStyle, sound, fx, drumFuzz, swing, meter });
+    emit({ type: 'bar', drums, drumPattern, kit, drumFuzz, swing, meter });
     if (loopPlaying) emit({ type: 'loopBar', layers: loopLayers });
   });
 }
@@ -1302,6 +1310,7 @@ function renderRecordButton() {
 // Tempo is fixed while recording or looping, so notes stay on the beat.
 function lockTempo() {
   $('bpm').disabled = state.rec === 'recording' || looper.active;
+  $('meter').disabled = $('bpm').disabled;
 }
 
 // ---------- looper ----------
@@ -1359,11 +1368,12 @@ function toggleRecord() {
     const r = state.recording;
     for (const note of [...r.pending.keys()]) recordDirectOff(note);
     const steps = (engine.ctx.currentTime - r.startTime) / engine.secondsPerStep;
-    r.bars = Math.max(1, Math.round(steps / 16));
+    r.bars = Math.max(1, Math.round(steps / meterOf(r.meter).steps));
     state.lastTake = measureTake({
       lesson: lesson.title,
       bpm: r.bpm,
       bars: r.bars,
+      barBeats: meterOf(r.meter).steps / 4,
       targetBars: lesson.chart?.length || 8,
       barLog: r.barLog,
       changes: r.changes,
@@ -1382,7 +1392,7 @@ function toggleRecord() {
     $('save-info').textContent = `${r.bars} bar${r.bars === 1 ? '' : 's'} recorded at ${r.bpm} BPM.`;
     $('sketch-name').value = lesson.chart ? lesson.chart.filter((c, i, a) => a.indexOf(c) === i).join(' ') : '';
     $('save-row').hidden = false;
-    emit({ type: 'recorded', bars: r.bars });
+    emit({ type: 'recorded', bars: r.bars, meter: r.meter });
   }
   renderRecordButton();
 }
@@ -1390,7 +1400,7 @@ function toggleRecord() {
 async function saveSketch() {
   const r = state.recording;
   if (!r) return;
-  const limit = r.bars * 16 * TICKS_PER_STEP;
+  const limit = r.bars * meterOf(r.meter).steps * TICKS_PER_STEP;
   const within = (events) => events.filter((e) => e.tick < limit);
   const bytes = writeMidi(
     [
@@ -1399,6 +1409,7 @@ async function saveSketch() {
       { name: 'Drums', channel: 9, events: within(r.drums) },
     ],
     r.bpm,
+    r.meter,
   );
   const data = btoa(String.fromCharCode(...bytes));
   const name = $('sketch-name').value.trim() || 'sketch';
@@ -1463,6 +1474,7 @@ function renderStudio() {
   $('bass').classList.toggle('on', state.bass);
   $('bass-style').value = state.bassStyle;
   $('swing').value = Math.round(state.swing * 100);
+  $('meter').value = state.meter;
   $('half-speed').classList.toggle('on', state.halfSpeed);
   $('drum-kit').value = state.kit;
   $('reverse').classList.toggle('on', state.reverse);
@@ -1487,6 +1499,9 @@ function applySetup(s) {
   if (s.bass === undefined) state.bass = false;
   if (state.bass) loadSound(BASS_SOUND);
   state.swing = s.swing ?? 0;
+  // The meter never changes under a recording, and a lesson that doesn't name
+  // one leaves a loop (and the meter it was recorded in) alone.
+  if (state.rec !== 'recording' && (s.meter || !looper.active)) setMeter(s.meter || '4/4');
   setFreeTime(Boolean(s.freeTime));
   engine.setDrumFuzz(Boolean(s.drumFuzz));
   // Never start drums just because a lesson opened: wait for the first note.
@@ -1498,6 +1513,19 @@ function applySetup(s) {
   for (const [name, on] of Object.entries(fx)) engine.setFx(name, on);
   engine.allOff();
   renderStudio();
+}
+
+// A new time signature changes how long a bar is. A loop recorded in the old
+// one no longer fits its bars, so it is cleared.
+function setMeter(name) {
+  const next = METERS[name] ? name : '4/4';
+  if (next === state.meter) return;
+  state.meter = next;
+  if (looper.active) {
+    looper.clear();
+    renderLooper();
+  }
+  looper.stepsPerBar = METERS[next].steps;
 }
 
 // True while anything is sounding: a chord, the drums, or a playing loop.
@@ -1631,6 +1659,12 @@ function wireStudio() {
     state.click = !state.click;
     if (state.click) state.freeTime = false;
     renderStudio();
+  };
+  for (const name of Object.keys(METERS)) $('meter').add(new Option(name, name));
+  $('meter').onchange = (e) => {
+    setMeter(e.target.value);
+    renderStudio();
+    emit({ type: 'meter', meter: state.meter });
   };
   $('swing').oninput = (e) => {
     state.swing = Number(e.target.value) / 100;
@@ -2012,7 +2046,7 @@ function progressionBar(time) {
     notes.forEach((n) => latch.release(n));
   } else {
     const sound = engine.sound === 'chop' ? 'epiano' : engine.sound;
-    notes.forEach((n) => engine.playNote(n, 80, time, engine.secondsPerStep * 15, sound));
+    notes.forEach((n) => engine.playNote(n, 80, time, engine.secondsPerStep * (meterOf(state.meter).steps - 1), sound));
   }
   engine.atTime(time, () => {
     for (const c of $('prog-slots').children) c.classList.toggle('now', Number(c.dataset.slot) === i);
@@ -2023,14 +2057,14 @@ function progressionBar(time) {
 async function saveProgression() {
   const filled = prog.slots.filter(Boolean);
   const events = [];
-  const bar = 16 * TICKS_PER_STEP;
+  const bar = meterOf(state.meter).steps * TICKS_PER_STEP;
   for (let rep = 0; rep < 2; rep++) {
     filled.forEach((s, i) => {
       const tick = (rep * filled.length + i) * bar;
       for (const note of voicing(s.name)) events.push({ tick, note, vel: 85, dur: bar - 30 });
     });
   }
-  const bytes = writeMidi([{ name: 'Chords', channel: 0, events }], engine.bpm);
+  const bytes = writeMidi([{ name: 'Chords', channel: 0, events }], engine.bpm, state.meter);
   const res = await fetch('/api/sketches', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -1160,11 +1160,12 @@ export function createChecker(lesson, saved) {
             (!c.interval || hasInterval(evt.notes, c.interval)) &&
             (!c.fx || c.fx.every((name) => evt.fx?.[name])) &&
             (!c.dry || !['chorus', 'echo', 'reverb', 'fuzz', 'reverse', 'wobble'].some((name) => evt.fx?.[name])) &&
-            (!c.swing || evt.swing >= c.swing)
+            (!c.swing || evt.swing >= c.swing) &&
+            (!c.meter || evt.meter === c.meter)
           ) next = v + 1;
           break;
         case 'drumBars':
-          if (evt.type === 'arpBar' && evt.drums && evt.notes.length > 0 && (!c.drumPattern || evt.drumPattern === c.drumPattern) && (!c.drumFuzz || evt.drumFuzz) && (!c.swing || evt.swing >= c.swing)) next = v + 1;
+          if (evt.type === 'arpBar' && evt.drums && evt.notes.length > 0 && (!c.drumPattern || evt.drumPattern === c.drumPattern) && (!c.drumFuzz || evt.drumFuzz) && (!c.swing || evt.swing >= c.swing) && (!c.meter || evt.meter === c.meter)) next = v + 1;
           break;
         case 'bassBars':
           if (evt.type === 'arpBar' && evt.bass && (!c.bassStyle || evt.bassStyle === c.bassStyle)) next = v + 1;
@@ -1182,7 +1183,7 @@ export function createChecker(lesson, saved) {
           if (evt.type === 'noteOn' && scaleOf(c).includes(pitchClass(evt.note))) next = v + 1;
           break;
         case 'recorded':
-          if (evt.type === 'recorded' && evt.bars >= c.bars) next = evt.bars;
+          if (evt.type === 'recorded' && evt.bars >= c.bars && (!c.meter || evt.meter === c.meter)) next = evt.bars;
           break;
         case 'saved':
           if (evt.type === 'saved') next = true;
@@ -1194,7 +1195,7 @@ export function createChecker(lesson, saved) {
           if (evt.type === 'grid') next = Math.max(v, evt.grid[c.row]?.length || 0);
           break;
         case 'beatBars':
-          if (evt.type === 'bar' && evt.drums && evt.drumPattern === c.drumPattern && (!c.kit || evt.kit === c.kit) && (!c.swing || evt.swing >= c.swing)) next = v + 1;
+          if (evt.type === 'bar' && evt.drums && evt.drumPattern === c.drumPattern && (!c.kit || evt.kit === c.kit) && (!c.swing || evt.swing >= c.swing) && (!c.meter || evt.meter === c.meter)) next = v + 1;
           break;
         case 'loopLoaded':
           if (evt.type === 'loop') next = true;

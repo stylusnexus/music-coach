@@ -26,6 +26,19 @@ export const DRUM_PATTERNS = {
   afrobeat: { kick: [0, 3, 6, 10, 11], snare: [4, 12], ghost: [2, 7, 9, 14, 15], hat: [0, 4, 8, 12], openhat: [2, 6, 10, 14] },
 };
 
+// Patterns written for bars that aren't 4/4. Any pattern missing here plays its
+// 4/4 version fitted to the bar (see patternStep in music.js).
+export const METER_PATTERNS = {
+  // A waltz: kick on 1, snare on 2 and 3.
+  '3/4': { simple: { kick: [0], snare: [4, 8], hat: [0, 2, 4, 6, 8, 10] } },
+  // Two dotted beats: kick on the first, snare on the second.
+  '6/8': { simple: { kick: [0], snare: [6], hat: [0, 2, 4, 6, 8, 10] } },
+  // Counted 3 + 2, as in "Take Five": kick on 1 and 4, snare on 3 and 5.
+  '5/4': { simple: { kick: [0, 12], snare: [8, 16], hat: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18] } },
+  // Grouped 2 + 2 + 3: kick on the first and last group, snare on the second.
+  '7/8': { simple: { kick: [0, 8], snare: [4], hat: [0, 2, 4, 6, 8, 10, 12] } },
+};
+
 // Sustained sounds get a longer fade when a key is released (seconds).
 const RELEASE = { pad: 1.2, 'vp330-strings': 1.2, farfisa: 1.2, swell: 4, saw: 0.3, sub: 0.3 };
 // Sounds built here, with no recordings needed.
