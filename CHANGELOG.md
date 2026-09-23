@@ -11,6 +11,8 @@ All notable changes to this project are listed here. The format follows
 - A style picker: new users pick up to 5 styles in a 3-step welcome (gear,
   styles, coach model). "Change my styles" and "Show all styles" in the
   lesson list; "Unlock anyway" opens a style before finishing the Basics.
+- Four new styles that need nothing extra installed: folk, bossa nova,
+  minimal wave, and classical minimalism.
 - Style lessons name optional gear that would bring them closer to the
   record, only when it's missing.
 - 30 lessons in four sections: Basics, Quick wins, GarageBand skills and
