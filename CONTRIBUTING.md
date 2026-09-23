@@ -64,7 +64,22 @@ Why the change is needed, wrapped at 72 characters.
 - Reference issues as `Fixes #123` on its own line.
 
 Pull requests go to `main`, need the tests to pass, and are squash-merged, so
-the pull request title follows the same rules as a commit subject.
+the pull request title follows the same rules as a commit subject. A check
+enforces the format.
+
+## The changelog writes itself
+
+Don't edit CHANGELOG.md by hand. When a pull request is merged, its title
+becomes a line in the next release's changelog: `feat` titles under Added,
+`fix` under Fixed, `perf` and `revert` under Changed. `docs`, `test`,
+`refactor`, `chore`, `build` and `ci` stay out of it. So write the title for
+someone who uses the app: "feat(styles): add gothic rock", not
+"feat: update lessons.js".
+
+[release-please](https://github.com/googleapis/release-please) keeps a release
+pull request open with the next version number and those lines. Merging it
+tags the version, publishes the GitHub release, and a Mac runner attaches
+`Music Coach.zip`.
 
 ## Using Claude Code
 
@@ -90,8 +105,8 @@ you through:
 
    Open http://localhost:8799 and play the lesson: every step must work with
    the app's own sounds and GarageBand's, and every check must tick.
-4. A line under `## [Unreleased]` in CHANGELOG.md for anything a user would
-   notice.
+4. A pull request title in the commit format: it becomes the changelog line
+   when the change is released.
 5. A commit in the format below, then `gh pr create` and `gh pr checks --watch`.
 
 You can do all of this by hand; the skill just keeps the steps in order.
@@ -100,8 +115,8 @@ You can do all of this by hand; the skill just keeps the steps in order.
 
 - `merge-pr` checks a pull request against the rules here, fixes the title if
   needed, squash-merges it, and confirms the site rebuilt.
-- `release` picks the version, updates the changelog, builds and test-opens
-  `Music Coach.zip`, tags `vX.Y.Z`, and publishes the GitHub release.
+- `release` checks the release pull request that release-please keeps open,
+  merges it, and confirms the GitHub release and its `Music Coach.zip`.
 
 ## Code of conduct
 

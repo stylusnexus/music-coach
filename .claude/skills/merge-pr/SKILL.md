@@ -23,14 +23,15 @@ Stop and comment instead of merging if any of these fail:
   `resolveGear`, or wasn't checked on a bare Mac (see the `contribute` skill).
 - A new dependency, analytics, or any network call other than the coach model
   the user picked.
-- A user-visible change with no line under `## [Unreleased]` in CHANGELOG.md.
+- A pull request that edits CHANGELOG.md by hand (release-please writes it).
 
 For a large change, get an independent review first (a code-review agent, or
 a second person). A review of your own work by you isn't a review.
 
 ## 2. Fix the title if needed
 
-The title becomes the commit on `main`, and release notes are read from it:
+The title becomes the commit on `main` and the line in the next changelog, so
+it should read well to someone who uses the app:
 
 - `type(scope): imperative summary`, 50 characters or fewer, lowercase after
   the colon, no period.
@@ -67,5 +68,6 @@ there.
 
 - Issues named with `Fixes #N` close themselves; tick any checklist items in
   larger issues by hand.
-- Nothing is released until the `release` skill runs: merging to `main` only
-  updates the source and the site.
+- Nothing is released until the release pull request is merged (the `release`
+  skill): merging to `main` only updates the source, the site, and the release
+  pull request that release-please keeps open.

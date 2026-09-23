@@ -48,10 +48,12 @@ Open http://localhost:8799, finish the welcome, and play the lesson. Check:
 Plain words, one action per step, no jargon without a short explanation
 (see CONTRIBUTING.md).
 
-## 4. Changelog
+## 4. Changelog: nothing to edit
 
-For anything a user would notice, add one line under `## [Unreleased]` in
-`CHANGELOG.md` (Added, Changed or Fixed).
+CHANGELOG.md is written by release-please from pull request titles. Don't
+edit it. Make the title (step 6) read well to someone who uses the app:
+`feat` goes under Added, `fix` under Fixed; `docs`, `test`, `chore`, `ci`
+and the like stay out.
 
 ## 5. Commit
 
@@ -75,8 +77,9 @@ git push -u origin HEAD
 gh pr create --base main --title "<same form as a commit subject>" --fill
 ```
 
-The title becomes the commit on `main` (squash merge), so it follows the
-commit subject rules. Fill in the template: why, and the two checks.
+The title becomes the commit on `main` (squash merge) and the changelog line,
+so it follows the commit subject rules. The `pr-title` check enforces them:
+50 characters or fewer, lowercase after the colon, no full stop. Fill in the template: why, and the two checks.
 
 ## 7. Watch the check
 
