@@ -499,6 +499,27 @@ const ALL_LESSONS = [
     ],
   },
   {
+    id: 'punk',
+    title: 'Punk: power chords and fast eighths',
+    minutes: 15,
+    why: 'The Ramones, the Buzzcocks and the Sex Pistols played fast, loud and simple, and made it sound huge. The trick is the power chord: just two notes, a root and the note five white keys up. It is neither major nor minor, so it takes fuzz without turning to mush. One shape, moved around, is most of punk.',
+    steps: [
+      'Guitar, pattern "eighths", Arp and Latch on, drums on "punk", 170 BPM. Switch Fuzz on.',
+      'Play a power chord: E and B together (E5). Two keys, with three white keys in between.',
+      'Keep the same shape and move it: G and D (G5), then A and E (A5). Same fingers, new chord.',
+      'Follow the chart: E5, G5, A5. Hit each change on the count of 1.',
+      'In GarageBand: put the sketch on a distorted electric guitar from the Library, or add {amp} to a guitar track.',
+    ],
+    setup: { sound: 'guitar', arp: true, latch: true, arpPattern: 'eighths', drums: true, drumPattern: 'punk', bpm: 170, fx: { fuzz: true, chorus: false, echo: false } },
+    chart: ['E5', 'E5', 'G5', 'G5', 'A5', 'A5', 'A5', 'A5'],
+    checks: [
+      { type: 'arpBars', chord: 'E5', fx: ['fuzz'], bars: 2, label: '2 bars of E5 with fuzz' },
+      { type: 'drumBars', drumPattern: 'punk', bars: 4, label: '4 bars over the punk beat' },
+      { type: 'arpBars', chord: 'G5', bars: 2, label: '2 bars of G5' },
+      { type: 'arpBars', chord: 'A5', bars: 2, label: '2 bars of A5' },
+    ],
+  },
+  {
     id: 'folk',
     title: 'Folk: fingerpicking and open chords',
     minutes: 15,
@@ -838,7 +859,7 @@ export const SECTIONS = [
   {
     title: 'Styles',
     note: 'Locked until you finish the Basics: these assume you can tap chords and follow a chart. Suggested path: Kosmische, then Ambient, then Dark ambient. The rest in any order.',
-    ids: ['kosmische', 'ambient-eno', 'dark-ambient', 'stereolab', 'new-wave', 'post-punk', 'shoegaze', 'folk', 'bossa-nova', 'minimal-wave', 'classical-minimalism'],
+    ids: ['kosmische', 'ambient-eno', 'dark-ambient', 'stereolab', 'new-wave', 'post-punk', 'shoegaze', 'folk', 'bossa-nova', 'minimal-wave', 'classical-minimalism', 'punk'],
     requiresSection: 'Basics',
   },
 ];
@@ -859,6 +880,8 @@ export const STYLE_INFO = {
     betterWith: [{ any: ['sound:moog-bass', 'tag:bass', 'tag:synth'], label: 'a synth bass plugin' }, { any: ['gear:echo'], label: 'an echo plugin' }] },
   'post-punk': { name: 'Post-punk and darkwave', artists: 'Joy Division, Siouxsie and the Banshees', sound: 'A melodic bass up front, tribal drums and cold minor chords.', texture: 'chord',
     betterWith: [{ any: ['gear:chorus'], label: 'a chorus plugin' }, { any: ['gear:amp', 'gear:fuzz'], label: 'an amp plugin' }] },
+  punk: { name: 'Punk', artists: 'Ramones, Buzzcocks', sound: 'Two-note power chords, fuzz and fast, straight drums.', texture: 'chord',
+    betterWith: [{ any: ['gear:amp'], label: 'an amp plugin' }] },
   folk: { name: 'Folk', artists: 'Nick Drake, Joni Mitchell', sound: 'One guitar, picked close, with open chords that ring.', texture: 'chord',
     betterWith: [{ any: ['plugin:VG-SILK2'], label: 'an acoustic or nylon guitar plugin' }] },
   'bossa-nova': { name: 'Bossa nova', artists: 'Antônio Carlos Jobim, João Gilberto', sound: 'Soft 7th chords off the beat over a rolling rhythm.', texture: 'groove',

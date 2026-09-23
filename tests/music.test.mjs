@@ -396,9 +396,9 @@ test('reverse reverb names the IK plugin when installed', () => {
 });
 
 test('lesson order: basics, then quick wins, then styles; every lesson placed once', () => {
-  assert.equal(LESSONS.length, 34);
+  assert.equal(LESSONS.length, 35);
   assert.ok(LESSONS.every(Boolean));
-  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 34);
+  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 35);
   assert.equal(lockReason('looping', {}), null); // a quick win: always open
   assert.deepEqual(SECTIONS.map((s) => s.title), ['Basics', 'Quick wins', 'GarageBand skills', 'Styles']);
   assert.equal(LESSONS[3].id, 'major-minor'); // right after the four chords
@@ -682,4 +682,15 @@ test('the new styles tick on their own sounds, dry folk needs the effects off', 
   const bossa = createChecker(byId('bossa-nova'));
   for (let i = 0; i < 2; i++) bossa.handle({ type: 'arpBar', notes: [55, 59, 62, 65], pattern: 'offbeat', fx: {} });
   assert.equal(bossa.progress()[3].done, true); // G7 recognised
+});
+
+test('punk: power chords are recognised and need the fuzz on', () => {
+  const punk = createChecker(byId('punk'));
+  const bar = (notes, fx) => ({ type: 'arpBar', notes, pattern: 'eighths', fx });
+  punk.handle(bar([52, 59], {}));
+  punk.handle(bar([52, 59], {}));
+  assert.equal(punk.progress()[0].done, false); // no fuzz yet
+  punk.handle(bar([52, 59, 64], { fuzz: true }));
+  punk.handle(bar([52, 59, 64], { fuzz: true }));
+  assert.equal(punk.progress()[0].done, true); // E5, with the octave doubled
 });

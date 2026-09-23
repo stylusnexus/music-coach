@@ -8,6 +8,8 @@ export const DRUM_PATTERNS = {
   bossa: { kick: [0, 6, 8, 14], rim: [0, 6, 12], hat: [0, 2, 4, 6, 8, 10, 12, 14] },
   'new wave': { kick: [0, 6, 8], snare: [4, 12], hat: [0, 2, 4, 6, 8, 10, 12], openhat: [14] },
   tribal: { kick: [0, 8], tom: [0, 3, 6, 8, 10, 11, 14], snare: [12], hat: [4, 12] },
+  // Straight eighths, snare on 2 and 4, for fast punk tempos.
+  punk: { kick: [0, 6, 8], snare: [4, 12], hat: [0, 2, 4, 6, 8, 10, 12, 14] },
 };
 
 // Sustained sounds get a longer fade when a key is released.
