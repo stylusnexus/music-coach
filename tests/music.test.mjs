@@ -463,11 +463,11 @@ test('reverse reverb names the IK plugin when installed', () => {
 });
 
 test('lesson order: basics, then quick wins, then styles; every lesson placed once', () => {
-  assert.equal(LESSONS.length, 42);
+  assert.equal(LESSONS.length, 43);
   assert.ok(LESSONS.every(Boolean));
-  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 42);
+  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 43);
   assert.equal(lockReason('looping', {}), null); // a quick win: always open
-  assert.deepEqual(SECTIONS.map((s) => s.title), ['Basics', 'Quick wins', 'GarageBand skills', 'Styles']);
+  assert.deepEqual(SECTIONS.map((s) => s.title), ['Basics', 'Quick wins', 'GarageBand skills', 'Styles', 'Optional']);
   assert.equal(LESSONS[3].id, 'major-minor'); // right after the four chords
   // Lesson text names other lessons by title, never by number.
   assert.ok(LESSONS.every((l) => !JSON.stringify(l.steps).match(/lesson \d/i)));
@@ -997,4 +997,13 @@ test('comparing takes marks each area in words and opens first vs latest', () =>
   assert.deepEqual({ latest: pairs.latest, older: pairs.defaultOlder, firstPass: pairs.firstPass }, { latest: 4, older: 1, firstPass: 2 });
   // Compared as strings, 10:00 would look earlier than 16:30 and take 2 would be missed.
   assert.equal(comparePairs(takes, '2026-09-22T18:00:00.000Z').firstPass, 3);
+});
+
+test('the iPhone lesson is optional: never locked, never next, never blocking', () => {
+  assert.equal(lockReason('gb-iphone', {}), null);
+  const everythingElse = Object.fromEntries(LESSONS.filter((l) => l.id !== 'gb-iphone').map((l) => [l.id, 'done']));
+  assert.notEqual(firstUnfinished(everythingElse).id, 'gb-iphone');
+  assert.ok(!lessonPath().some((l) => l.id === 'gb-iphone'));
+  assert.ok(!lessonPath(['punk']).some((l) => l.id === 'gb-iphone'));
+  assert.equal(byId('gb-iphone').differences.length, 5);
 });

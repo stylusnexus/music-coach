@@ -368,6 +368,10 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 .suggested button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .nudge { background: var(--panel-2); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
 .nudge[hidden], .better[hidden] { display: none; }
+.diff { background: var(--panel-2); border-radius: 8px; padding: 8px 14px; margin: 4px 0 12px; font-size: 14px; }
+.diff[hidden] { display: none; }
+.diff h3 { margin: 4px 0 6px; font-size: 14px; }
+.diff ul { margin: 0 0 4px; padding-left: 18px; }
 .better { font-size: 13px; color: var(--muted); margin: 4px 0 10px; }
 .lessons .unlock-row { padding: 0 0 6px 34px; font-size: 12px; }
 .lessons .styles-toggle { padding: 4px 0 8px; font-size: 13px; }
