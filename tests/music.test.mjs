@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   Latch, arpNote, detectChord, matchesChord, spreadChord, voicing, writeMidi, PPQ,
 } from '../web/music.js';
-import { LESSONS, LISTEN, PICKER_ORDER, SECTIONS, STYLE_INFO, bandcampEmbed, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from '../web/lessons.js';
+import { LESSONS, LISTEN, PICKER_ORDER, SECTIONS, STYLE_INFO, bandcampEmbed, matchesGear, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from '../web/lessons.js';
 
 test('names E minor in any order or octave', () => {
   assert.equal(detectChord([64, 67, 71]).name, 'Em');
@@ -727,4 +727,13 @@ test('gothic rock hears the half-step move, and needs the echo on', () => {
   goth.handle(bar([58, 62, 65], {}));
   goth.handle(bar([58, 62, 65], {}));
   assert.equal(goth.progress()[2].done, true); // B flat
+});
+
+test('only gear that changes what a lesson can do counts as a match', () => {
+  const everything = { installed: ['CSR Plate v6', 'Triad Chorus v6', 'AmpliTube 5', 'Tape Echo v6'], tags: { synth: 'MiniFreak' } };
+  const styles = SECTIONS.find((s) => s.title === 'Styles').ids;
+  assert.deepEqual(styles.filter((id) => matchesGear(id, everything)), []); // effects and synths only polish
+  assert.ok(matchesGear('dark-ambient', { folder: '~/Samples' }));
+  assert.ok(matchesGear('dark-ambient', { tags: { microphone: 'Shure SM58' } }));
+  assert.ok(!matchesGear('dark-ambient', []));
 });

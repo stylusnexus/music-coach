@@ -11,7 +11,7 @@ import { measureTake, scoreAreas } from './takes.js';
 import { DRILLS, makeQuestion, streakDots } from './ear.js';
 import { INTERVALS, KEY_TEXT, MAJOR_MINOR, STYLE_CHORDS } from './chords.js';
 import { Looper } from './looper.js';
-import { LESSONS, LISTEN, PICKER_ORDER, SECTIONS, STYLE_INFO, bandcampEmbed, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonHighlightPcs, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from './lessons.js';
+import { LESSONS, LISTEN, PICKER_ORDER, SECTIONS, STYLE_INFO, bandcampEmbed, matchesGear, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonHighlightPcs, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from './lessons.js';
 
 const $ = (id) => document.getElementById(id);
 const KEY_LOW = 48;
@@ -170,7 +170,9 @@ function renderLessonList() {
     if (isStyles) {
       const change = document.createElement('button');
       change.className = 'link';
-      change.textContent = progress.styles?.length ? 'Change my styles' : 'Choose my styles';
+      const fresh = newSuggestions().length;
+      change.textContent = `${progress.styles?.length ? 'Change my styles' : 'Choose my styles'}${fresh ? ` · ${fresh} new` : ''}`;
+      if (fresh) change.title = 'Gear you added now matches another style';
       change.onclick = () => openStyles(false);
       head.firstChild.after(change);
     }
@@ -270,6 +272,57 @@ function styleIdsInApp() {
   return [...PICKER_ORDER.filter((id) => ids.includes(id)), ...ids.filter((id) => !PICKER_ORDER.includes(id))];
 }
 
+// Styles where the learner's gear changes what they can do (see `matches` in
+// lessons.js). Gear never locks a style; this only says what it matches.
+function suggestedStyles() {
+  return styleIdsInApp().filter((id) => matchesGear(id, lessonEnv()));
+}
+
+function newSuggestions() {
+  const seen = progress.seenSuggestions || [];
+  return suggestedStyles().filter((id) => !seen.includes(id));
+}
+
+// ▷ Try it: five seconds of the style's own setup, played by the app.
+let previewTimer = null;
+function previewStyle(id) {
+  const l = LESSONS.find((x) => x.id === id);
+  if (!engine.ctx || !l) return;
+  clearTimeout(previewTimer);
+  if (!state.previewing) state.beforePreview = { bpm: engine.bpm, sound: engine.sound };
+  stopAll();
+  state.previewing = true;
+  applySetup(l.setup || {});
+  if (state.drumsWaiting) {
+    state.drums = true;
+    state.drumsWaiting = false;
+  }
+  const chord = l.chart?.[0] || l.checks.find((c) => c.chord)?.chord || 'Am';
+  const notes = voicing(chord);
+  if (state.arp) {
+    latch.clear();
+    notes.forEach((n) => latch.press(n, state.arpPattern === 'eno'));
+    notes.forEach((n) => latch.release(n));
+  } else {
+    notes.forEach((n) => engine.playNote(n, 80, engine.ctx.currentTime, 4, engine.sound));
+  }
+  renderStudio();
+  previewTimer = setTimeout(endPreview, 5000);
+}
+
+function endPreview() {
+  clearTimeout(previewTimer);
+  if (!state.previewing) return;
+  stopAll();
+  applySetup(lesson.setup || {});
+  // Put back the tempo and sound the learner had, where the lesson doesn't set them.
+  const before = state.beforePreview || {};
+  if (!lesson.setup?.bpm && before.bpm) engine.setBpm(before.bpm);
+  if (!lesson.setup?.sound && before.sound) engine.sound = before.sound;
+  renderStudio();
+  state.previewing = false;
+}
+
 function renderStyles() {
   const ids = styleIdsInApp();
   const shown = stylesExpanded ? ids : ids.slice(0, STARTER_CARDS);
@@ -288,6 +341,22 @@ function renderStyles() {
     pick.querySelector('.sound').textContent = info.sound;
     pick.onclick = () => toggleStyle(id);
     card.append(pick);
+    const setup = LESSONS.find((l) => l.id === id)?.setup || {};
+    if (setup.sound !== 'chop') {
+      const tryIt = document.createElement('div');
+      tryIt.className = 'hear';
+      const t = document.createElement('button');
+      t.type = 'button';
+      t.className = 'link';
+      t.textContent = '▷ Try it';
+      t.title = 'Five seconds of this style, played by the app';
+      t.onclick = () => previewStyle(id);
+      const note = document.createElement('span');
+      note.className = 'muted';
+      note.textContent = ' (5 seconds, this app)';
+      tryIt.append(t, note);
+      card.append(tryIt);
+    }
     if (LISTEN[id]) {
       const hear = document.createElement('div');
       hear.className = 'hear';
@@ -311,6 +380,18 @@ function renderStyles() {
     }
     $('style-cards').append(card);
   }
+  const suggested = suggestedStyles();
+  $('styles-suggested').hidden = !suggested.length;
+  $('styles-suggested-list').innerHTML = '';
+  for (const id of suggested) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ghost small';
+    b.textContent = STYLE_INFO[id].name;
+    b.setAttribute('aria-pressed', String(stylePicks.includes(id)));
+    b.onclick = () => toggleStyle(id);
+    $('styles-suggested-list').append(b);
+  }
   const more = ids.length - STARTER_CARDS;
   $('styles-more').hidden = more <= 0;
   $('styles-more').textContent = stylesExpanded ? 'Show fewer' : `Show ${more} more`;
@@ -333,6 +414,10 @@ let welcomeAdvancing = false;
 
 function openStyles(welcome) {
   stylePicks = [...(progress.styles || [])];
+  // Opening the picker counts as seeing the current suggestions.
+  progress.seenSuggestions = suggestedStyles();
+  saveProgress();
+  renderLessonList();
   stylesExpanded = false;
   nudgeDismissed = false;
   $('styles-step').hidden = !welcome;
@@ -373,6 +458,7 @@ function wireWelcome() {
   $('styles-done').onclick = () => saveStyles(stylePicks);
   $('styles-skip').onclick = () => saveStyles([]);
   $('styles-dialog').addEventListener('close', () => {
+    endPreview();
     const advancing = welcomeAdvancing;
     welcomeAdvancing = false;
     if (advancing && $('styles-dialog').dataset.welcome) openCoach(true);
@@ -381,6 +467,7 @@ function wireWelcome() {
 }
 
 function openLesson(id) {
+  endPreview();
   lesson = LESSONS.find((l) => l.id === id) || LESSONS[0];
   progress.current = lesson.id;
   checker = createChecker(fitChecks(lesson, lessonEnv()), progress.checks[lesson.id]);
@@ -577,6 +664,7 @@ function nextOpenLesson() {
 
 // Every musical event goes through here so lesson checks can tick.
 function emit(evt) {
+  if (state.previewing) return; // a style preview never ticks the open lesson
   if (!checker.handle(evt)) return;
   progress.checks[lesson.id] = checker.values();
   if (checker.complete() && !progress.completed[lesson.id]) {
@@ -2400,6 +2488,7 @@ async function refreshGear(folders) {
   renderGear();
   renderFxNote();
   renderChecks();
+  renderLessonList(); // a new gear suggestion shows as "1 new"
 }
 
 let toastUndo = null;
@@ -2723,6 +2812,11 @@ async function boot() {
   if (progress.flavour === undefined) {
     // Every copy that ever opened a lesson saved `current`, so that marks an existing copy.
     progress.flavour = p.current !== undefined || Object.keys(progress.completed).length ? 'durutti' : 'neutral';
+    saveProgress();
+  }
+  // Gear you already had doesn't count as new: only what adding gear brings later.
+  if (progress.seenSuggestions === undefined) {
+    progress.seenSuggestions = suggestedStyles();
     saveProgress();
   }
   openLesson(firstUnfinished(progress.completed, progress.unlocked, progress.styles || []).id);
