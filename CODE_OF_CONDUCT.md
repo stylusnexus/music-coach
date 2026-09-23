@@ -9,6 +9,6 @@ anywhere else in the project.
 
 ## Reporting
 
-To report a problem, email CONTACT_TO_BE_ADDED. Reports are kept confidential.
+To report a problem, email [admin@stylusnexus.com](mailto:admin@stylusnexus.com). Reports are kept confidential.
 Maintainers may remove comments, close threads, or block people who break
 these rules.
