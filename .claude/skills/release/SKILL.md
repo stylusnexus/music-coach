@@ -75,8 +75,10 @@ gh run watch $(gh run list --workflow release --limit 1 --json databaseId --jq '
 gh release view --json tagName,assets --jq '{tag: .tagName, assets: [.assets[].name]}'
 ```
 
-The release should list `Music Coach.zip`. Download it from the release page
-once and open it, as a new user would.
+The release should list two copies of the app: `Music.Coach.zip` (a stable
+name for the README's "latest" link) and `Music-Coach-X.Y.Z.zip`. Download one
+from the release page and open it, as a new user would: the version shows next
+to the name at the top of the app and in Finder's Get Info.
 
 After the first release (`v0.1.0`), update the README's Start section to point
 at the latest release download instead of building the zip by hand.

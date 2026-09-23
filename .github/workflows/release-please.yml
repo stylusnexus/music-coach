@@ -35,6 +35,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: packaging/build.sh
-      - run: gh release upload "${{ needs.release-please.outputs.tag_name }}" "dist/Music Coach.zip" --clobber
+      # Two names for the same zip: a stable one for the "latest" download link,
+      # and one with the version, so a downloaded file says what it is.
+      - run: gh release upload "${{ needs.release-please.outputs.tag_name }}" "dist/Music Coach.zip" dist/Music-Coach-*.zip --clobber
         env:
           GH_TOKEN: ${{ github.token }}

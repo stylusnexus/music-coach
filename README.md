@@ -75,6 +75,10 @@ you.
 and choose **Open** (it isn't notarized yet, so the first open needs the
 right-click). It starts the coach and opens Chrome.
 
+Which version do you have? It's next to the name at the top of the app, in
+Finder's Get Info, and in the file name if you download a specific release
+(`Music-Coach-0.3.0.zip`) from [Releases](https://github.com/stylusnexus/music-coach/releases).
+
 **From source:**
 
 ```sh

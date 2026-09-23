@@ -3007,6 +3007,11 @@ async function boot() {
   };
   $('popout').onclick = popOut;
 
+  loadJson('/api/version', {}).then(({ version }) => {
+    if (!version) return;
+    $('app-version').textContent = `v${version}`;
+    $('coach-version').textContent = `Music Coach v${version}`;
+  });
   const [g, p, inst, kits, loopList, plugins] = await Promise.all([
     loadJson('/api/gear', gear), loadJson('/api/progress', {}), loadJson('/api/instruments', []),
     loadJson('/api/drumkits', []), loadJson('/api/loops', []), loadJson('/api/plugins', []),
