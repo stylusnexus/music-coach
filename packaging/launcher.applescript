@@ -30,7 +30,9 @@ if homePage contains "<title>Music Coach" and versionReply does not contain this
 end if
 set isRunning to (do shell script "curl -s -o /dev/null -w '%{http_code}' " & appURL & " || true")
 if isRunning is not "200" then
-	do shell script "mkdir -p " & quoted form of dataDir & " && cd " & quoted form of appDir & " && COACH_DATA=" & quoted form of dataDir & " COACH_SKETCHES=" & quoted form of sketchDir & " nohup " & quoted form of py & " server.py > " & quoted form of (dataDir & "/server.log") & " 2>&1 &"
+	-- The server starts in its own subshell with nothing left on this command's output,
+	-- so do shell script returns at once instead of waiting until the server stops.
+	do shell script "mkdir -p " & quoted form of dataDir & " && cd " & quoted form of appDir & " && (COACH_DATA=" & quoted form of dataDir & " COACH_SKETCHES=" & quoted form of sketchDir & " nohup " & quoted form of py & " server.py > " & quoted form of (dataDir & "/server.log") & " 2>&1 < /dev/null &)"
 	-- Wait up to 10 seconds for the server to answer.
 	repeat 20 times
 		delay 0.5
