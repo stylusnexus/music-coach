@@ -18,7 +18,40 @@ echo "$VERSION" > "$APP/Contents/Resources/app/VERSION"
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Info.plist"
 plutil -replace CFBundleVersion -string "$VERSION" "$APP/Contents/Info.plist"
 find "$APP" -name .DS_Store -delete
-codesign --force --deep -s - "$APP"
+# Signed with a Developer ID and checked by Apple (notarized) when the keys are
+# there, so a downloaded copy opens without macOS warning about malware.
+# Without them (a local build) the app is signed for this Mac only.
+#   SIGN_IDENTITY   "Developer ID Application: Name (TEAMID)", in the keychain
+#   NOTARY_PROFILE  a notarytool keychain profile (xcrun notarytool store-credentials), or
+#   NOTARY_KEY, NOTARY_KEY_ID, NOTARY_ISSUER  an App Store Connect API key (.p8 path) and its ids
+# A release (CI is set on GitHub's machines) must be signed and notarized, or it stops
+# here, before anything is published.
+if [ -n "${CI:-}" ] && { [ -z "${SIGN_IDENTITY:-}" ] || { [ -z "${NOTARY_PROFILE:-}" ] && [ -z "${NOTARY_KEY:-}" ]; }; }; then
+  echo "A release build must be signed and notarized: SIGN_IDENTITY or the notary key is missing." >&2
+  exit 1
+fi
+if [ -n "${SIGN_IDENTITY:-}" ]; then
+  codesign --force --deep --options runtime --timestamp -s "$SIGN_IDENTITY" "$APP"
+  codesign --verify --strict --verbose=2 "$APP"
+  if [ -n "${NOTARY_PROFILE:-}" ]; then
+    NOTARY=(--keychain-profile "$NOTARY_PROFILE")
+  elif [ -n "${NOTARY_KEY:-}" ]; then
+    NOTARY=(--key "$NOTARY_KEY" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER")
+  else
+    echo "SIGN_IDENTITY is set but no notary key: the app is signed, not notarized." >&2
+    NOTARY=()
+  fi
+  if [ ${#NOTARY[@]} -gt 0 ]; then
+    ditto -c -k --keepParent "$APP" "$OUT/notarize.zip"
+    xcrun notarytool submit "$OUT/notarize.zip" "${NOTARY[@]}" --wait --timeout 30m
+    rm "$OUT/notarize.zip"
+    # The ticket goes inside the app, so it opens even with no internet.
+    xcrun stapler staple "$APP"
+    spctl --assess --type execute --verbose=2 "$APP"
+  fi
+else
+  codesign --force --deep -s - "$APP"
+fi
 ditto -c -k --keepParent "$APP" "$OUT/Music Coach.zip"
 cp "$OUT/Music Coach.zip" "$OUT/Music-Coach-$VERSION.zip"
 echo "Built $OUT/Music Coach.zip and $OUT/Music-Coach-$VERSION.zip ($(du -h "$OUT/Music Coach.zip" | cut -f1)), version $VERSION"

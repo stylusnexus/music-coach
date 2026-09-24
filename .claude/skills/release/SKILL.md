@@ -46,8 +46,19 @@ git checkout main && git pull --ff-only
 packaging/build.sh
 ```
 
-Unzip `dist/Music Coach.zip` somewhere temporary, right-click the app → Open,
-and check it starts, shows the welcome, and plays a note.
+Unzip `dist/Music Coach.zip` somewhere temporary, open the app, and check it
+starts, shows the welcome, and plays a note. A local build is signed for this
+Mac only; to test the signed and notarized app, build with your Developer ID
+(needs the certificate and a `music-coach` notarytool profile in your Keychain):
+
+```sh
+SIGN_IDENTITY="Developer ID Application: STYLUS NEXUS HOLDINGS, LLC (ML8HXS6BGB)" \
+  NOTARY_PROFILE=music-coach packaging/build.sh
+```
+
+The release job signs and notarizes with the `MACOS_CERT_P12`,
+`MACOS_CERT_PASSWORD`, `NOTARY_KEY_P8`, `NOTARY_KEY_ID` and `NOTARY_ISSUER`
+secrets. Without them it stops before publishing.
 
 ## 4. Merge it
 

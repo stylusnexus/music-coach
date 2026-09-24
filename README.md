@@ -82,8 +82,8 @@ you.
 **The app:** [download Music Coach](https://github.com/stylusnexus/music-coach/releases/latest/download/Music.Coach.zip)
 (the latest release, about 1 MB). Unzip it and drag **Music Coach** to your
 Applications folder (from Downloads, macOS runs a temporary copy, and
-Uninstall can't remove that). Then right-click it and choose **Open** (it
-isn't notarized yet, so the first open needs the right-click). It starts the coach, which listens only on this Mac at
+Uninstall can't remove that). Then double-click it. It's signed and checked
+by Apple, so macOS opens it without a warning. It starts the coach, which listens only on this Mac at
 http://localhost:8765, and opens Chrome.
 
 Which version do you have? It's next to the name at the top of the app, in
