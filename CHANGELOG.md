@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/stylusnexus/music-coach/compare/v0.6.0...v0.7.0) (2026-09-24)
+
+
+### Added
+
+* **about:** check for updates ([#99](https://github.com/stylusnexus/music-coach/issues/99)) ([fbbf4ca](https://github.com/stylusnexus/music-coach/commit/fbbf4cabdc1264e5a62e31fe45315631fc6682b2))
+
 ## [0.6.0](https://github.com/stylusnexus/music-coach/compare/v0.5.0...v0.6.0) (2026-09-24)
 
 
