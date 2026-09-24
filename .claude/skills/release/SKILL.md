@@ -58,7 +58,8 @@ SIGN_IDENTITY="Developer ID Application: STYLUS NEXUS HOLDINGS, LLC (ML8HXS6BGB)
 
 The release job signs and notarizes with the `MACOS_CERT_P12`,
 `MACOS_CERT_PASSWORD`, `NOTARY_KEY_P8`, `NOTARY_KEY_ID` and `NOTARY_ISSUER`
-secrets. Without them it stops before publishing.
+secrets, kept in the `release` environment (Settings → Environments), which
+only `main` can use. Without them it stops before publishing.
 
 ## 4. Merge it
 
