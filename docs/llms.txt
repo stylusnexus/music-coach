@@ -12,7 +12,9 @@
 - Then learn GarageBand: take your sketch into GarageBand and learn its tools step by step, with real screenshots: tracks, the grid, the Piano Roll, mixing, fades, exporting, and making instruments sound real. Optionally, carry it on to GarageBand on iPhone or iPad.
 - Styles: pick up to 5 styles to start, from folk, punk and house to lo-fi hip-hop, dub, shoegaze, bossa nova and ambient. Each has a 5-second taste played by the app and a real record to hear on Bandcamp. Every starter style works on a Mac with nothing extra installed.
 - Lessons that notice: short lessons tick themselves off as you play. A take coach scores chords, timing, feel, sound and ending from what it measured, and names one thing to try next.
-- Your gear, by name: it finds the plugins on your Mac and sorts them by what they do. Lessons name your own gear when you have it, and GarageBand's built-in effects when you don't.
+- Your gear, by name: it finds the plugins on your Mac and sorts them by what they do. Point it at your sample folders and the Sampler lists every pack in them, sorted and searchable. Lessons name your own gear when you have it, and GarageBand's built-in effects when you don't.
+- Play by ear (optional): find the home note by ear, echo short tunes back, and hear tension and rest, counting notes from home (1 to 7) instead of naming them.
+- Updates: Check for updates in About asks GitHub for the latest version and links the download. The app is signed and notarized by Apple.
 
 ## Coach model and privacy
 

@@ -32,12 +32,16 @@ you.
 
 ## What's inside
 
-- **49 short lessons: 48 in four sections, plus one optional.**
+- **52 short lessons in six sections.**
   - **Basics:** your first chord, four chords that carry a song, major and
     minor, letting an arpeggiator do the picking, a drum machine, 7th chords,
     recording a sketch, and taking it to GarageBand.
   - **Quick wins:** build a beat, cut up a loop in the sampler, build a piece
     in layers with the looper.
+  - **Play by ear (optional):** find the home note by ear over a note that
+    hums underneath, echo short tunes back, and hear tension and rest. It
+    starts from middle C and counts notes from home (1 to 7) instead of naming
+    them. Open any time.
   - **GarageBand skills:** the map, drag and drop, the grid, the Piano Roll,
     making instruments sound played, multi-tracking, blending, fades,
     exporting. Most steps have a screenshot.
@@ -53,6 +57,12 @@ you.
 - **A studio:** sounds, effects, arpeggiator, drum patterns and your own beat
   grid, bass and drone layers, a looper, a sampler (it can record a sound from
   your microphone and chop it up), a mixer, and a progression builder.
+- **Your sample packs in the Sampler:** point it at your sample folders and it
+  finds every pack in them, sorts them under headings (Drums, Bass, Keys,
+  Strings, Texture, Vocals, Other) and lets you search every loop by name.
+  Chrome can't play AIFF files (Apple Loops), so the first time you pick one
+  it asks before making WAV copies in the app's own folder. Your original
+  files are never changed.
 - **Hear the real thing:** each style links one or two real records, played
   from the artist's or label's Bandcamp page when you press Hear it.
 - **Chords and keys:** a chord explorer, a circle-of-fifths wheel, a key
@@ -63,8 +73,9 @@ you.
 - **Your gear:** it finds the plugins on your Mac and sorts them by what they
   do. With a coach model set up, it also sorts and describes plugins it
   doesn't recognise. You can add sample folders and hardware, or remove
-  anything. Lessons name your own gear when you have it, and GarageBand's
-  built-in effects when you don't.
+  anything; sample packs can be moved to another heading or hidden, and
+  **Refresh** looks through your folders again. Lessons name your own gear
+  when you have it, and GarageBand's built-in effects when you don't.
 
 ## What you need
 
@@ -112,7 +123,16 @@ This puts a **Music Coach** app on your Desktop that starts this copy (add a
 folder to put it elsewhere, e.g. `./music-coach shortcut ~/Applications`).
 
 The first time, a welcome screen asks what gear you have. Skip it if you have
-none: every lesson works with the app's own sounds and GarageBand's.
+none: every lesson works with the app's own sounds and GarageBand's. **Back**
+returns to an earlier step, and **Your gear** at the top changes it any time.
+
+**Quit:** choose Quit from Music Coach in the Dock (or press ⌘Q), or press
+**Quit Music Coach** in About. Either one stops the coach.
+
+**Updates:** click the version number at the top of the app, then **Check for
+updates**. It asks GitHub for the latest version and links the download. To
+update, quit Music Coach, drag the new one into Applications, choose Replace
+and open it. Your progress, gear and sketches stay where they are.
 
 ## The coach model (bring your own key)
 
@@ -179,6 +199,8 @@ When you run from source:
 - `data/gear.json`: your sample folders, gear added by hand, gear you removed.
 - `data/gear-labels.json`: what the coach model said about your plugins.
 - `data/coach.json`: which coach model answers, and your API key.
+- `data/packs.json`: the sample packs found in your folders (Refresh updates it).
+- `data/WAV copies/`: WAV copies of AIFF loops, made only after you agree.
 
 The packaged app keeps these in `~/Library/Application Support/Music Coach`,
 and sketches in `~/Music/Music Coach Sketches`. The two copies don't share
@@ -199,8 +221,8 @@ sketches if they're in the default folder. A sketches folder you chose yourself
 is never moved. Nothing is deleted outright: drag it back out of the Trash to
 undo.
 
-By hand: close the Music Coach tab, then stop the coach: restart your Mac, or
-in Activity Monitor quit the process named Python. Drag Music Coach to the
+By hand: quit Music Coach (from the Dock, or Quit Music Coach in About) and
+close its tab. Drag Music Coach to the
 Trash and, if you want your data gone too,
 `~/Library/Application Support/Music Coach` and `~/Music/Music Coach Sketches`.
 
