@@ -17,6 +17,10 @@ cp -R server.py web "$APP/Contents/Resources/app/"
 echo "$VERSION" > "$APP/Contents/Resources/app/VERSION"
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Info.plist"
 plutil -replace CFBundleVersion -string "$VERSION" "$APP/Contents/Info.plist"
+# A bundle ID lets macOS recognise the app: its privacy prompts say "Music Coach"
+# (not the launcher's file name, "applet"), and an answer carries over to updates.
+plutil -replace CFBundleIdentifier -string com.stylusnexus.musiccoach "$APP/Contents/Info.plist"
+plutil -replace CFBundleDisplayName -string "Music Coach" "$APP/Contents/Info.plist"
 find "$APP" -name .DS_Store -delete
 # Signed with a Developer ID and checked by Apple (notarized) when the keys are
 # there, so a downloaded copy opens without macOS warning about malware.
