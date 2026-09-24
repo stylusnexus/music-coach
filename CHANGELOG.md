@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.2](https://github.com/stylusnexus/music-coach/compare/v0.8.1...v0.8.2) (2026-09-24)
+
+
+### Fixed
+
+* **app:** quit music coach properly ([#110](https://github.com/stylusnexus/music-coach/issues/110)) ([8112f34](https://github.com/stylusnexus/music-coach/commit/8112f3476a4f9dd748ec2747ebaf72bfed09d651))
+
+
+### Documentation
+
+* describe sample packs, play by ear, updates ([#112](https://github.com/stylusnexus/music-coach/issues/112)) ([bfa3af5](https://github.com/stylusnexus/music-coach/commit/bfa3af5d9b37121d40f4832c323d28b37de244fa))
+
 ## [0.8.1](https://github.com/stylusnexus/music-coach/compare/v0.8.0...v0.8.1) (2026-09-24)
 
 
