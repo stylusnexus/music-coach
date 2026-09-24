@@ -1,5 +1,5 @@
 // Lesson content, the checker that ticks lesson steps off, and gear-name resolution.
-import { chordPitchClasses, hasInterval, keyPitchClasses, lessonKey, matchesChord, NOTE_NAMES, parseKey, pitchClass, SCALES } from './music.js';
+import { chordPitchClasses, degreeOf, hasInterval, isResolution, keyPitchClasses, lessonKey, matchesChord, NOTE_NAMES, parseKey, pitchClass, SCALES } from './music.js';
 
 // Gear tokens in lesson text resolve to the first plugin you have installed,
 // falling back to the effect that ships with GarageBand.
@@ -275,6 +275,52 @@ const ALL_LESSONS = [
     setup: { sound: 'guitar', arp: false, drums: true, drumPattern: 'sparse', bpm: 100 },
     scale: 'E minor pentatonic',
     checks: [{ type: 'scaleNotes', scale: 'E minor pentatonic', count: 24, label: 'Play 24 notes from the scale' }],
+  },
+  {
+    id: 'find-home',
+    title: 'Find home by ear',
+    minutes: 10,
+    why: "Every tune has a home note: the one where it sounds finished. A low home note hums underneath while you look for it, using only your ears. No note names needed. The app can't hear you; it only sees which key you hold.",
+    steps: [
+      'Press Start if you haven\'t. The home note hums underneath. Home note, below these steps, turns it off and on.',
+      'Middle C has a dot on the keyboard. Play the white keys near it, one at a time, slowly.',
+      'Listen after each one. Most notes sound like they want to move on. One sounds settled, like the end of a song.',
+      'When you find it, hold that key down for 2 seconds to lock it in.',
+      'Then find the same note higher or lower on the keyboard, and hold it too.',
+    ],
+    setup: { sound: 'epiano', arp: false, drone: true, homeNote: 60, key: 'C major', bpm: 90 },
+    checks: [
+      { type: 'homeHold', count: 1, seconds: 2, label: 'Find home and hold it for 2 seconds' },
+      { type: 'homeHold', count: 2, seconds: 2, label: 'Find home again, higher or lower, and hold it' },
+    ],
+  },
+  {
+    id: 'echo',
+    title: 'Echo: play back what you hear',
+    minutes: 10,
+    why: 'Copying a short tune by ear is how most musicians learn. The app plays 3 notes; you play them back. They are always white keys between middle C and G, and the first ones start on home. After each echo you see the notes counted from home: 1 is home, 2 is the next white key up, and so on.',
+    steps: [
+      'Press ▶ Play 3 notes below these steps. Listen. Press it again as often as you like.',
+      'Find the first note: is it home, or higher? Then the next one, then the last.',
+      'Play all three back in order. A wrong note starts that echo over; that is part of it.',
+      'When it lands, say the numbers under your breath. It links each sound to where it sits.',
+    ],
+    setup: { sound: 'epiano', arp: false, drone: true, homeNote: 60, key: 'C major', bpm: 90 },
+    checks: [{ type: 'echo', count: 5, label: 'Echo 5 tunes' }],
+  },
+  {
+    id: 'tension-rest',
+    title: 'Tension and rest',
+    minutes: 10,
+    why: 'Over home, some notes feel calm: 1, 3 and 5 (home, two white keys up, and four white keys up). The others feel restless and lean toward a calm neighbour. Moving from restless to calm is what makes a tune sound like it arrives.',
+    steps: [
+      'With the home note on, play 2: the white key just above home. Hear how it leans?',
+      'Step down to home and hold it for 2 seconds. That lean, then land, is tension and rest.',
+      'Try others: 7 (the white key just below home) up to home, 4 down to 3, 6 down to 5.',
+      'Each different pair you land and hold counts once.',
+    ],
+    setup: { sound: 'epiano', arp: false, drone: true, homeNote: 60, key: 'C major', bpm: 90 },
+    checks: [{ type: 'resolve', count: 3, seconds: 2, label: 'Land 3 different restless notes on a calm one' }],
   },
   {
     id: 'record-sketch',
@@ -1164,6 +1210,12 @@ export const SECTIONS = [
     ids: ['build-a-beat', 'sampling', 'looping'],
   },
   {
+    title: 'Play by ear',
+    note: 'Optional. Hear where notes want to go, starting from middle C. Open any time; nothing else waits for these.',
+    ids: ['find-home', 'echo', 'tension-rest'],
+    optional: true,
+  },
+  {
     title: 'GarageBand skills',
     note: 'Unlocks after Take it to GarageBand. Do these with GarageBand open; Pop out steps keeps each step on top.',
     ids: ['gb-map', 'gb-drag', 'gb-snap', 'gb-piano-roll', 'gb-sound-real', 'gb-major-minor', 'gb-multitrack', 'gb-blend', 'gb-fades', 'gb-export'],
@@ -1395,7 +1447,9 @@ function initialValue(check) {
   if (check.type === 'mixPan' || check.type === 'mixLevel') return false;
   if (check.type === 'dropOut') return { out: false, count: 0 };
   if (['chord', 'saved', 'manual', 'gridHas', 'loopLoaded', 'reverseSlice', 'loopUndo', 'holdSeconds'].includes(check.type)) return false;
-  if (check.type === 'distinctSlices') return [];
+  if (check.type === 'distinctSlices' || check.type === 'homeHold') return [];
+  if (check.type === 'echo') return { phrase: null, pos: 0, missed: false, rounds: 0, firstTry: 0 };
+  if (check.type === 'resolve') return { last: null, pending: null, pairs: [] };
   if (check.type === 'filterSweep') return 0;
   return 0;
 }
@@ -1417,7 +1471,9 @@ export function createChecker(lesson, saved) {
   function isDone(c, v) {
     if (c.type === 'fxToggle' || c.type === 'mixSolo') return v.done;
     if (c.type === 'dropOut') return v.count >= target(c);
-    if (c.type === 'distinctSlices') return v.length >= c.count;
+    if (c.type === 'distinctSlices' || c.type === 'homeHold') return v.length >= c.count;
+    if (c.type === 'echo') return v.rounds >= c.count;
+    if (c.type === 'resolve') return v.pairs.length >= c.count;
     if (typeof v === 'boolean') return v;
     return v >= target(c);
   }
@@ -1546,6 +1602,37 @@ export function createChecker(lesson, saved) {
         case 'manual':
           if (evt.type === 'manual' && evt.index === i) next = true;
           break;
+        case 'homeHold': {
+          // Home held on its own, with the home note sounding. Each octave counts once.
+          const one = new Set(evt.notes).size === 1;
+          if (evt.type === 'hold' && evt.homeOn && one && evt.seconds >= c.seconds && pitchClass(evt.notes[0]) === 0) {
+            const octave = Math.floor(evt.notes[0] / 12);
+            if (!v.includes(octave)) next = [...v, octave];
+          }
+          break;
+        }
+        case 'echo':
+          // The tune the app just played, copied note for note. A wrong note starts over.
+          if (evt.type === 'phrase') next = { ...v, phrase: evt.notes, pos: 0, missed: false };
+          else if (evt.type === 'noteOn' && v.phrase) {
+            const want = (k) => pitchClass(v.phrase[k]) === pitchClass(evt.note);
+            if (want(v.pos)) {
+              const pos = v.pos + 1;
+              next = pos < v.phrase.length
+                ? { ...v, pos }
+                : { phrase: null, pos: 0, missed: false, rounds: v.rounds + 1, firstTry: v.firstTry + (v.missed ? 0 : 1) };
+            } else next = { ...v, pos: want(0) ? 1 : 0, missed: true };
+          }
+          break;
+        case 'resolve':
+          // A restless note, a step onto a calm one, and that calm one held.
+          if (evt.type === 'noteOn') {
+            next = { ...v, last: evt.note, pending: v.last !== null && isResolution(v.last, evt.note) ? [v.last, evt.note] : null };
+          } else if (evt.type === 'hold' && v.pending && evt.seconds >= c.seconds && evt.notes.length === 1 && evt.notes[0] === v.pending[1]) {
+            const pair = `${degreeOf(v.pending[0])}-${degreeOf(v.pending[1])}`;
+            next = { ...v, pending: null, pairs: v.pairs.includes(pair) ? v.pairs : [...v.pairs, pair] };
+          }
+          break;
       }
       if (next !== v) {
         values[i] = next;
@@ -1559,8 +1646,9 @@ export function createChecker(lesson, saved) {
     return lesson.checks.map((c, i) => {
       const v = values[i];
       const done = isDone(c, v);
-      const counted = (typeof v === 'number' && c.type !== 'filterSweep') || Array.isArray(v);
-      const amount = Array.isArray(v) ? v.length : v;
+      const count = c.type === 'echo' ? v.rounds : c.type === 'resolve' ? v.pairs.length : null;
+      const counted = (typeof v === 'number' && c.type !== 'filterSweep') || Array.isArray(v) || count !== null;
+      const amount = count ?? (Array.isArray(v) ? v.length : v);
       const current = counted ? Math.min(amount, target(c)) : null;
       return { label: c.label, type: c.type, done, current, target: counted ? target(c) : null };
     });
@@ -1569,7 +1657,7 @@ export function createChecker(lesson, saved) {
   return {
     handle,
     progress,
-    values: () => values.map((v) => (Array.isArray(v) ? [...v] : typeof v === 'object' ? { ...v } : v)),
+    values: () => values.map((v) => (Array.isArray(v) ? [...v] : v && typeof v === 'object' ? { ...v } : v)),
     complete: () => lesson.checks.every((c, i) => isDone(c, values[i])),
   };
 }
