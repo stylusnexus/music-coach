@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/stylusnexus/music-coach/compare/v0.5.0...v0.6.0) (2026-09-24)
+
+
+### Added
+
+* **sampler:** find and sort every sample pack ([#97](https://github.com/stylusnexus/music-coach/issues/97)) ([4880630](https://github.com/stylusnexus/music-coach/commit/4880630a433693a99cb66829f067f239766dbb6c))
+
 ## [0.5.0](https://github.com/stylusnexus/music-coach/compare/v0.4.0...v0.5.0) (2026-09-23)
 
 
