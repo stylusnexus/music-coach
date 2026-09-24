@@ -436,3 +436,9 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 .compare-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
 .compare tr.better td:last-child { color: var(--good); }
 .compare tr.slipped td:last-child { color: var(--rec); }
+
+/* About: checking for a newer version */
+.update { margin: 8px 0 4px; }
+.update p { margin: 6px 0; }
+#update-status:empty { display: none; }
+#update-status { background: var(--panel-2); border-radius: 8px; padding: 8px 12px; }

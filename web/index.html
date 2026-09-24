@@ -338,6 +338,11 @@
     <form method="dialog"><button class="dialog-x ghost" aria-label="Close">×</button></form>
     <h2 id="about-title">About Music Coach</h2>
     <p id="about-version" class="muted"></p>
+    <div class="update">
+      <button id="update-check" type="button">Check for updates</button>
+      <p class="muted small">This asks GitHub for the latest version. Nothing about your music, gear or files is sent.</p>
+      <div id="update-status" aria-live="polite"></div>
+    </div>
     <h3>Where your things are</h3>
     <ul class="about-places">
       <li>Progress, gear list, coach settings and key, takes: <code id="about-data"></code></li>

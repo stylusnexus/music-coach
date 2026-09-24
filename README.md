@@ -155,7 +155,7 @@ The practice room's own sounds are simple stand-ins, there so you can hear chord
 ## Privacy
 
 Everything runs on your Mac. Your progress, gear list, sketches and key stay
-in local files. The app goes online only in two cases:
+in local files. The app goes online only in three cases:
 
 - when you pick an online coach model, and then only to that service. It
   gets your questions and your take's numbers. To sort plugins the app
@@ -165,7 +165,10 @@ in local files. The app goes online only in two cases:
   none of this leaves your Mac;
 - when you press **Hear it** on a style, which loads that track's player from
   Bandcamp. Bandcamp, and the analytics its player uses, see that visit.
-  Nothing loads until you press it.
+  Nothing loads until you press it;
+- when you press **Check for updates** in About, which asks GitHub for the
+  latest version number. Nothing about your music, gear or files is sent,
+  and the app never checks on its own.
 
 ## Where things live
 

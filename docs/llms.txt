@@ -18,7 +18,7 @@
 
 - The coach model is optional. Lessons, the studio and take scores all work without one; only written summaries and questions need it.
 - Choose a model running on your Mac in LM Studio, or bring your own key for OpenAI, Anthropic, or a service like Ollama or OpenRouter.
-- Progress, gear list, sketches and key stay in local files. The app goes online only to reach the coach model you picked, or when you press Hear it to play a style's track from Bandcamp. The coach model gets your questions and the names of your gear and plugins, never your files or recordings.
+- Progress, gear list, sketches and key stay in local files. The app goes online only to reach the coach model you picked, when you press Hear it to play a style's track from Bandcamp, or when you press Check for updates. The coach model gets your questions and the names of your gear and plugins, never your files or recordings.
 
 ## Links
 

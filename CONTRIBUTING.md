@@ -30,8 +30,9 @@ There are no dependencies to install and no build step.
 - **No new dependencies.** The server uses the Python standard library only;
   the app is plain browser JavaScript with no build step.
 - **Everything stays on the user's Mac.** No analytics and no accounts. Nothing
-  goes to the internet except to the coach model service the user picked, and
-  never their API key anywhere else.
+  goes to the internet except to the coach model service the user picked,
+  Bandcamp's player when they press Hear it, and GitHub when they press Check
+  for updates. Never their API key anywhere else.
 - **Test what you change.** Music logic and lesson checks go in
   `tests/music.test.mjs`; server behaviour in `tests/test_server.py`.
 
