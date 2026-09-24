@@ -444,6 +444,7 @@ function openStyles(welcome) {
   stylesExpanded = false;
   nudgeDismissed = false;
   $('styles-step').hidden = !welcome;
+  $('styles-back').hidden = !welcome;
   $('styles-dialog').dataset.welcome = welcome ? '1' : '';
   $('styles-done').textContent = welcome ? 'Continue' : 'Save';
   $('styles-skip').textContent = welcome ? 'Skip — show me every style' : 'Show every style';
@@ -463,8 +464,9 @@ function saveStyles(picks) {
 // The welcome: gear, then styles, then the coach model, one window at a time.
 // × or Escape ends it where it is.
 function wireWelcome() {
-  const next = (from, open) => {
-    welcomeAdvancing = true;
+  // forward: closing the step opens the next one. Back closes it without that.
+  const next = (from, open, forward = true) => {
+    welcomeAdvancing = forward;
     $(from).close();
     open();
   };
@@ -479,6 +481,14 @@ function wireWelcome() {
     renderStyles();
   };
   $('styles-done').onclick = () => saveStyles(stylePicks);
+  // Back one step. Styles picked so far are kept, so going forward again shows them.
+  $('styles-back').onclick = () => {
+    progress.styles = stylePicks;
+    saveProgress();
+    renderLessonList();
+    next('styles-dialog', () => openGear(true), false);
+  };
+  $('coach-back').onclick = () => next('coach-dialog', () => openStyles(true), false);
   $('styles-skip').onclick = () => saveStyles([]);
   $('styles-dialog').addEventListener('close', () => {
     endPreview();
@@ -3420,6 +3430,7 @@ function renderCoach() {
 
 async function openCoach(welcome = false) {
   $('coach-step').hidden = !welcome;
+  $('coach-back').hidden = !welcome;
   $('coach-close').textContent = welcome ? 'Finish' : 'Close';
   coach = await loadJson('/api/coach', coach);
   renderCoachTop();
