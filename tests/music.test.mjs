@@ -1194,3 +1194,23 @@ test('play by ear lessons are optional, open any time, and name no book', () => 
   }
 });
 
+test('hearing a tune again restarts it; a visit later starts with no tune half-played', () => {
+  const echo = byId('echo');
+  const c = createChecker(echo);
+  c.handle({ type: 'phrase', notes: [60, 62, 64] });
+  c.handle({ type: 'noteOn', note: 60 });
+  c.handle({ type: 'phrase', notes: [60, 62, 64], again: true }); // listen again after one note
+  for (const note of [60, 62, 64]) c.handle({ type: 'noteOn', note });
+  assert.deepEqual([c.values()[0].rounds, c.values()[0].firstTry], [1, 1]); // no miss for listening again
+  c.handle({ type: 'phrase', notes: [64, 62, 60] });
+  c.handle({ type: 'noteOn', note: 67 }); // wrong
+  c.handle({ type: 'phrase', notes: [64, 62, 60], again: true });
+  for (const note of [64, 62, 60]) c.handle({ type: 'noteOn', note });
+  assert.deepEqual([c.values()[0].rounds, c.values()[0].firstTry], [2, 1]); // the wrong note still counts
+  // Saved mid-tune, then opened again: the old tune can't be ticked by chance.
+  c.handle({ type: 'phrase', notes: [60, 64, 67] });
+  const later = createChecker(echo, c.values());
+  for (const note of [60, 64, 67]) later.handle({ type: 'noteOn', note });
+  assert.equal(later.values()[0].rounds, 2);
+});
+

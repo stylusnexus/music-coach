@@ -283,14 +283,14 @@ const ALL_LESSONS = [
     why: "Every tune has a home note: the one where it sounds finished. A low home note hums underneath while you look for it, using only your ears. No note names needed. The app can't hear you; it only sees which key you hold.",
     steps: [
       'Press Start if you haven\'t. The home note hums underneath. Home note, below these steps, turns it off and on.',
-      'Middle C has a dot on the keyboard. Play the white keys near it, one at a time, slowly.',
+      'Play the white keys in the middle of the keyboard, one at a time, slowly.',
       'Listen after each one. Most notes sound like they want to move on. One sounds settled, like the end of a song.',
-      'When you find it, hold that key down for 2 seconds to lock it in.',
+      'When you find it, hold that key down for 2 seconds to lock it in. A dot then marks it on the keyboard.',
       'Then find the same note higher or lower on the keyboard, and hold it too.',
     ],
     setup: { sound: 'epiano', arp: false, drone: true, homeNote: 60, key: 'C major', bpm: 90 },
     checks: [
-      { type: 'homeHold', count: 1, seconds: 2, label: 'Find home and hold it for 2 seconds' },
+      { type: 'homeHold', count: 1, seconds: 2, label: 'With the home note on, find home and hold it for 2 seconds' },
       { type: 'homeHold', count: 2, seconds: 2, label: 'Find home again, higher or lower, and hold it' },
     ],
   },
@@ -1461,8 +1461,15 @@ function scaleOf(check) {
   return keyPitchClasses(root, mode);
 }
 
+// Saved progress keeps counts, never a half-played tune: the next visit starts fresh.
+function restored(check, v) {
+  if (check.type === 'echo') return { ...v, phrase: null, pos: 0, missed: false };
+  if (check.type === 'resolve') return { ...v, last: null, pending: null };
+  return v;
+}
+
 export function createChecker(lesson, saved) {
-  const values = lesson.checks.map((c, i) => (saved && saved[i] !== undefined ? saved[i] : initialValue(c)));
+  const values = lesson.checks.map((c, i) => (saved && saved[i] !== undefined ? restored(c, saved[i]) : initialValue(c)));
 
   function target(c) {
     return c.count || c.bars || 1;
@@ -1613,7 +1620,8 @@ export function createChecker(lesson, saved) {
         }
         case 'echo':
           // The tune the app just played, copied note for note. A wrong note starts over.
-          if (evt.type === 'phrase') next = { ...v, phrase: evt.notes, pos: 0, missed: false };
+          // Hearing the same tune again starts it over but keeps a wrong note counted.
+          if (evt.type === 'phrase') next = { ...v, phrase: evt.notes, pos: 0, missed: evt.again ? v.missed : false };
           else if (evt.type === 'noteOn' && v.phrase) {
             const want = (k) => pitchClass(v.phrase[k]) === pitchClass(evt.note);
             if (want(v.pos)) {

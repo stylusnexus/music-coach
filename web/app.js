@@ -6,7 +6,7 @@ import {
   circleSpot, keyAtSpot, lessonKey, wheelDemo, isBlackKey, noteName, pitchClass,
   sliceForNote, tempoFromName, voicing, writeMidi, METERS, meterOf, patternStep,
 } from './music.js';
-import { KEY_MODES, degreeOf, echoPhrase, parseKey } from './music.js';
+import { KEY_MODES, degreeOf, echoPhrase, isResolution, parseKey } from './music.js';
 import { SLOTS, gearTags, groupPlugins, searchGear, slotFor, unlabelled } from './gear.js';
 import { compareCards, comparePairs, measureTake, scoreAreas } from './takes.js';
 import { DRILLS, makeQuestion, streakDots } from './ear.js';
@@ -495,7 +495,7 @@ function openLesson(id) {
   progress.current = lesson.id;
   checker = createChecker(fitChecks(lesson, lessonEnv()), progress.checks[lesson.id]);
   applySetup(lesson.setup || {});
-  earPanel = { phrase: null, round: 0, tried: 0, note: '', seen: null };
+  earPanel = freshEar();
   state.chartRunning = false;
   latch.clear();
   $('lesson-title').textContent = lesson.title;
@@ -650,12 +650,16 @@ function renderPip() {
 
 // ---------- play by ear: the home note and the tunes to echo ----------
 
-// The tune to copy, how many keys were pressed since the last find, and what to say.
-let earPanel = { phrase: null, round: 0, tried: 0, note: '', seen: null };
+// What the panel says. The app follows the tune and the held notes itself, so
+// messages keep coming after the lesson's ticks are done, and on a later visit.
+function freshEar() {
+  return { phrase: null, round: 0, pos: 0, missed: false, echoes: 0, firstTry: 0, tried: 0, last: null, prev: null, announced: false, revealed: null, note: '' };
+}
+let earPanel = freshEar();
 
-function earValue(type) {
-  const i = lesson.checks.findIndex((c) => c.type === type);
-  return i < 0 ? null : checker.values()[i];
+// In Find home, home is found by ear: no dot and no key names until it is.
+function homeRevealed() {
+  return lesson?.id !== 'find-home' || !checker || checker.progress()[0].done;
 }
 
 function playPhrase() {
@@ -663,45 +667,79 @@ function playPhrase() {
     earPanel.note = 'Press Start first, then play the notes again.';
     return renderEarPanel();
   }
-  if (!earPanel.phrase) {
+  const again = Boolean(earPanel.phrase);
+  if (!again) {
     earPanel.phrase = echoPhrase(earPanel.round++);
-    emit({ type: 'phrase', notes: earPanel.phrase });
+    earPanel.missed = false;
   }
+  // Hearing it again starts the echo from its first note.
+  earPanel.pos = 0;
+  emit({ type: 'phrase', notes: earPanel.phrase, again });
   const now = engine.ctx.currentTime + 0.1;
   earPanel.phrase.forEach((n, i) => engine.playNote(n, 90, now + i * 0.6, 0.5, engine.sound === 'chop' ? 'epiano' : engine.sound));
   earPanel.note = 'Now play them back.';
   renderEarPanel();
 }
 
+function earEvent(evt) {
+  if (!lesson.setup?.homeNote) return;
+  if (evt.type === 'noteOn') {
+    earPanel.tried += 1;
+    earPanel.announced = false;
+    const p = earPanel.phrase;
+    if (p) {
+      const want = (k) => pitchClass(p[k]) === pitchClass(evt.note);
+      if (!want(earPanel.pos)) {
+        earPanel.pos = want(0) ? 1 : 0;
+        earPanel.missed = true;
+      } else if (++earPanel.pos === p.length) {
+        earPanel.echoes += 1;
+        if (!earPanel.missed) earPanel.firstTry += 1;
+        earPanel.note = `That was ${p.map(degreeOf).join(' ')}, counted from home. First try: ${earPanel.firstTry} of ${earPanel.echoes}.`;
+        earPanel.phrase = null;
+        renderEarPanel();
+      }
+    }
+    // Tension and rest: remember the note before this one.
+    earPanel.prev = earPanel.last;
+    earPanel.last = evt.note;
+  }
+  // A note held on its own for 2 seconds: said once per hold.
+  if (evt.type !== 'hold' || earPanel.announced || evt.seconds < 2 || new Set(evt.notes).size !== 1) return;
+  const note = evt.notes[0];
+  if (lesson.id === 'find-home' && pitchClass(note) === 0) {
+    earPanel.announced = true;
+    earPanel.note = !evt.homeOn
+      ? "That's home, but the home note is off. Turn it on: home only counts against it."
+      : `Found home after trying ${earPanel.tried} key${earPanel.tried === 1 ? '' : 's'}. It's middle C, or any C: 1, counted from home.`;
+    earPanel.tried = 0;
+    renderEarPanel();
+  } else if (lesson.id === 'tension-rest' && earPanel.prev !== null && note === earPanel.last && isResolution(earPanel.prev, note)) {
+    earPanel.announced = true;
+    earPanel.note = `${degreeOf(earPanel.prev)} to ${degreeOf(note)}: tension, then rest.`;
+    renderEarPanel();
+  }
+}
+
 function renderEarPanel() {
   const box = $('lesson-ear');
-  const home = lesson.setup?.homeNote;
-  box.hidden = !home;
-  if (!home) return;
-  // What just happened: a home found, or an echo landed.
-  const found = earValue('homeHold');
-  const echo = earValue('echo');
-  const seen = JSON.stringify([found, echo?.rounds]);
-  if (earPanel.seen !== null && seen !== earPanel.seen) {
-    if (echo && earPanel.phrase && echo.rounds > JSON.parse(earPanel.seen)[1]) {
-      earPanel.note = `That was ${earPanel.phrase.map(degreeOf).join(' ')}, counted from home. First try: ${echo.firstTry} of ${echo.rounds}.`;
-      earPanel.phrase = null;
-    } else if (found && found.length > (JSON.parse(earPanel.seen)[0] || []).length) {
-      earPanel.note = `Found it after trying ${earPanel.tried} key${earPanel.tried === 1 ? '' : 's'}. That settled note is home: 1.`;
-    }
-    earPanel.tried = 0;
-  }
-  earPanel.seen = seen;
-  const echoLesson = Boolean(echo);
-  box.innerHTML = `<button type="button" class="toggle${state.drone ? ' on' : ''}" id="ear-home">Home note: ${state.drone ? 'on' : 'off'}</button>`
-    + (echoLesson ? `<button type="button" id="ear-play">▶ ${earPanel.phrase ? 'Hear them again' : 'Play 3 notes'}</button>` : '')
+  box.hidden = !lesson.setup?.homeNote;
+  if (box.hidden) return;
+  // Finding home in Find home reveals it on the keyboard.
+  const revealed = homeRevealed();
+  if (earPanel.revealed !== null && revealed !== earPanel.revealed) renderKeyboard();
+  earPanel.revealed = revealed;
+  const echoLesson = lesson.checks.some((c) => c.type === 'echo');
+  box.innerHTML = `<button type="button" class="toggle${state.drone ? ' on' : ''}" id="home-note-btn">Home note: ${state.drone ? 'on' : 'off'}</button>`
+    + (echoLesson ? `<button type="button" id="echo-play-btn">▶ ${earPanel.phrase ? 'Hear them again' : 'Play 3 notes'}</button>` : '')
     + (earPanel.note ? `<p class="ear-note">${esc(earPanel.note)}</p>` : '');
-  $('ear-home').onclick = () => {
+  $('home-note-btn').onclick = () => {
     state.drone = !state.drone;
+    if (state.drone) loadSound(DRONE_SOUND);
     renderStudio();
     renderEarPanel();
   };
-  if (echoLesson) $('ear-play').onclick = playPhrase;
+  if (echoLesson) $('echo-play-btn').onclick = playPhrase;
 }
 
 function renderChecks() {
@@ -761,6 +799,7 @@ function nextOpenLesson() {
 // Every musical event goes through here so lesson checks can tick.
 function emit(evt) {
   if (state.previewing) return; // a style preview never ticks the open lesson
+  earEvent(evt);
   if (!checker.handle(evt)) return;
   progress.checks[lesson.id] = checker.values();
   if (checker.complete() && !progress.completed[lesson.id]) {
@@ -841,12 +880,13 @@ function renderKeyboard() {
       k.style.width = `${w}%`;
       wi++;
     }
-    if (n === lesson.setup?.homeNote) k.classList.add('home');
+    const hidden = !homeRevealed();
+    if (n === lesson.setup?.homeNote && !hidden) k.classList.add('home');
     if (targets.has(n)) k.classList.add('target');
     else if (scalePcs.has(pitchClass(n))) k.classList.add('scale');
     const label = document.createElement('span');
     label.className = 'name';
-    if (!black || targets.has(n)) label.textContent = noteName(n).replace(/\d/, '') + (pitchClass(n) === 0 ? noteName(n).slice(-1) : '');
+    if (!hidden && (!black || targets.has(n))) label.textContent = noteName(n).replace(/\d/, '') + (pitchClass(n) === 0 ? noteName(n).slice(-1) : '');
     k.append(label);
     k.addEventListener('pointerdown', (e) => {
       e.preventDefault();
@@ -1183,7 +1223,6 @@ function noteOn(note, vel) {
     else engine.noteOn(note, vel);
     recordDirectOn(note, vel);
   }
-  earPanel.tried += 1;
   emit({ type: 'noteOn', note });
   emit({ type: 'held', notes: activeNotes() });
   updateChordDisplay();
@@ -1311,7 +1350,8 @@ function onBarStart(step, time) {
   const loopPlaying = ['playing', 'overdubArmed', 'overdubbing'].includes(looper.status);
   const loopLayers = looper.layers.length;
   // Play by ear lessons hold their home note underneath, whatever you play.
-  const drone = updateDrone(lesson.setup?.homeNote ? [lesson.setup.homeNote] : notes, time);
+  const home = lesson.setup?.homeNote;
+  const drone = updateDrone(home ? [home] : notes, time, Boolean(home));
   if (state.rec === 'armed') {
     state.rec = 'recording';
     state.recording = {
@@ -1340,7 +1380,8 @@ function onBarStart(step, time) {
 
 // Hold the chord's lowest note as a low string drone, restarting it every
 // 4 bars (the recordings are about 12 seconds long) or when the chord changes.
-function updateDrone(notes, time) {
+// A home note lesson hums the note alone: with its fifth, that would sound settled too.
+function updateDrone(notes, time, rootOnly = false) {
   const current = state.droneVoice;
   if (!state.drone || !notes.length) {
     if (current) {
@@ -1356,7 +1397,7 @@ function updateDrone(notes, time) {
   if (due) {
     if (current) current.release(time + 0.8); // overlap so the drone never gaps
     const release = engine.voice(root, 70, time, DRONE_SOUND, 'drone');
-    const fifth = engine.voice(root + 7, 55, time, DRONE_SOUND, 'drone');
+    const fifth = rootOnly ? () => {} : engine.voice(root + 7, 55, time, DRONE_SOUND, 'drone');
     state.droneVoice = { root, startBar: state.bar + 1, release: (t) => (release(t), fifth(t)) };
   }
   return true;
@@ -1730,6 +1771,7 @@ function applySetup(s) {
   }
   if (s.click === undefined) state.click = false;
   if (s.drone === undefined) state.drone = false;
+  if (state.drone) loadSound(DRONE_SOUND);
   if (s.bass === undefined) state.bass = false;
   if (state.bass) loadSound(BASS_SOUND);
   state.swing = s.swing ?? 0;
