@@ -499,3 +499,37 @@ export function writeMidi(tracks, bpm, meter = '4/4') {
   }
   return new Uint8Array(out);
 }
+
+// ---- Play by ear: counting from home ----
+
+// Home is middle C, and the notes are the white keys: a beginner can always find it.
+export const HOME = 60;
+// Counted from home: C is 1, D is 2 ... B is 7. Black keys have no number here.
+const DEGREES = { 0: 1, 2: 2, 4: 3, 5: 4, 7: 5, 9: 6, 11: 7 };
+export function degreeOf(note) {
+  return DEGREES[pitchClass(note)] ?? null;
+}
+// 1, 3 and 5 sound calm over home; the others lean toward a calm neighbour.
+export const CALM = [1, 3, 5];
+export function isRestless(note) {
+  const d = degreeOf(note);
+  return d !== null && !CALM.includes(d);
+}
+// A restless note that steps (one or two semitones) onto a calm one.
+export function isResolution(from, to) {
+  const step = Math.abs(to - from);
+  return isRestless(from) && CALM.includes(degreeOf(to)) && step >= 1 && step <= 2;
+}
+// Three white keys between middle C and G to copy by ear, each near the last.
+// The first two start on home, so there is always somewhere to begin.
+export function echoPhrase(round, random = Math.random) {
+  const pool = [60, 62, 64, 65, 67];
+  const pick = (list) => list[Math.floor(random() * list.length)];
+  const notes = [round < 2 ? HOME : pick(pool)];
+  while (notes.length < 3) {
+    const prev = notes[notes.length - 1];
+    notes.push(pick(pool.filter((n) => n !== prev && Math.abs(n - prev) <= 4)));
+  }
+  return notes;
+}
+

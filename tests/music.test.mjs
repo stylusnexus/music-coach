@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  Latch, arpNote, detectChord, matchesChord, spreadChord, voicing, writeMidi, PPQ,
+  Latch, arpNote, degreeOf, detectChord, echoPhrase, isResolution, matchesChord, spreadChord, voicing, writeMidi, PPQ,
 } from '../web/music.js';
 import { compareCards, comparePairs } from '../web/takes.js';
 import { LESSONS, LISTEN, PICKER_ORDER, SECTIONS, STYLE_INFO, bandcampEmbed, matchesGear, createChecker, firstUnfinished, fitChecks, keyForLesson, lessonPath, lockReason, missingBetterWith, resolveGear, varietyNudge } from '../web/lessons.js';
@@ -568,11 +568,11 @@ test('reverse reverb names the IK plugin when installed', () => {
 });
 
 test('lesson order: basics, then quick wins, then styles; every lesson placed once', () => {
-  assert.equal(LESSONS.length, 49);
+  assert.equal(LESSONS.length, 52);
   assert.ok(LESSONS.every(Boolean));
-  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 49);
+  assert.equal(new Set(LESSONS.map((l) => l.id)).size, 52);
   assert.equal(lockReason('looping', {}), null); // a quick win: always open
-  assert.deepEqual(SECTIONS.map((s) => s.title), ['Basics', 'Quick wins', 'GarageBand skills', 'Styles', 'Optional']);
+  assert.deepEqual(SECTIONS.map((s) => s.title), ['Basics', 'Quick wins', 'Play by ear', 'GarageBand skills', 'Styles', 'Optional']);
   assert.equal(LESSONS[3].id, 'major-minor'); // right after the four chords
   // Lesson text names other lessons by title, never by number.
   assert.ok(LESSONS.every((l) => !JSON.stringify(l.steps).match(/lesson \d/i)));
@@ -954,7 +954,8 @@ test('a copy that began with the Durutti examples keeps them; new ones are techn
 });
 
 test('with styles picked, the next lesson is one of the picks, in pick order', () => {
-  const allButStyles = Object.fromEntries(LESSONS.filter((l) => !SECTIONS[3].ids.includes(l.id)).map((l) => [l.id, 'done']));
+  const styles = SECTIONS.find((s) => s.title === 'Styles').ids;
+  const allButStyles = Object.fromEntries(LESSONS.filter((l) => !styles.includes(l.id)).map((l) => [l.id, 'done']));
   assert.equal(firstUnfinished(allButStyles, {}, ['shoegaze', 'stereolab']).id, 'shoegaze');
   assert.equal(firstUnfinished(allButStyles).id, 'kosmische');
   assert.deepEqual(lessonPath(['shoegaze']).slice(-1).map((l) => l.id), ['shoegaze']);
@@ -1112,3 +1113,104 @@ test('the iPhone lesson is optional: never locked, never next, never blocking', 
   assert.ok(!lessonPath(['punk']).some((l) => l.id === 'gb-iphone'));
   assert.equal(byId('gb-iphone').differences.length, 5);
 });
+
+test('find home ticks when home is held on its own for 2 seconds, once per octave', () => {
+  const c = createChecker(byId('find-home'));
+  const hold = (notes, seconds, homeOn = true) => c.handle({ type: 'hold', notes, seconds, homeOn });
+  hold([62], 3); // D is not home
+  hold([60, 64], 3); // home with another key down doesn't count
+  hold([60], 1); // not long enough
+  hold([60], 3, false); // the home note wasn't sounding
+  assert.deepEqual(c.progress().map((p) => p.done), [false, false]);
+  hold([60], 2);
+  assert.deepEqual(c.progress().map((p) => p.done), [true, false]);
+  hold([60], 5); // the same octave again
+  assert.equal(c.progress()[1].done, false);
+  hold([72], 2); // home an octave higher
+  assert.ok(c.complete());
+});
+
+test('echo counts a tune played back in order; a wrong note starts it over', () => {
+  const c = createChecker(byId('echo'));
+  const play = (...notes) => notes.forEach((note) => c.handle({ type: 'noteOn', note }));
+  play(60, 64, 67); // before any tune is played: nothing to copy
+  assert.equal(c.progress()[0].current, 0);
+  c.handle({ type: 'phrase', notes: [60, 62, 64] });
+  play(60, 62, 64);
+  assert.equal(c.progress()[0].current, 1);
+  c.handle({ type: 'phrase', notes: [60, 64, 62] });
+  play(60, 65); // wrong second note
+  play(60, 64, 62); // then right, from the start
+  assert.equal(c.progress()[0].current, 2);
+  c.handle({ type: 'phrase', notes: [64, 65, 67] });
+  play(76, 77, 79); // the same notes an octave up count
+  const v = c.values()[0];
+  assert.equal(v.rounds, 3);
+  assert.equal(v.firstTry, 2); // the second tune needed a restart
+});
+
+test('tension and rest: a restless note, a step onto a calm one, held', () => {
+  const c = createChecker(byId('tension-rest'));
+  const land = (from, to, seconds = 2) => {
+    c.handle({ type: 'noteOn', note: from });
+    c.handle({ type: 'noteOn', note: to });
+    c.handle({ type: 'hold', notes: [to], seconds });
+  };
+  land(62, 60, 1); // not held long enough
+  land(65, 60); // 4 to 1 is a leap, not a step
+  land(64, 62); // calm to restless is the wrong way
+  assert.equal(c.progress()[0].current, 0);
+  land(62, 60); // 2 down to 1
+  land(62, 60); // the same pair again counts once
+  land(71, 72); // 7 up to 1
+  land(69, 67); // 6 down to 5
+  assert.equal(c.values()[0].pairs.length, 3);
+  assert.ok(c.complete());
+});
+
+test('counting from home: numbers, calm notes and echo tunes', () => {
+  assert.deepEqual([60, 62, 64, 65, 67, 69, 71, 72].map(degreeOf), [1, 2, 3, 4, 5, 6, 7, 1]);
+  assert.equal(degreeOf(61), null); // black keys have no number here
+  assert.ok(isResolution(71, 72) && isResolution(65, 64) && !isResolution(60, 62));
+  let seed = 1;
+  const random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let round = 0; round < 50; round++) {
+    const tune = echoPhrase(round, random);
+    assert.equal(tune.length, 3);
+    if (round < 2) assert.equal(tune[0], 60); // the first tunes start on home
+    assert.ok(tune.every((n) => [60, 62, 64, 65, 67].includes(n))); // white keys, middle C to G
+    assert.ok(tune.every((n, i) => i === 0 || (n !== tune[i - 1] && Math.abs(n - tune[i - 1]) <= 4)));
+  }
+});
+
+test('play by ear lessons are optional, open any time, and name no book', () => {
+  const sec = SECTIONS.find((s) => s.title === 'Play by ear');
+  assert.ok(sec.optional);
+  for (const id of sec.ids) {
+    assert.equal(lockReason(id, {}), null);
+    assert.ok(!lessonPath().some((l) => l.id === id)); // Next lesson never sends you here
+    assert.equal(byId(id).setup.homeNote, 60);
+    assert.doesNotMatch(JSON.stringify(byId(id)), /Improvise for Real|David Reed|Landscape/i);
+  }
+});
+
+test('hearing a tune again restarts it; a visit later starts with no tune half-played', () => {
+  const echo = byId('echo');
+  const c = createChecker(echo);
+  c.handle({ type: 'phrase', notes: [60, 62, 64] });
+  c.handle({ type: 'noteOn', note: 60 });
+  c.handle({ type: 'phrase', notes: [60, 62, 64], again: true }); // listen again after one note
+  for (const note of [60, 62, 64]) c.handle({ type: 'noteOn', note });
+  assert.deepEqual([c.values()[0].rounds, c.values()[0].firstTry], [1, 1]); // no miss for listening again
+  c.handle({ type: 'phrase', notes: [64, 62, 60] });
+  c.handle({ type: 'noteOn', note: 67 }); // wrong
+  c.handle({ type: 'phrase', notes: [64, 62, 60], again: true });
+  for (const note of [64, 62, 60]) c.handle({ type: 'noteOn', note });
+  assert.deepEqual([c.values()[0].rounds, c.values()[0].firstTry], [2, 1]); // the wrong note still counts
+  // Saved mid-tune, then opened again: the old tune can't be ticked by chance.
+  c.handle({ type: 'phrase', notes: [60, 64, 67] });
+  const later = createChecker(echo, c.values());
+  for (const note of [60, 64, 67]) later.handle({ type: 'noteOn', note });
+  assert.equal(later.values()[0].rounds, 2);
+});
+
