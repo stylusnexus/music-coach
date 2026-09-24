@@ -252,12 +252,14 @@ class UpdateCheckTest(unittest.TestCase):
         self.assertFalse(server.check_for_update("0.6.0", lambda: self.release("v0.6.0"))["newer"])
         self.assertFalse(server.check_for_update("0.6.1", lambda: self.release("v0.6.0"))["newer"])
 
-    def test_only_links_on_the_projects_release_page_are_passed_on(self):
-        bad = self.release("v0.7.0", html_url="https://evil.example/music-coach")
+    def test_links_come_from_the_version_not_from_githubs_answer(self):
+        bad = self.release("v0.7.0", html_url="https://github.com/stylusnexus/music-coach/releases/../../../other/repo")
         bad["assets"] = [{"name": "Music.Coach.zip", "browser_download_url": "https://evil.example/Music.Coach.zip"}]
         got = server.check_for_update("0.6.0", lambda: bad)
-        self.assertEqual(got["page"], server.RELEASES_PAGE + "latest")
-        self.assertEqual(got["download"], "")
+        self.assertEqual(got["page"], server.RELEASES_PAGE + "tag/v0.7.0")
+        self.assertEqual(got["download"], server.RELEASES_PAGE + "download/v0.7.0/Music.Coach.zip")
+        # No zip listed yet (the release is still being built): no download link.
+        self.assertEqual(server.check_for_update("0.6.0", lambda: {"tag_name": "v0.7.0", "html_url": None, "assets": 5})["download"], "")
 
     def test_no_connection_or_a_strange_answer_says_so(self):
         def offline():
@@ -265,6 +267,17 @@ class UpdateCheckTest(unittest.TestCase):
         self.assertIn("Couldn't reach GitHub", server.check_for_update("0.6.0", offline)["error"])
         self.assertIn("didn't say", server.check_for_update("0.6.0", lambda: {"tag_name": "latest"})["error"])
         self.assertIn("didn't say", server.check_for_update("0.6.0", lambda: [])["error"])
+
+        def status(code):
+            def fail():
+                raise urllib.error.HTTPError(server.RELEASES_API, code, "x", {}, None)
+            return fail
+        self.assertIn("busy", server.check_for_update("0.6.0", status(403))["error"])
+        self.assertIn("No version", server.check_for_update("0.6.0", status(404))["error"])
+
+        def cut_off():
+            raise server.http.client.IncompleteRead(b"")
+        self.assertIn("Couldn't reach GitHub", server.check_for_update("0.6.0", cut_off)["error"])
 
 
 class SavedPacksTest(unittest.TestCase):

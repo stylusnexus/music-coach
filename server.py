@@ -6,6 +6,7 @@ API key the learner adds). Standard library only."""
 import base64
 import shutil
 import hashlib
+import http.client
 import mimetypes
 import plistlib
 import json
@@ -1001,25 +1002,33 @@ def version_tuple(text):
 
 
 def check_for_update(current=None, fetch=None):
-    """Compare this copy with the latest release. Only release links on the project's
-    own GitHub page are passed on to the page."""
+    """Compare this copy with the latest release. The links are built from the
+    version number, never taken from GitHub's answer, so they can only point at
+    this project's own release page."""
     current = VERSION if current is None else current
     try:
         release = (fetch or fetch_latest_release)()
-    except (urllib.error.URLError, OSError, ValueError) as exc:
+    except urllib.error.HTTPError as exc:
+        if exc.code in (403, 429):
+            return {"error": "GitHub is busy right now. Try again in an hour."}
+        if exc.code == 404:
+            return {"error": "No version has been published yet."}
+        return {"error": f"GitHub answered with error {exc.code}. Try again later."}
+    except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError) as exc:
         return {"error": f"Couldn't reach GitHub ({getattr(exc, 'reason', exc)}). Check your internet connection and try again."}
     latest = version_tuple(release.get("tag_name") if isinstance(release, dict) else None)
     if not latest:
         return {"error": "GitHub didn't say what the latest version is. Try again later."}
-    page = release.get("html_url", "")
-    zips = [a.get("browser_download_url", "") for a in release.get("assets") or [] if isinstance(a, dict) and a.get("name") == "Music.Coach.zip"]
+    tag = "v" + ".".join(map(str, latest))
+    assets = release.get("assets") if isinstance(release.get("assets"), list) else []
+    has_zip = any(isinstance(a, dict) and a.get("name") == "Music.Coach.zip" for a in assets)
     ours = version_tuple(current)
     return {
         "current": current,
-        "latest": ".".join(map(str, latest)),
+        "latest": tag[1:],
         "newer": bool(ours) and latest > ours,
-        "page": page if page.startswith(RELEASES_PAGE) else RELEASES_PAGE + "latest",
-        "download": next((z for z in zips if z.startswith(RELEASES_PAGE)), ""),
+        "page": f"{RELEASES_PAGE}tag/{tag}",
+        "download": f"{RELEASES_PAGE}download/{tag}/Music.Coach.zip" if has_zip else "",
     }
 
 
