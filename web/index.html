@@ -338,14 +338,20 @@
     <form method="dialog"><button class="dialog-x ghost" aria-label="Close">×</button></form>
     <h2 id="about-title">About Music Coach</h2>
     <p id="about-version" class="muted"></p>
+    <div class="update">
+      <button id="update-check" type="button">Check for updates</button>
+      <p class="muted small">This asks GitHub for the latest version. Nothing about your music, gear or files is sent.</p>
+      <div id="update-status" aria-live="polite"></div>
+    </div>
     <h3>Where your things are</h3>
     <ul class="about-places">
       <li>Progress, gear list, coach settings and key, takes: <code id="about-data"></code></li>
       <li>Sketches: <code id="about-sketches"></code></li>
     </ul>
-    <p class="muted small">None of these are inside the app, so updating or replacing the app keeps them.</p>
+    <p id="about-keep" class="muted small">None of these are inside the app, so updating or replacing the app keeps them.</p>
     <h3>Support</h3>
     <p>Questions, stuck, or found a bug? Email <a href="mailto:admin@stylusnexus.com?subject=Music%20Coach">admin@stylusnexus.com</a>.</p>
+    <div id="uninstall-section">
     <h3>Uninstall</h3>
     <div id="uninstall-start">
       <p id="uninstall-note" class="muted small">Moves Music Coach to the Trash. Your saved things stay unless you choose otherwise.</p>
@@ -356,6 +362,7 @@
       <div class="buttons"><button id="uninstall-go" class="danger" type="button">Move Music Coach to the Trash</button><button id="uninstall-cancel" type="button">Cancel</button></div>
     </div>
     <p id="uninstall-status" aria-live="polite"></p>
+    </div>
   </dialog>
 
   <dialog id="coach-dialog" class="coach-dialog">

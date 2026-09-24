@@ -149,7 +149,9 @@ sounds and GarageBand's, and every check must tick.
   it to the page, or send it anywhere else.
 - No analytics, no accounts. Nothing uploads the user's folders, samples,
   sketches or recordings. The only network calls are to the chosen coach
-  model and Bandcamp's player when the user presses Hear it.
+  model, Bandcamp's player when the user presses Hear it, and GitHub's
+  latest-release address when the user presses Check for updates in About.
+  Nothing checks for updates on its own.
 - User data lives outside the app bundle, so replacing the app keeps it.
   `packaging/build.sh` copies only `server.py` and `web/`.
 - Never commit `data/`, `sketches/`, `dist/`, API keys or other secrets.

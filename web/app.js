@@ -1533,28 +1533,66 @@ async function changeSketchFolder(reset) {
   };
 }
 
+function codeFolderNote() {
+  const code = places?.code || '';
+  const inside = (p) => code && p && (p === code || p.startsWith(`${code}/`));
+  const lost = [inside(places?.data) && 'your progress, gear list, coach key and takes', inside(places?.sketches) && 'your sketches'].filter(Boolean);
+  return `You're running Music Coach from its code folder, ${placePath(code)}. To remove it, delete that folder and any Music Coach shortcut you made.${lost.length ? ` That also deletes ${lost.join(', and ')}, which are inside it.` : ''}`;
+}
+
 async function openAbout() {
   await loadPlaces();
   $('about-version').textContent = appVersion ? `Version ${appVersion}` : 'Running from its code folder.';
+  $('update-status').innerHTML = '';
   $('about-data').textContent = places ? placePath(places.data) : '';
   $('about-sketches').textContent = places ? placePath(places.sketches) : '';
   $('uninstall-confirm').hidden = true;
   $('uninstall-start').hidden = false;
   $('uninstall-status').textContent = '';
   $('uninstall-data').checked = false;
+  // From its code folder there is no app to move to the Trash: say how to remove it
+  // where the folders are listed, and whether deleting the folder takes your things too.
   const packaged = Boolean(places?.app);
-  $('uninstall-btn').hidden = !packaged;
-  $('uninstall-note').textContent = packaged
-    ? 'Moves Music Coach to the Trash. Your saved things stay unless you choose otherwise.'
-    : "You're running Music Coach from its code folder. To remove it, delete that folder, and any Music Coach shortcut you made.";
+  $('uninstall-section').hidden = !packaged;
+  $('about-keep').textContent = packaged
+    ? 'None of these are inside the app, so updating or replacing the app keeps them.'
+    : codeFolderNote();
   $('uninstall-sketches-note').textContent = places?.customSketches
     ? ' (the sketches folder you chose stays where it is)'
     : ', and my sketches';
   $('about-dialog').showModal();
 }
 
+// Only when you press the button: the app never checks by itself.
+async function checkForUpdate() {
+  const status = $('update-status');
+  $('update-check').disabled = true;
+  status.textContent = 'Checking…';
+  try {
+    const res = await fetch('/api/update/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const u = await res.json();
+    if (u.error) {
+      status.textContent = u.error;
+    } else if (!u.newer) {
+      status.textContent = `You have the latest version, ${u.latest}.`;
+    } else if (!places?.app) {
+      status.innerHTML = `Version ${esc(u.latest)} is out. You have ${esc(u.current)}. <a href="${esc(u.page)}" target="_blank" rel="noopener">What's new</a>
+        <p class="small">You're running Music Coach from its code folder: update it with <code>git pull</code>, then restart it.</p>`;
+    } else {
+      const get = u.download ? `<a href="${esc(u.download)}">Download Music Coach ${esc(u.latest)}</a> · ` : '';
+      status.innerHTML = `Version ${esc(u.latest)} is out. You have ${esc(u.current)}. ${get}<a href="${esc(u.page)}" target="_blank" rel="noopener">What's new</a>
+        <p class="small">Open the download to unzip it, then drag the new Music Coach into your Applications folder, choose Replace, and open it. Your progress, gear and sketches stay where they are.</p>`;
+    }
+  } catch {
+    status.textContent = 'Could not check. Is the Music Coach server running?';
+  } finally {
+    $('update-check').disabled = false;
+  }
+}
+
 function wireAbout() {
   $('app-version').onclick = openAbout;
+  $('update-check').onclick = checkForUpdate;
   $('uninstall-btn').onclick = () => {
     $('uninstall-start').hidden = true;
     $('uninstall-confirm').hidden = false;

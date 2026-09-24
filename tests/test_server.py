@@ -235,6 +235,51 @@ class WavCopyTest(unittest.TestCase):
             self.assertEqual(list(copy.parent.iterdir()), [copy])  # no half-written file left
 
 
+class UpdateCheckTest(unittest.TestCase):
+    def release(self, tag, **extra):
+        page = f"https://github.com/stylusnexus/music-coach/releases/tag/{tag}"
+        zip_url = f"https://github.com/stylusnexus/music-coach/releases/download/{tag}/Music.Coach.zip"
+        return {"tag_name": tag, "html_url": page,
+                "assets": [{"name": "Music-Coach-x.zip", "browser_download_url": "https://x"}, {"name": "Music.Coach.zip", "browser_download_url": zip_url}], **extra}
+
+    def test_a_newer_release_gives_its_page_and_zip(self):
+        got = server.check_for_update("0.6.0", lambda: self.release("v0.10.0"))
+        self.assertEqual((got["latest"], got["newer"]), ("0.10.0", True))  # 10 is newer than 6, not older
+        self.assertTrue(got["download"].endswith("/v0.10.0/Music.Coach.zip"))
+        self.assertTrue(got["page"].endswith("/tag/v0.10.0"))
+
+    def test_the_same_or_an_older_release_is_not_newer(self):
+        self.assertFalse(server.check_for_update("0.6.0", lambda: self.release("v0.6.0"))["newer"])
+        self.assertFalse(server.check_for_update("0.6.1", lambda: self.release("v0.6.0"))["newer"])
+
+    def test_links_come_from_the_version_not_from_githubs_answer(self):
+        bad = self.release("v0.7.0", html_url="https://github.com/stylusnexus/music-coach/releases/../../../other/repo")
+        bad["assets"] = [{"name": "Music.Coach.zip", "browser_download_url": "https://evil.example/Music.Coach.zip"}]
+        got = server.check_for_update("0.6.0", lambda: bad)
+        self.assertEqual(got["page"], server.RELEASES_PAGE + "tag/v0.7.0")
+        self.assertEqual(got["download"], server.RELEASES_PAGE + "download/v0.7.0/Music.Coach.zip")
+        # No zip listed yet (the release is still being built): no download link.
+        self.assertEqual(server.check_for_update("0.6.0", lambda: {"tag_name": "v0.7.0", "html_url": None, "assets": 5})["download"], "")
+
+    def test_no_connection_or_a_strange_answer_says_so(self):
+        def offline():
+            raise urllib.error.URLError("no internet")
+        self.assertIn("Couldn't reach GitHub", server.check_for_update("0.6.0", offline)["error"])
+        self.assertIn("didn't say", server.check_for_update("0.6.0", lambda: {"tag_name": "latest"})["error"])
+        self.assertIn("didn't say", server.check_for_update("0.6.0", lambda: [])["error"])
+
+        def status(code):
+            def fail():
+                raise urllib.error.HTTPError(server.RELEASES_API, code, "x", {}, None)
+            return fail
+        self.assertIn("busy", server.check_for_update("0.6.0", status(403))["error"])
+        self.assertIn("No version", server.check_for_update("0.6.0", status(404))["error"])
+
+        def cut_off():
+            raise server.http.client.IncompleteRead(b"")
+        self.assertIn("Couldn't reach GitHub", server.check_for_update("0.6.0", cut_off)["error"])
+
+
 class SavedPacksTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -570,6 +615,18 @@ class ServerTest(unittest.TestCase):
         finally:
             (server.DATA / "gear.json").unlink(missing_ok=True)
             server.LOCAL_SAMPLES, server.SAMPLES_DIR, server.make_wav_copy = saved
+
+    def test_update_check_route_asks_only_when_called(self):
+        saved = server.fetch_latest_release
+        calls = []
+        server.fetch_latest_release = lambda: calls.append(1) or {"tag_name": "v99.0.0", "html_url": "", "assets": []}
+        try:
+            self.assertEqual(calls, [])
+            status, body = self.call("/api/update/check", {})
+            self.assertEqual((status, body["latest"], body["newer"]), (200, "99.0.0", True))
+            self.assertEqual(calls, [1])
+        finally:
+            server.fetch_latest_release = saved
 
     def test_version_names_this_copy_of_the_code(self):
         with urllib.request.urlopen(self.base + "/api/version", timeout=5) as r:

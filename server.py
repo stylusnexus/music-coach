@@ -6,6 +6,7 @@ API key the learner adds). Standard library only."""
 import base64
 import shutil
 import hashlib
+import http.client
 import mimetypes
 import plistlib
 import json
@@ -982,6 +983,55 @@ def post_json(url, payload, headers, label, timeout):
         raise CoachError(f"{label} could not be reached ({getattr(exc, 'reason', exc)}).") from exc
 
 
+# Where releases are published. Checking for updates asks only this, and only when
+# you press Check for updates.
+RELEASES_API = "https://api.github.com/repos/stylusnexus/music-coach/releases/latest"
+RELEASES_PAGE = "https://github.com/stylusnexus/music-coach/releases/"
+
+
+def fetch_latest_release(timeout=15):
+    req = urllib.request.Request(RELEASES_API, headers={"Accept": "application/vnd.github+json", "User-Agent": "Music Coach"})
+    opener = urllib.request.build_opener(NoRedirect, urllib.request.HTTPSHandler(context=tls_context()))
+    with opener.open(req, timeout=timeout) as resp:
+        return json.loads(resp.read())
+
+
+def version_tuple(text):
+    m = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)", str(text or "").strip())
+    return tuple(int(n) for n in m.groups()) if m else None
+
+
+def check_for_update(current=None, fetch=None):
+    """Compare this copy with the latest release. The links are built from the
+    version number, never taken from GitHub's answer, so they can only point at
+    this project's own release page."""
+    current = VERSION if current is None else current
+    try:
+        release = (fetch or fetch_latest_release)()
+    except urllib.error.HTTPError as exc:
+        if exc.code in (403, 429):
+            return {"error": "GitHub is busy right now. Try again in an hour."}
+        if exc.code == 404:
+            return {"error": "No version has been published yet."}
+        return {"error": f"GitHub answered with error {exc.code}. Try again later."}
+    except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError) as exc:
+        return {"error": f"Couldn't reach GitHub ({getattr(exc, 'reason', exc)}). Check your internet connection and try again."}
+    latest = version_tuple(release.get("tag_name") if isinstance(release, dict) else None)
+    if not latest:
+        return {"error": "GitHub didn't say what the latest version is. Try again later."}
+    tag = "v" + ".".join(map(str, latest))
+    assets = release.get("assets") if isinstance(release.get("assets"), list) else []
+    has_zip = any(isinstance(a, dict) and a.get("name") == "Music.Coach.zip" for a in assets)
+    ours = version_tuple(current)
+    return {
+        "current": current,
+        "latest": tag[1:],
+        "newer": bool(ours) and latest > ours,
+        "page": f"{RELEASES_PAGE}tag/{tag}",
+        "download": f"{RELEASES_PAGE}download/{tag}/Music.Coach.zip" if has_zip else "",
+    }
+
+
 def complete(system, user, max_tokens, temperature, schema=None, timeout=120):
     """One reply from the coach's model: LM Studio, or the service your key is for.
     Returns (message, model); message has "content" and, from reasoning models,
@@ -1397,7 +1447,7 @@ class Handler(SimpleHTTPRequestHandler):
             bundle = app_bundle()
             return self.send_json(200, {
                 "data": str(DATA), "sketches": str(sketches_dir()), "customSketches": sketches_dir() != SKETCHES,
-                "app": str(bundle) if bundle else None, "home": str(Path.home()),
+                "app": str(bundle) if bundle else None, "code": None if bundle else str(ROOT), "home": str(Path.home()),
             })
         if self.path == "/api/gear/labels":
             return self.send_json(200, load_labels())
@@ -1503,6 +1553,9 @@ class Handler(SimpleHTTPRequestHandler):
             if status == 200:
                 threading.Thread(target=self.server.shutdown, daemon=True).start()
             return
+
+        if self.path == "/api/update/check":
+            return self.send_json(200, check_for_update())
 
         if self.path == "/api/quit":
             # A newer copy of the app is starting: stop, so it can take over.
