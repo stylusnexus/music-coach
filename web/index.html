@@ -332,7 +332,7 @@
     <button id="styles-more" class="ghost" type="button" hidden></button>
     <p id="styles-note" class="muted small" aria-live="polite"></p>
     <p id="styles-nudge" class="nudge" hidden><span></span> <button type="button" class="link">Dismiss</button></p>
-    <div class="buttons"><button id="styles-done" class="primary" type="button">Continue</button><button id="styles-skip" type="button">Skip — show me every style</button></div>
+    <div class="buttons"><button id="styles-back" type="button" hidden>← Back</button><button id="styles-done" class="primary" type="button">Continue</button><button id="styles-skip" type="button">Skip — show me every style</button></div>
   </dialog>
 
   <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-title">
@@ -383,7 +383,7 @@
     <div id="coach-model-row" class="coach-row"><label for="coach-model">Model</label><input id="coach-model" autocomplete="off"><span id="coach-model-hint" class="muted small"></span></div>
     <p class="muted small">Your key is saved only on this Mac, in the app's data folder, readable by your account only. It is sent only to the service you picked. That service gets your questions, the names of gear you add by hand, and the names, makers and type of plugins this app doesn't recognise, once each, so Your gear can sort and describe them. Never your files or recordings.</p>
     <div class="buttons"><button id="coach-save" class="primary">Save</button><button id="coach-test">Save and test</button><span id="coach-status" aria-live="polite"></span></div>
-    <form method="dialog"><button id="coach-close" class="ghost">Close</button></form>
+    <form method="dialog"><button id="coach-back" type="button" hidden>← Back</button> <button id="coach-close" class="ghost">Close</button></form>
   </dialog>
 
   <script type="module" src="app.js"></script>
