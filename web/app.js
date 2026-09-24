@@ -1656,6 +1656,9 @@ async function openAbout() {
   await loadPlaces();
   $('about-version').textContent = appVersion ? `Version ${appVersion}` : 'Running from its code folder.';
   $('update-status').innerHTML = '';
+  $('quit-start').hidden = false;
+  $('quit-btn').disabled = false;
+  $('quit-status').textContent = '';
   $('about-data').textContent = places ? placePath(places.data) : '';
   $('about-sketches').textContent = places ? placePath(places.sketches) : '';
   $('uninstall-confirm').hidden = true;
@@ -1705,6 +1708,17 @@ async function checkForUpdate() {
 function wireAbout() {
   $('app-version').onclick = openAbout;
   $('update-check').onclick = checkForUpdate;
+  $('quit-btn').onclick = async () => {
+    $('quit-btn').disabled = true;
+    try {
+      await fetch('/api/quit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      $('quit-start').hidden = true;
+      $('quit-status').textContent = 'Music Coach has stopped. You can close this tab.';
+    } catch {
+      $('quit-btn').disabled = false;
+      $('quit-status').textContent = 'Could not reach the coach. It may have stopped already.';
+    }
+  };
   $('uninstall-btn').onclick = () => {
     $('uninstall-start').hidden = true;
     $('uninstall-confirm').hidden = false;
