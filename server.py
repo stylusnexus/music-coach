@@ -1558,7 +1558,7 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(200, check_for_update())
 
         if self.path == "/api/quit":
-            # A newer copy of the app is starting: stop, so it can take over.
+            # Stop: Quit in the app or in About, or a newer copy starting that takes over.
             self.send_json(200, {"ok": True})
             threading.Thread(target=self.server.shutdown, daemon=True).start()
             return

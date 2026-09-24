@@ -10,7 +10,8 @@ APP="$OUT/Music Coach.app"
 VERSION=$(python3 -c 'import json; print(json.load(open("package.json"))["version"])')
 rm -rf "$OUT"
 mkdir -p "$OUT"
-osacompile -o "$APP" packaging/launcher.applescript
+# -s: the app stays open while the coach runs, so Quit can stop the coach too.
+osacompile -s -o "$APP" packaging/launcher.applescript
 mkdir -p "$APP/Contents/Resources/app"
 cp -R server.py web "$APP/Contents/Resources/app/"
 # The app shows this version; Finder's Get Info reads it from Info.plist.
