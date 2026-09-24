@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/stylusnexus/music-coach/compare/v0.7.0...v0.7.1) (2026-09-24)
+
+
+### Fixed
+
+* **app:** open without a macos malware warning ([#101](https://github.com/stylusnexus/music-coach/issues/101)) ([3d2c1cb](https://github.com/stylusnexus/music-coach/commit/3d2c1cb69255f7690b9dab8f794561c64e23044f))
+
 ## [0.7.0](https://github.com/stylusnexus/music-coach/compare/v0.6.0...v0.7.0) (2026-09-24)
 
 
