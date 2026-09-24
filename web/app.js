@@ -1696,7 +1696,7 @@ async function checkForUpdate() {
     } else {
       const get = u.download ? `<a href="${esc(u.download)}">Download Music Coach ${esc(u.latest)}</a> · ` : '';
       status.innerHTML = `Version ${esc(u.latest)} is out. You have ${esc(u.current)}. ${get}<a href="${esc(u.page)}" target="_blank" rel="noopener">What's new</a>
-        <p class="small">Open the download to unzip it, then drag the new Music Coach into your Applications folder, choose Replace, and open it. Your progress, gear and sketches stay where they are.</p>`;
+        <p class="small">Open the download to unzip it. Quit Music Coach (Quit, below), then drag the new Music Coach into your Applications folder, choose Replace, and open it. Your progress, gear and sketches stay where they are.</p>`;
     }
   } catch {
     status.textContent = 'Could not check. Is the Music Coach server running?';
@@ -1711,7 +1711,8 @@ function wireAbout() {
   $('quit-btn').onclick = async () => {
     $('quit-btn').disabled = true;
     try {
-      await fetch('/api/quit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const res = await fetch('/api/quit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      if (!res.ok) throw new Error('not stopped');
       $('quit-start').hidden = true;
       $('quit-status').textContent = 'Music Coach has stopped. You can close this tab.';
     } catch {

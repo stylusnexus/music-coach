@@ -10,6 +10,26 @@ property thisBuild : ""
 property misses : 0
 
 on run
+	try
+		startCoach()
+	on error
+		-- Cancel on the Python message, or anything else that stopped the start.
+		quit
+	end try
+end run
+
+-- Opening Music Coach while it runs. The coach may have stopped (Quit in About) or the
+-- app may have been replaced by a newer version: start (or restart) it as needed.
+on reopen
+	try
+		startCoach()
+	on error
+		if not ownServer() then quit
+	end try
+end reopen
+
+-- Start this copy's coach, stopping a coach from another copy first, then open the page.
+on startCoach()
 	set appDir to POSIX path of (path to me) & "Contents/Resources/app"
 	set dataDir to POSIX path of (path to application support folder from user domain) & "Music Coach"
 	set sketchDir to POSIX path of (path to music folder) & "Music Coach Sketches"
@@ -20,9 +40,7 @@ on run
 	if py is "" then
 		set choice to button returned of (display dialog "Music Coach needs Python 3, which this Mac doesn't have yet. It's free: install it from python.org, then open Music Coach again. (After installing, also double-click Install Certificates in the Python folder under Applications.)" buttons {"Cancel", "Open python.org"} default button 2 with icon caution)
 		if choice is "Open python.org" then open location "https://www.python.org/downloads/macos/"
-		set thisBuild to ""
-		quit
-		return
+		error "No Python"
 	end if
 	-- A coach already running from another copy of the code (the app before an update, or
 	-- another copy) is stopped, so this copy's server answers.
@@ -30,7 +48,7 @@ on run
 	-- Only a Music Coach page is ever stopped; versions before 0.3 can't say which build they are.
 	set homePage to do shell script "curl -s " & appURL & " || true"
 	if homePage contains "<title>Music Coach" and not ownServer() then
-		do shell script "curl -s -X POST " & appURL & "api/quit || true"
+		do shell script "curl -s -m 5 -X POST " & appURL & "api/quit || true"
 		repeat 20 times
 			delay 0.25
 			if not answering() then exit repeat
@@ -49,18 +67,16 @@ on run
 		end repeat
 	end if
 	openPage()
-end run
-
--- Clicking Music Coach in the Dock while it runs: bring the page back.
-on reopen
-	openPage()
-end reopen
+end startCoach
 
 -- Every few seconds: is this copy's coach still running? If it stopped, or another copy
 -- took over the port, this app has nothing left to do. A few misses in a row are
 -- allowed, so a slow start never closes it.
 on idle
-	if thisBuild is "" then return 5
+	if thisBuild is "" then
+		quit
+		return 5
+	end if
 	if ownServer() then
 		set misses to 0
 	else
@@ -72,7 +88,7 @@ end idle
 
 -- Quit stops the coach too, but never a coach that another copy of the app started.
 on quit
-	if thisBuild is not "" and ownServer() then do shell script "curl -s -X POST " & appURL & "api/quit || true"
+	if thisBuild is not "" and ownServer() then do shell script "curl -s -m 5 -X POST " & appURL & "api/quit || true"
 	continue quit
 end quit
 
