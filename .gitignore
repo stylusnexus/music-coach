@@ -4,3 +4,9 @@ sketches/
 __pycache__/
 dist/
 PLAN.md
+# Secrets never belong here: keys, certificates, local settings.
+.env
+.env.*
+*.p8
+*.p12
+*.pem
