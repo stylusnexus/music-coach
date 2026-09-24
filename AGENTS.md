@@ -54,8 +54,9 @@ npm test
 
 This runs, in order: `node --check` on every `web/*.js`, then
 `node --test tests/music.test.mjs`, then `python3 -m unittest discover -s tests`.
-All three must pass. CI runs the same command on every pull request (Node 20,
-Python 3.9), and a separate check validates the pull request title.
+All three must pass. CI runs the same command on every pull request (Node 24,
+Python 3.14), runs the server tests again on Python 3.9 (the oldest the app
+accepts), and a separate check validates the pull request title.
 
 - Music logic, lesson content and lesson checks: `tests/music.test.mjs`.
 - Server behaviour: `tests/test_server.py`. Server tests point `server.DATA`
