@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/stylusnexus/music-coach/compare/v0.8.0...v0.8.1) (2026-09-24)
+
+
+### Fixed
+
+* **setup:** let the welcome steps go back ([#108](https://github.com/stylusnexus/music-coach/issues/108)) ([55f203b](https://github.com/stylusnexus/music-coach/commit/55f203b63b6ced2d220b105e5bb0c6aaf323538c))
+
 ## [0.8.0](https://github.com/stylusnexus/music-coach/compare/v0.7.2...v0.8.0) (2026-09-24)
 
 
