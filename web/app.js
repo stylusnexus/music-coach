@@ -1533,6 +1533,13 @@ async function changeSketchFolder(reset) {
   };
 }
 
+function codeFolderNote() {
+  const code = places?.code || '';
+  const inside = (p) => code && p && (p === code || p.startsWith(`${code}/`));
+  const lost = [inside(places?.data) && 'your progress, gear list, coach key and takes', inside(places?.sketches) && 'your sketches'].filter(Boolean);
+  return `You're running Music Coach from its code folder, ${placePath(code)}. To remove it, delete that folder and any Music Coach shortcut you made.${lost.length ? ` That also deletes ${lost.join(', and ')}, which are inside it.` : ''}`;
+}
+
 async function openAbout() {
   await loadPlaces();
   $('about-version').textContent = appVersion ? `Version ${appVersion}` : 'Running from its code folder.';
@@ -1543,11 +1550,13 @@ async function openAbout() {
   $('uninstall-start').hidden = false;
   $('uninstall-status').textContent = '';
   $('uninstall-data').checked = false;
+  // From its code folder there is no app to move to the Trash: say how to remove it
+  // where the folders are listed, and whether deleting the folder takes your things too.
   const packaged = Boolean(places?.app);
-  $('uninstall-btn').hidden = !packaged;
-  $('uninstall-note').textContent = packaged
-    ? 'Moves Music Coach to the Trash. Your saved things stay unless you choose otherwise.'
-    : "You're running Music Coach from its code folder. To remove it, delete that folder, and any Music Coach shortcut you made.";
+  $('uninstall-section').hidden = !packaged;
+  $('about-keep').textContent = packaged
+    ? 'None of these are inside the app, so updating or replacing the app keeps them.'
+    : codeFolderNote();
   $('uninstall-sketches-note').textContent = places?.customSketches
     ? ' (the sketches folder you chose stays where it is)'
     : ', and my sketches';

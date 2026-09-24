@@ -1447,7 +1447,7 @@ class Handler(SimpleHTTPRequestHandler):
             bundle = app_bundle()
             return self.send_json(200, {
                 "data": str(DATA), "sketches": str(sketches_dir()), "customSketches": sketches_dir() != SKETCHES,
-                "app": str(bundle) if bundle else None, "home": str(Path.home()),
+                "app": str(bundle) if bundle else None, "code": None if bundle else str(ROOT), "home": str(Path.home()),
             })
         if self.path == "/api/gear/labels":
             return self.send_json(200, load_labels())
