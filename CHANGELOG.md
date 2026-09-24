@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.0](https://github.com/stylusnexus/music-coach/compare/v0.7.2...v0.8.0) (2026-09-24)
+
+
+### Added
+
+* **lessons:** add play by ear lessons ([#106](https://github.com/stylusnexus/music-coach/issues/106)) ([b382b2b](https://github.com/stylusnexus/music-coach/commit/b382b2bcc78624955a47bfc505fe24f40567d4a2))
+
+
+### Fixed
+
+* **app:** stop the app hanging after it starts ([#105](https://github.com/stylusnexus/music-coach/issues/105)) ([baed6d2](https://github.com/stylusnexus/music-coach/commit/baed6d286ee28b389d728f239f606e0b5309b298))
+
 ## [0.7.2](https://github.com/stylusnexus/music-coach/compare/v0.7.1...v0.7.2) (2026-09-24)
 
 
