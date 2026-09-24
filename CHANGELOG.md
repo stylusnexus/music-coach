@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/stylusnexus/music-coach/compare/v0.7.1...v0.7.2) (2026-09-24)
+
+
+### Fixed
+
+* **app:** name music coach in macos prompts ([#103](https://github.com/stylusnexus/music-coach/issues/103)) ([f12be4e](https://github.com/stylusnexus/music-coach/commit/f12be4e7fb4adf1374ad5b005cff8cfb60c37de9))
+
 ## [0.7.1](https://github.com/stylusnexus/music-coach/compare/v0.7.0...v0.7.1) (2026-09-24)
 
 
