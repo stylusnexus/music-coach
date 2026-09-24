@@ -2,12 +2,15 @@ import base64
 import json
 import os
 import plistlib
+import shutil
+import subprocess
 import sys
 import tempfile
 import threading
 import unittest
 import urllib.error
 import urllib.request
+import wave
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
@@ -101,16 +104,173 @@ class SampleFoldersTest(unittest.TestCase):
             (a / "Vintage Synths/VP330 From Mars/SVC350 Loops/01. WAV").mkdir(parents=True)
             (a / "Vintage Synths/VP330 From Mars/SVC350 Loops/01. WAV/pad.wav").write_text("")
             (b / "sub").mkdir(parents=True)
-            (b / "sub" / "hit.aif").write_text("")
+            (b / "sub" / "hit.wav").write_text("")
             (b / "notes.txt").write_text("")
             groups = server.loop_files([a, b])
             self.assertEqual([(g["label"], g["files"]) for g in groups], [
                 ("VP-330 string loops", ["Vintage Synths/VP330 From Mars/SVC350 Loops/01. WAV/pad.wav"]),
-                ("My Loops", ["sub/hit.aif"]),
+                ("sub", ["sub/hit.wav"]),
             ])
-            self.assertEqual(server.local_sample_path("sub/hit.aif", [a, b]), (b / "sub/hit.aif").resolve())
+            self.assertEqual(server.local_sample_path("sub/hit.wav", [a, b]), (b / "sub/hit.wav").resolve())
             self.assertIsNone(server.local_sample_path("notes.txt", [a, b]))
             self.assertIsNone(server.local_sample_path("../A/Vintage Synths", [a, b]))
+
+
+def make_files(root, *paths):
+    for rel in paths:
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text("")
+
+
+class SamplePacksTest(unittest.TestCase):
+    def packs(self, root, **kw):
+        return {p["path"]: p for p in server.find_packs(root, **kw)}
+
+    def test_kind_folders_are_not_packs_and_each_branch_is_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            make_files(root,
+                       "Drum Machines/Rhythm Box/WAV/One Shots/Kick.wav",
+                       "Drum Machines/Rhythm Box/WAV/Drum Loops 120 BPM/Clean/Rock.wav",
+                       "Drum Machines/Beat Box/hit.mp3",
+                       "Drum Machines/Beat Box/readme.txt")
+            got = self.packs(root)
+            self.assertEqual(sorted(got), ["Drum Machines/Beat Box", "Drum Machines/Rhythm Box"])
+            box = got["Drum Machines/Rhythm Box"]
+            # Its own format folders stay one pack, loops first.
+            self.assertEqual(box["files"], ["Drum Machines/Rhythm Box/WAV/Drum Loops 120 BPM/Clean/Rock.wav",
+                                            "Drum Machines/Rhythm Box/WAV/One Shots/Kick.wav"])
+            self.assertEqual((box["label"], box["where"], box["loops"]), ("Rhythm Box", "Drum Machines", 1))
+
+    def test_wrappers_are_passed_through_and_big_collections_split(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            make_files(root,
+                       "Drums/Machines/Box One/a.wav", "Drums/Machines/Box One/b.wav",
+                       "Drums/Machines/Box Two/a.wav", "Drums/Machines/Box Two/b.wav",
+                       "Drums/Grooves/g.wav")
+            self.assertEqual(sorted(self.packs(root)), ["Drums/Grooves", "Drums/Machines"])
+            # Past the size limit a branch is a collection: each machine is its own pack.
+            self.assertEqual(sorted(self.packs(root, big=3)), ["Drums/Grooves", "Drums/Machines/Box One", "Drums/Machines/Box Two"])
+            make_files(root, "Only/Wrapper/Pack/a.wav")
+            self.assertIn("Only/Wrapper/Pack", self.packs(root))
+
+    def test_sounds_loose_in_a_folder_make_a_pack(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp, "My Sounds")
+            make_files(root, "top.wav", "Kind/loose.wav", "Kind/Sub/x.wav")
+            got = self.packs(root)
+            self.assertEqual(got[""]["files"], ["top.wav"])
+            self.assertEqual(got[""]["label"], "My Sounds")
+            self.assertEqual(got["Kind"]["files"], ["Kind/loose.wav", "Kind/Sub/x.wav"])
+
+    def test_sections_are_guessed_from_plain_words(self):
+        guess = server.guess_section
+        self.assertEqual(guess(Path("Drum Machines/Rhythm Box")), "Drums")
+        self.assertEqual(guess(Path("Guitars and Bass/Soundtrack Loops Funk and Disco Basses WAV")), "Bass")
+        self.assertEqual(guess(Path("Guitars and Bass/Soundtrack Loops Upbeat Funky Guitars WAV")), "Strings")
+        self.assertEqual(guess(Path("Vintage Synths/Some Pack")), "Keys")
+        self.assertEqual(guess(Path("Loops/Soundtrack_Loops_Deep_Ambient_WAV")), "Texture")
+        self.assertEqual(guess(Path("Stuff/Drum Pad Hits")), "Drums")
+        self.assertEqual(guess(Path("Misc/Things From Mars")), "Other")
+
+    def test_lesson_packs_stay_and_are_not_listed_twice(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loops = "Drum Machines/Minipops Snacks From Mars/WAV/01. Loops/"
+            make_files(root, loops + "Can Ballad.wav", "Drum Machines/Minipops Snacks From Mars/WAV/02. One Hits/BD.wav",
+                       "Drum Machines/Other Box/k.wav")
+            groups = server.loop_files(root)
+            self.assertEqual(groups[0], {"label": "Minipops drum loops", "files": [loops + "Can Ballad.wav"], "known": True})
+            by_label = {g["label"]: g for g in groups}
+            self.assertEqual(by_label["Minipops Snacks From Mars"]["files"],
+                             ["Drum Machines/Minipops Snacks From Mars/WAV/02. One Hits/BD.wav"])
+            self.assertEqual(by_label["Other Box"]["section"], "Drums")
+
+    def test_moved_and_hidden_packs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            make_files(root, "Kinds/Box A/a.wav", "Kinds/Box B/b.wav")
+            a, b = str(root / "Kinds/Box A"), str(root / "Kinds/Box B")
+            prefs = server.change_prefs({"op": "pack", "path": a, "section": "Bass"}, server.clean_prefs({}))
+            prefs = server.change_prefs({"op": "pack", "path": b, "section": "hidden"}, prefs)
+            self.assertEqual([(g["label"], g["section"]) for g in server.loop_files(root, prefs=prefs)], [("Box A", "Bass")])
+            listed = {p["label"]: p for p in server.pack_list(root, prefs)}
+            self.assertEqual((listed["Box A"]["guess"], listed["Box B"]["hidden"]), ("Other", True))
+            # Back to the guess, and nothing but a real section or "hidden" is kept.
+            prefs = server.change_prefs({"op": "pack", "path": a, "section": ""}, prefs)
+            prefs = server.change_prefs({"op": "pack", "path": a, "section": "Kazoo"}, prefs)
+            self.assertEqual(prefs["packs"], {b: "hidden"})
+            self.assertEqual(server.clean_prefs({"packs": {"relative": "Bass", "/x": "Drums"}})["packs"], {"/x": "Drums"})
+
+
+class FindLoopsTest(unittest.TestCase):
+    def test_every_word_must_match_the_pack_or_the_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            make_files(root, "Kinds/Rhythm Box/Loops/Rock 120.wav", "Kinds/Rhythm Box/Loops/Waltz 90.wav", "Kinds/Other/Rock.wav")
+            got = server.find_loops("rhythm rock", root)
+            self.assertEqual([(f["label"], f["file"]) for f in got], [("Rhythm Box", "Kinds/Rhythm Box/Loops/Rock 120.wav")])
+            self.assertEqual(len(server.find_loops("rock", root)), 2)
+            self.assertEqual(server.find_loops("  ", root), [])
+            self.assertEqual(len(server.find_loops("wav", root, limit=1)), 1)
+
+
+@unittest.skipUnless(shutil.which("afconvert"), "afconvert comes with macOS")
+class WavCopyTest(unittest.TestCase):
+    def test_afconvert_makes_a_wav_and_leaves_the_original(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src, aiff = Path(tmp, "tone.wav"), Path(tmp, "tone.aif")
+            with wave.open(str(src), "wb") as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(44100)
+                w.writeframes(b"\x00\x10" * 4410)
+            subprocess.run(["afconvert", "-f", "AIFF", "-d", "BEI16", str(src), str(aiff)], check=True)
+            before = aiff.read_bytes()
+            copy = Path(tmp, "copies", "tone.wav")
+            self.assertTrue(server.make_wav_copy(aiff, copy))
+            self.assertEqual(copy.read_bytes()[:4], b"RIFF")
+            self.assertEqual(aiff.read_bytes(), before)
+            self.assertEqual(list(copy.parent.iterdir()), [copy])  # no half-written file left
+
+
+class SavedPacksTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.saved = server.DATA, server.LOCAL_SAMPLES, server.SAMPLES_DIR
+        server.DATA = Path(self.tmp.name, "data")
+        server.LOCAL_SAMPLES = Path(self.tmp.name, "Samples")
+        server.SAMPLES_DIR = Path(self.tmp.name, "Drive")
+        make_files(server.LOCAL_SAMPLES, "Kinds/Box A/a.wav", "Kinds/Box B/b.wav")
+
+    def tearDown(self):
+        server.DATA, server.LOCAL_SAMPLES, server.SAMPLES_DIR = self.saved
+        self.tmp.cleanup()
+
+    def test_the_list_is_saved_and_only_changes_when_looked_through_again(self):
+        local = str(server.LOCAL_SAMPLES)
+        self.assertEqual(server.loop_files(), [])  # not looked through yet
+        server.scan_folders([local])
+        self.assertEqual([g["label"] for g in server.loop_files()], ["Box A", "Box B"])
+        make_files(server.LOCAL_SAMPLES, "Kinds/Box C/c.wav")
+        self.assertEqual(len(server.loop_files()), 2)  # new files wait for Refresh
+        server.scan_folders([local])
+        self.assertEqual(len(server.loop_files()), 3)
+
+    def test_an_unplugged_folder_keeps_its_list_and_a_removed_one_loses_it(self):
+        local = str(server.LOCAL_SAMPLES)
+        server.scan_folders([local])
+        moved = server.LOCAL_SAMPLES.with_name("Unplugged")
+        server.LOCAL_SAMPLES.rename(moved)
+        server.scan_folders([local])
+        self.assertEqual(len(server.saved_packs()[local]["packs"]), 2)
+        self.assertEqual(server.loop_files(), [])  # not connected: nothing to play
+        moved.rename(server.LOCAL_SAMPLES)
+        prefs = server.change_prefs({"op": "removeFolder", "path": local}, server.load_prefs())
+        server.write_json(server.DATA / "gear.json", prefs)
+        server.scan_folders([])
+        self.assertEqual(server.saved_packs(), {})
 
 
 class GearPrefsTest(unittest.TestCase):
@@ -359,6 +519,57 @@ class ServerTest(unittest.TestCase):
                 return r.status, json.loads(r.read())
         except urllib.error.HTTPError as e:
             return e.code, json.loads(e.read())
+
+    def test_packs_route_lists_packs_without_their_files(self):
+        saved = server.LOCAL_SAMPLES, server.SAMPLES_DIR
+        server.LOCAL_SAMPLES = Path(self.tmp.name, "Samples")
+        server.SAMPLES_DIR = Path(self.tmp.name, "Drive")
+        (server.DATA / "gear.json").unlink(missing_ok=True)
+        try:
+            make_files(server.LOCAL_SAMPLES, "Kinds/Box A/Loops/a.wav", "Kinds/Box B/b.wav")
+            server.scan_folders([str(server.LOCAL_SAMPLES)])
+            status, body = self.call("/api/packs")
+            self.assertEqual(status, 200)
+            self.assertEqual([(p["label"], p["section"], p["loops"], p["total"]) for p in body["packs"]],
+                             [("Box A", "Other", 1, 1), ("Box B", "Other", 0, 1)])
+            self.assertNotIn("files", body["packs"][0])
+            self.assertEqual(body["sections"][0], "Drums")
+            self.assertEqual(self.call("/api/packs/refresh", {})[0], 200)
+        finally:
+            (server.DATA / "gear.json").unlink(missing_ok=True)
+            server.LOCAL_SAMPLES, server.SAMPLES_DIR = saved
+
+    def test_aiff_plays_as_a_wav_copy_only_once_you_agree(self):
+        saved = server.LOCAL_SAMPLES, server.SAMPLES_DIR, server.make_wav_copy
+        server.LOCAL_SAMPLES = Path(self.tmp.name, "AIFF Samples")
+        server.SAMPLES_DIR = Path(self.tmp.name, "Drive")
+        (server.DATA / "gear.json").unlink(missing_ok=True)
+        made = []
+
+        def fake_copy(path, copy):
+            made.append(path)
+            copy.parent.mkdir(parents=True, exist_ok=True)
+            copy.write_bytes(b"RIFF copy")
+            return True
+
+        server.make_wav_copy = fake_copy
+        try:
+            make_files(server.LOCAL_SAMPLES, "Pack/Apple Loop.aif")
+            original = server.LOCAL_SAMPLES / "Pack/Apple Loop.aif"
+            original.write_bytes(b"FORM original")
+            status, body = self.call("/local/Pack/Apple%20Loop.aif")
+            self.assertEqual((status, body["needsCopy"]), (409, True))
+            self.assertEqual(made, [])
+            self.assertEqual(self.call("/api/gear/change", {"op": "copyAiff"})[0], 200)
+            for _ in range(2):  # made once, then played from the copy
+                with urllib.request.urlopen(self.base + "/local/Pack/Apple%20Loop.aif", timeout=10) as r:
+                    self.assertEqual(r.read(), b"RIFF copy")
+            self.assertEqual(len(made), 1)
+            self.assertEqual(original.read_bytes(), b"FORM original")
+            self.assertTrue(server.wav_copy_path(original).is_relative_to(server.DATA))
+        finally:
+            (server.DATA / "gear.json").unlink(missing_ok=True)
+            server.LOCAL_SAMPLES, server.SAMPLES_DIR, server.make_wav_copy = saved
 
     def test_version_names_this_copy_of_the_code(self):
         with urllib.request.urlopen(self.base + "/api/version", timeout=5) as r:

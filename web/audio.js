@@ -363,6 +363,8 @@ export class Engine {
   // Load a loop for the sampler, plus a reversed copy for backwards playback.
   async loadChop(path) {
     const res = await fetch(`/local/${encodeURIComponent(path)}`);
+    // An AIFF file plays from a WAV copy, made only once you agree.
+    if (res.status === 409) throw Object.assign(new Error('Needs a WAV copy'), { needsCopy: true });
     if (!res.ok) throw new Error('Loop not found');
     return this.setChop(await this.ctx.decodeAudioData(await res.arrayBuffer()), path.split('/').pop());
   }

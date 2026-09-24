@@ -66,6 +66,7 @@ let gear = { plugins: [], scanned: [], added: [], hidden: [], folders: [], tags:
 let instruments = []; // every instrument: [{id, label, recorded, samples}]
 let drumKits = []; // recorded drum kits: [{id, label, sounds}]
 let loops = []; // loops for the sampler: [{label, files}]
+let packScan = { packs: [], sections: [], scanning: false }; // sample packs, as Your gear lists them
 let pluginDetails = []; // installed plugins: [{name, maker, kind}]
 let gearLabels = {}; // what the coach model said about plugins, by maker|name
 let describing = 0; // plugins being sorted by the coach model right now
@@ -1725,7 +1726,7 @@ function wireStudio() {
     state.reverse = !state.reverse;
     renderStudio();
   };
-  $('loop').onchange = (e) => e.target.value && loadLoop(e.target.value);
+  wireLoopList();
   $('mic-rec').onclick = toggleMicRecording;
 
   $('sound').onclick = (e) => {
@@ -2321,16 +2322,115 @@ function markGridStep(step) {
 
 // ---------- sampler ----------
 
+// The Sampler's loops: packs the lessons use first, then every other pack under its
+// heading. A pack's files are drawn only when it is opened: a big drive has thousands.
+let loopFound = null; // search results, or null when the search box is empty
+let loopCurrent = '';
+
+function loopName(f) {
+  return f.split('/').pop().replace(/\.(wav|aiff?|mp3|m4a)$/i, '');
+}
+
+function loopButtons(files) {
+  return `<ul>${files.map((f) => `<li><button type="button" class="loop-file${f === loopCurrent ? ' on' : ''}" data-file="${esc(f)}" aria-pressed="${f === loopCurrent}" title="${esc(f)}">${esc(loopName(f))}</button></li>`).join('')}</ul>`;
+}
+
+function packCounts(loopCount, total) {
+  const hits = total - loopCount;
+  return [loopCount && `${loopCount} loop${loopCount === 1 ? '' : 's'}`, hits && `${hits} hit${hits === 1 ? '' : 's'}`].filter(Boolean).join(', ');
+}
+
+function packBody(g) {
+  const n = g.known ? g.files.length : Math.min(g.loops, g.files.length);
+  const parts = [];
+  if (n) parts.push(`${g.known || n === g.files.length ? '' : '<p class="loop-kind">Loops</p>'}${loopButtons(g.files.slice(0, n))}`);
+  if (n < g.files.length) parts.push(`${n ? '<p class="loop-kind">Hits: single sounds</p>' : ''}${loopButtons(g.files.slice(n))}`);
+  if (g.total > g.files.length) parts.push(`<button type="button" class="link loop-more" data-id="${esc(g.id)}">Show all ${g.total}</button>`);
+  return parts.join('');
+}
+
+function loopsEmpty() {
+  if (!gear.folders.length) return 'No sample folders yet. <button type="button" class="link" data-open-gear>Add one in Your gear</button>, or press ● Record a sound.';
+  if (!gear.folders.some((f) => f.found)) return 'None of your sample folders are connected right now. <button type="button" class="link" data-open-gear>Check Your gear</button>.';
+  if (packScan.scanning) return 'Looking through your sample folders for packs… A big drive can take a minute.';
+  return 'No loops in your sample folders yet. Press ● Record a sound to sample your own.';
+}
+
 function renderLoops() {
-  const select = $('loop');
-  select.querySelectorAll('optgroup').forEach((og) => og.remove());
-  for (const group of loops) {
-    const og = document.createElement('optgroup');
-    og.label = group.label;
-    for (const f of group.files) og.append(new Option(f.split('/').pop().replace(/\.(wav|aiff?|mp3|m4a)$/i, ''), f));
-    select.append(og);
+  const list = $('loop-list');
+  if (loopFound) {
+    list.innerHTML = loopFound.length
+      ? `${loopFound.length >= 200 ? '<p class="empty">The first 200 matches. Type another word to narrow it.</p>' : ''}${loopButtons(loopFound.map((f) => f.file))}`
+      : `<p class="empty">Nothing matches "${esc($('loop-search').value)}".</p>`;
+  } else if (!loops.length) {
+    list.innerHTML = `<p class="empty">${loopsEmpty()}</p>`;
+  } else {
+    const sections = [];
+    loops.forEach((g, i) => {
+      const title = g.known ? 'Used in lessons' : g.section;
+      let sec = sections.find((s) => s.title === title);
+      if (!sec) sections.push((sec = { title, packs: [] }));
+      sec.packs.push({ g, i });
+    });
+    const scanning = packScan.scanning ? '<p class="empty">Looking through your sample folders for more packs…</p>' : '';
+    list.innerHTML = scanning + sections.map((sec) => {
+      const open = sec.title === 'Used in lessons' || sections.length === 1 ? ' open' : '';
+      const packs = sec.packs.map(({ g, i }) => {
+        const counts = g.known ? `${g.files.length}` : packCounts(g.loops, g.total);
+        return `<details class="loop-pack" data-i="${i}"><summary>${esc(g.label)} <span class="maker">${esc(counts)}</span></summary></details>`;
+      }).join('');
+      return `<details class="loop-section"${open}><summary>${esc(sec.title)} <span class="count">(${sec.packs.length} pack${sec.packs.length === 1 ? '' : 's'})</span></summary>${packs}</details>`;
+    }).join('');
   }
   $('slice-keys').innerHTML = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'].map((k, i) => `<span data-slice="${i}">${k}</span>`).join('');
+}
+
+// Show which loop is in the Sampler; '' when it holds your own recording.
+function markLoop(file) {
+  loopCurrent = file;
+  $('loop-list').querySelectorAll('.loop-file').forEach((b) => {
+    b.classList.toggle('on', b.dataset.file === file);
+    b.setAttribute('aria-pressed', b.dataset.file === file);
+  });
+}
+
+function wireLoopList() {
+  const list = $('loop-list');
+  // A pack draws its files when opened. Toggle doesn't bubble, so listen on the way down.
+  list.addEventListener('toggle', (e) => {
+    const pack = e.target.closest?.('.loop-pack');
+    if (pack && pack.open && !pack.querySelector('ul')) pack.insertAdjacentHTML('beforeend', packBody(loops[pack.dataset.i]));
+  }, true);
+  list.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-open-gear]')) return openGear(false);
+    const file = e.target.closest('.loop-file');
+    if (file) {
+      markLoop(file.dataset.file);
+      return loadLoop(loopCurrent);
+    }
+    const more = e.target.closest('.loop-more');
+    if (more) {
+      const i = loops.findIndex((g) => g.id === more.dataset.id);
+      const full = await loadJson(`/api/loops?pack=${encodeURIComponent(more.dataset.id)}`, null);
+      if (i < 0 || !full) return;
+      loops[i] = full;
+      const pack = more.closest('.loop-pack');
+      pack.querySelectorAll(':scope > :not(summary)').forEach((el) => el.remove());
+      pack.insertAdjacentHTML('beforeend', packBody(full));
+    }
+  });
+  let timer = null;
+  $('loop-search').addEventListener('input', (e) => {
+    clearTimeout(timer);
+    const query = e.target.value.trim();
+    timer = setTimeout(async () => {
+      const found = query ? await loadJson(`/api/loops?find=${encodeURIComponent(query)}`, []) : null;
+      // A slower reply for an older search must not replace what you typed since.
+      if (query !== $('loop-search').value.trim()) return;
+      loopFound = found;
+      renderLoops();
+    }, 250);
+  });
 }
 
 async function loadLoop(path) {
@@ -2338,11 +2438,19 @@ async function loadLoop(path) {
     $('loop-info').textContent = 'Press Start first, then pick the loop again.';
     return;
   }
-  $('loop-info').textContent = 'Loading…';
+  $('loop-info').textContent = /\.aiff?$/i.test(path) && gear.copyAiff ? 'Loading… (making a WAV copy the first time)' : 'Loading…';
   try {
     loopReady(await engine.loadChop(path));
-  } catch {
-    $('loop-info').textContent = 'Could not load that loop.';
+  } catch (e) {
+    if (!e.needsCopy) {
+      $('loop-info').textContent = 'Could not load that loop.';
+      return;
+    }
+    $('loop-info').innerHTML = `This is an AIFF file, and Chrome can't play those. Music Coach can make WAV copies to play instead. Copies go in ${esc(shortPath(gear.copiesDir || 'its own folder'))}. Your original files are never changed. <button type="button" class="link" id="copy-aiff">Make WAV copies</button>`;
+    $('copy-aiff').onclick = async () => {
+      await changeGear({ op: 'copyAiff' });
+      loadLoop(path);
+    };
   }
 }
 
@@ -2386,7 +2494,7 @@ async function toggleMicRecording() {
     $('mic-rec').classList.remove('on');
     try {
       const data = await new Blob(chunks, { type: rec.mimeType }).arrayBuffer();
-      $('loop').value = '';
+      markLoop('');
       loopReady(engine.setChop(await engine.ctx.decodeAudioData(data), 'Your recording'));
     } catch {
       $('loop-info').textContent = 'Could not use that recording. Try again.';
@@ -2684,7 +2792,7 @@ async function ask() {
 // ---------- gear ----------
 
 function esc(text) {
-  return String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  return String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
 const TAG_NAMES = {
@@ -2754,6 +2862,24 @@ function gearGroups() {
     open: true,
     items: gear.folders.map((f) => ({ name: shortPath(f.path), maker: f.found ? 'folder' : 'not connected right now', description: '', remove: { folder: f.path } })),
   });
+  // By name, so a pack you move to another heading stays where it is in this list.
+  const packs = packScan.packs.filter((p) => !p.hidden).sort((a, b) => a.label.localeCompare(b.label));
+  if (packs.length || packScan.scanning) {
+    groups.push({
+      title: 'Sample packs',
+      note: packScan.scanning
+        ? 'Looking through your sample folders for packs… A big drive can take a minute.'
+        : `Each pack sits under a heading in the Sampler. The app guessed the heading from the pack's name: change any that are wrong. New files show up after you press Refresh.${gear.copyAiff ? ` AIFF files play from WAV copies in ${shortPath(gear.copiesDir || '')}; your originals are never changed.` : ''}`,
+      refresh: !packScan.scanning,
+      items: packs.map((p) => ({
+        name: p.label,
+        maker: p.connected ? p.where || shortPath(p.folder) : 'not connected right now',
+        description: packCounts(p.loops, p.total),
+        pack: p,
+        remove: { pack: p.id },
+      })),
+    });
+  }
   groups.push({
     title: 'Sounds inside this app',
     note: 'Sounds the coach plays itself. These are not plugins and do not appear in GarageBand.',
@@ -2790,11 +2916,15 @@ function gearGroups() {
     });
   }
   const gone = pluginDetails.filter((p) => hidden.has(p.name));
-  if (gone.length) {
+  const hiddenPacks = packScan.packs.filter((p) => p.hidden);
+  if (gone.length || hiddenPacks.length) {
     groups.push({
       title: 'Removed',
-      note: 'Still installed, just left out of lessons and this list. Restore any time.',
-      items: gone.map((p) => ({ name: p.name, maker: p.maker, description: '', restore: p.name })),
+      note: 'Still on your Mac, just left out of lessons, the Sampler and this list. Restore any time.',
+      items: [
+        ...gone.map((p) => ({ name: p.name, maker: p.maker, description: '', restore: p.name })),
+        ...hiddenPacks.map((p) => ({ name: p.label, maker: 'sample pack', description: '', restorePack: p.id })),
+      ],
     });
   }
   return groups;
@@ -2811,7 +2941,10 @@ function gearItem(i, group) {
   const moved = i.moved
     ? ` <span class="gear-moved">✓ ${i.moved.to ? `Now in ${esc(i.moved.to)}` : 'The app sorts it again'} · <button class="link gear-undo" type="button" data-name="${esc(i.name)}" data-was="${esc(i.moved.was)}">Undo</button></span>`
     : '';
-  const tag = i.remove?.added !== undefined
+  const tag = i.pack
+    ? ` <select class="gear-slot gear-pack${gear.packs?.[i.pack.id] ? ' set' : ''}" data-id="${esc(i.pack.id)}" aria-label="Where ${esc(i.name)} goes in the Sampler">${packScan.sections
+      .map((sec) => `<option value="${sec}"${sec === i.pack.section ? ' selected' : ''}>${sec === i.pack.guess ? `${sec} (the app's guess)` : sec}</option>`).join('')}</select>`
+    : i.remove?.added !== undefined
     ? i.noJob
       ? ' <span class="gear-nojob">Lessons have no job for this yet.</span>'
       : ` <select class="gear-tag${i.tag ? ' set' : ''}" data-name="${esc(i.name)}" aria-label="What ${esc(i.name)} is for">${tagOptions(i.tag, 'What is it for?')}</select>`
@@ -2822,7 +2955,9 @@ function gearItem(i, group) {
     ? `<button class="gear-x ghost" data-remove='${esc(JSON.stringify(i.remove))}' aria-label="Remove ${esc(i.name)}" title="Remove">×</button>`
     : i.restore
       ? `<button class="gear-restore ghost" data-restore="${esc(i.restore)}">Restore</button>`
-      : '';
+      : i.restorePack
+        ? `<button class="gear-restore ghost" data-restore-pack="${esc(i.restorePack)}">Restore</button>`
+        : '';
   return `<li><span class="gear-line"><strong>${esc(i.name)}</strong>${i.maker ? ` <span class="maker">${esc(i.maker)}</span>` : ''}${i.description ? `: ${esc(i.description)}` : ''}</span>${tag}${action}</li>`;
 }
 
@@ -2840,7 +2975,8 @@ function renderGear() {
   body.innerHTML = (query.trim() ? '' : status) + groups
     .map((grp) => {
       const open = query.trim() || grp.open || grp.items.length <= 4 ? ' open' : '';
-      return `<details${open}><summary>${esc(grp.title)} <span class="count">(${grp.items.length})</span></summary>${grp.note ? `<p class="group-note">${esc(grp.note)}</p>` : ''}<ul>${grp.items.map((i) => gearItem(i, grp)).join('')}</ul></details>`;
+      const refresh = grp.refresh ? ' <button type="button" class="link" data-refresh-packs>Refresh</button>' : '';
+      return `<details${open}><summary>${esc(grp.title)} <span class="count">(${grp.items.length})</span></summary>${grp.note ? `<p class="group-note">${esc(grp.note)}${refresh}</p>` : ''}<ul>${grp.items.map((i) => gearItem(i, grp)).join('')}</ul></details>`;
     })
     .join('');
   if (!query.trim() && gear.zippedPacks?.length) {
@@ -2856,14 +2992,16 @@ async function changeGear(change) {
     body: JSON.stringify(change),
   });
   if (!res.ok) throw new Error('not saved');
-  await refreshGear(/Folder$/.test(change.op));
+  await refreshGear(/Folder$/.test(change.op) || change.op === 'pack');
+  if (/Folder$/.test(change.op)) watchPacks();
 }
 
 async function refreshGear(folders) {
   setGear(await loadJson('/api/gear', gear));
   if (folders) {
-    [loops, instruments, drumKits] = await Promise.all([
+    [loops, instruments, drumKits, packScan] = await Promise.all([
       loadJson('/api/loops', loops), loadJson('/api/instruments', instruments), loadJson('/api/drumkits', drumKits),
+      loadJson('/api/packs', packScan),
     ]);
     renderLoops();
     renderSoundButtons();
@@ -2893,11 +3031,49 @@ function gearNote(text) {
   $('gear-drop-note').textContent = text;
 }
 
+// While the server looks through your folders, check back every few seconds. When you
+// asked for it (a new folder, Refresh), say what it found.
+// Only one check runs at a time; a newer call takes over. Lists are redrawn only when
+// looking starts or ends, so a pack you have open stays open.
+let packWatch = null;
+let packWatchId = 0;
+async function watchPacks(asked = false) {
+  clearTimeout(packWatch);
+  const id = ++packWatchId;
+  const scan = await loadJson('/api/packs', packScan);
+  if (id !== packWatchId) return;
+  const started = scan.scanning && !packScan.scanning;
+  const finished = packScan.scanning && !scan.scanning;
+  packScan = scan;
+  if (scan.scanning) {
+    if (started) {
+      renderLoops();
+      if ($('gear-dialog').open) renderGear();
+    }
+    packWatch = setTimeout(() => watchPacks(asked), 3000);
+    return;
+  }
+  if (finished || asked) await refreshGear(true);
+  if (asked && id === packWatchId) gearNote(packSummary());
+}
+
+function packSummary() {
+  const shown = packScan.packs.filter((p) => !p.hidden);
+  if (!shown.length) return 'No sample packs found in your folders.';
+  const counts = packScan.sections.map((s) => [s, shown.filter((p) => p.section === s).length]).filter(([, n]) => n);
+  return `Found ${shown.length} sample pack${shown.length === 1 ? '' : 's'}: ${counts.map(([s, n]) => `${s} ${n}`).join(', ')}. Move any that are in the wrong place under Sample packs below.`;
+}
+
 // Remove one item; Undo sends the opposite change, so nothing else is touched.
 async function removeGear(what) {
   if (what.plugin) {
     await changeGear({ op: 'hide', name: what.plugin });
     toast(`Removed ${what.plugin}. Lessons now use the next choice.`, () => changeGear({ op: 'unhide', name: what.plugin }));
+  } else if (what.pack) {
+    const pack = packScan.packs.find((p) => p.id === what.pack);
+    const was = gear.packs?.[what.pack] || '';
+    await changeGear({ op: 'pack', path: what.pack, section: 'hidden' });
+    toast(`Hid ${pack?.label || 'that pack'} from the Sampler. The files stay where they are.`, () => changeGear({ op: 'pack', path: what.pack, section: was }));
   } else if (what.added) {
     const item = gear.added.find((a) => a.name === what.added);
     await changeGear({ op: 'remove', name: what.added });
@@ -2940,7 +3116,8 @@ async function chooseFolder() {
     const body = await res.json();
     if (body.cancelled) return gearNote('No folder picked.');
     await refreshGear(true);
-    gearNote(`Added ${shortPath(body.folder)}. Its loops are in the Sampler now.`);
+    gearNote(`Added ${shortPath(body.folder)}. Looking through it for sample packs…`);
+    watchPacks(true);
   } catch {
     gearNote('Could not open the folder picker. Is the Music Coach server running?');
   }
@@ -2991,6 +3168,17 @@ function wireGearDrop() {
       renderGear();
       return;
     }
+    if (e.target.closest('[data-refresh-packs]')) {
+      await fetch('/api/packs/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      gearNote('Looking through your sample folders again…');
+      return watchPacks(true);
+    }
+    const rp = e.target.closest('[data-restore-pack]');
+    if (rp) {
+      await changeGear({ op: 'pack', path: rp.dataset.restorePack, section: '' });
+      toast('That pack is back in the Sampler.');
+      return;
+    }
     const r = e.target.closest('[data-restore]');
     if (r) {
       await changeGear({ op: 'unhide', name: r.dataset.restore });
@@ -2998,6 +3186,17 @@ function wireGearDrop() {
     }
   });
   $('gear-body').addEventListener('change', async (e) => {
+    const move = e.target.closest('.gear-pack');
+    if (move) {
+      const id = move.dataset.id;
+      const pack = packScan.packs.find((p) => p.id === id);
+      const was = gear.packs?.[id] || '';
+      // Picking the guess again forgets your choice, so a better guess later still applies.
+      await changeGear({ op: 'pack', path: id, section: move.value === pack?.guess ? '' : move.value });
+      toast(`Moved ${pack?.label || 'that pack'} to ${move.value}.`, () => changeGear({ op: 'pack', path: id, section: was }));
+      [...document.querySelectorAll('#gear-body .gear-pack')].find((s) => s.dataset.id === id)?.focus();
+      return;
+    }
     const slot = e.target.closest('.gear-slot');
     if (slot) {
       const name = slot.dataset.name;
@@ -3246,11 +3445,12 @@ async function boot() {
     $('coach-version').textContent = `Music Coach v${version}`;
   });
   loadPlaces();
-  const [g, p, inst, kits, loopList, plugins, labels] = await Promise.all([
+  const [g, p, inst, kits, loopList, plugins, labels, packs] = await Promise.all([
     loadJson('/api/gear', gear), loadJson('/api/progress', {}), loadJson('/api/instruments', []),
     loadJson('/api/drumkits', []), loadJson('/api/loops', []), loadJson('/api/plugins', []),
-    loadJson('/api/gear/labels', {}),
+    loadJson('/api/gear/labels', {}), loadJson('/api/packs', packScan),
   ]);
+  packScan = packs;
   instruments = inst;
   drumKits = kits;
   loops = loopList;
@@ -3259,9 +3459,10 @@ async function boot() {
   renderKits();
   if (p.grid) state.grid = { ...state.grid, ...p.grid };
   renderGrid();
+  setGear(g);
   renderLoops();
   renderSoundButtons();
-  setGear(g);
+  if (packScan.scanning) watchPacks();
   renderFxNote();
   describeGear();
   progress = { ...progress, ...p, completed: { ...(p.completed || {}) }, checks: { ...(p.checks || {}) } };
