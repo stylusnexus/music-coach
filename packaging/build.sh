@@ -24,6 +24,12 @@ find "$APP" -name .DS_Store -delete
 #   SIGN_IDENTITY   "Developer ID Application: Name (TEAMID)", in the keychain
 #   NOTARY_PROFILE  a notarytool keychain profile (xcrun notarytool store-credentials), or
 #   NOTARY_KEY, NOTARY_KEY_ID, NOTARY_ISSUER  an App Store Connect API key (.p8 path) and its ids
+# A release (CI is set on GitHub's machines) must be signed and notarized, or it stops
+# here, before anything is published.
+if [ -n "${CI:-}" ] && { [ -z "${SIGN_IDENTITY:-}" ] || { [ -z "${NOTARY_PROFILE:-}" ] && [ -z "${NOTARY_KEY:-}" ]; }; }; then
+  echo "A release build must be signed and notarized: SIGN_IDENTITY or the notary key is missing." >&2
+  exit 1
+fi
 if [ -n "${SIGN_IDENTITY:-}" ]; then
   codesign --force --deep --options runtime --timestamp -s "$SIGN_IDENTITY" "$APP"
   codesign --verify --strict --verbose=2 "$APP"
