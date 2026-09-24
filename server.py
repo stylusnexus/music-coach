@@ -489,8 +489,13 @@ def find_packs(root, big=5000, max_dirs=20000):
     for folder in found:
         rel = Path(folder).relative_to(root)
         # Sounds loose in the top folder are one pack; the packs below keep their own.
-        inner = [folder] if folder == top else [d for d in sorted(direct) if d == folder or d.startswith(folder + os.sep)]
-        files = [str(Path(d, n).relative_to(root)) for d in inner for n in direct[d]]
+        inner, todo = [], [folder]
+        while todo:
+            d = todo.pop()
+            inner.append(d)
+            if folder != top:
+                todo.extend(k for k in kids.get(d, []) if count.get(k))
+        files = [str(Path(d, n).relative_to(root)) for d in inner for n in direct.get(d, [])]
         inside = len(rel.parts)
         # Loops first: the Sampler is for cutting up loops, and packs say which are loops.
         files.sort(key=lambda f: (not is_loop(f, inside), f.lower()))

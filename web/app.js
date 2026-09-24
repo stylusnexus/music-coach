@@ -2385,6 +2385,15 @@ function renderLoops() {
   $('slice-keys').innerHTML = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'].map((k, i) => `<span data-slice="${i}">${k}</span>`).join('');
 }
 
+// Show which loop is in the Sampler; '' when it holds your own recording.
+function markLoop(file) {
+  loopCurrent = file;
+  $('loop-list').querySelectorAll('.loop-file').forEach((b) => {
+    b.classList.toggle('on', b.dataset.file === file);
+    b.setAttribute('aria-pressed', b.dataset.file === file);
+  });
+}
+
 function wireLoopList() {
   const list = $('loop-list');
   // A pack draws its files when opened. Toggle doesn't bubble, so listen on the way down.
@@ -2396,11 +2405,7 @@ function wireLoopList() {
     if (e.target.closest('[data-open-gear]')) return openGear(false);
     const file = e.target.closest('.loop-file');
     if (file) {
-      loopCurrent = file.dataset.file;
-      list.querySelectorAll('.loop-file').forEach((b) => {
-        b.classList.toggle('on', b.dataset.file === loopCurrent);
-        b.setAttribute('aria-pressed', b.dataset.file === loopCurrent);
-      });
+      markLoop(file.dataset.file);
       return loadLoop(loopCurrent);
     }
     const more = e.target.closest('.loop-more');
@@ -2419,8 +2424,11 @@ function wireLoopList() {
     clearTimeout(timer);
     const query = e.target.value.trim();
     timer = setTimeout(async () => {
-      loopFound = query ? await loadJson(`/api/loops?find=${encodeURIComponent(query)}`, []) : null;
-      if (query === $('loop-search').value.trim()) renderLoops();
+      const found = query ? await loadJson(`/api/loops?find=${encodeURIComponent(query)}`, []) : null;
+      // A slower reply for an older search must not replace what you typed since.
+      if (query !== $('loop-search').value.trim()) return;
+      loopFound = found;
+      renderLoops();
     }, 250);
   });
 }
@@ -2486,7 +2494,7 @@ async function toggleMicRecording() {
     $('mic-rec').classList.remove('on');
     try {
       const data = await new Blob(chunks, { type: rec.mimeType }).arrayBuffer();
-      $('loop').value = '';
+      markLoop('');
       loopReady(engine.setChop(await engine.ctx.decodeAudioData(data), 'Your recording'));
     } catch {
       $('loop-info').textContent = 'Could not use that recording. Try again.';
@@ -2784,7 +2792,7 @@ async function ask() {
 // ---------- gear ----------
 
 function esc(text) {
-  return String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  return String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
 const TAG_NAMES = {
@@ -3025,20 +3033,28 @@ function gearNote(text) {
 
 // While the server looks through your folders, check back every few seconds. When you
 // asked for it (a new folder, Refresh), say what it found.
+// Only one check runs at a time; a newer call takes over. Lists are redrawn only when
+// looking starts or ends, so a pack you have open stays open.
 let packWatch = null;
+let packWatchId = 0;
 async function watchPacks(asked = false) {
   clearTimeout(packWatch);
+  const id = ++packWatchId;
   const scan = await loadJson('/api/packs', packScan);
+  if (id !== packWatchId) return;
+  const started = scan.scanning && !packScan.scanning;
   const finished = packScan.scanning && !scan.scanning;
   packScan = scan;
   if (scan.scanning) {
-    renderLoops();
-    if ($('gear-dialog').open) renderGear();
+    if (started) {
+      renderLoops();
+      if ($('gear-dialog').open) renderGear();
+    }
     packWatch = setTimeout(() => watchPacks(asked), 3000);
     return;
   }
   if (finished || asked) await refreshGear(true);
-  if (asked) gearNote(packSummary());
+  if (asked && id === packWatchId) gearNote(packSummary());
 }
 
 function packSummary() {
